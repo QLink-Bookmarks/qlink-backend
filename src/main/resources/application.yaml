@@ -1,0 +1,59 @@
+ktor:
+  deployment:
+    port: 8080
+  application:
+    modules:
+      - com.qlink.ApplicationKt.module
+
+dataSource:
+  jdbcUrl: jdbc:postgresql://localhost:5432/qlink?currentSchema=qlink_local
+  username: local
+  password: 1234
+  driverClassName: org.postgresql.Driver
+
+flyway:
+  schema: qlink_local
+  locations:
+    - db/migration
+    - db/data
+
+http:
+  cors:
+    methods:
+      - OPTIONS
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - PATCH
+    headers:
+      - Authorization
+      - MyCustomHeader
+    anyHost: true
+    hosts: []
+  defaultHeaders:
+    engine:
+      name: X-Engine
+      value: Ktor
+  documentation:
+    openApiPath: openapi
+    swaggerPath: docs
+
+monitoring:
+  metricsPath: /metrics-micrometer
+
+logging:
+  http:
+    slowThresholdMs: 1000
+    maxLength: 4096
+    traceIdLength: 12
+    sensitiveKeys:
+      - accessToken
+      - refreshToken
+
+security:
+  jwt:
+    audience: jwt-audience
+    domain: https://jwt-provider-domain/
+    realm: ktor sample app
+    secret: secret
