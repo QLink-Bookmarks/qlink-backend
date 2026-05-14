@@ -38,6 +38,7 @@ http:
   documentation:
     openApiPath: openapi
     swaggerPath: docs
+    redocPath: redoc
 
 monitoring:
   metricsPath: /metrics-micrometer

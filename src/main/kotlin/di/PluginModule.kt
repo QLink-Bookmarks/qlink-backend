@@ -6,6 +6,7 @@ import com.qlink.common.optionalStringList
 import com.qlink.common.string
 import com.qlink.common.stringList
 import com.qlink.config.CorsConfig
+import com.qlink.config.DocumentationConfig
 import com.qlink.config.HttpLoggingConfig
 import com.qlink.config.HttpPluginConfig
 import com.qlink.config.MonitoringConfig
@@ -28,8 +29,14 @@ fun pluginModule(config: ApplicationConfig) = module {
         config.string("http.defaultHeaders.engine.name") to
           config.string("http.defaultHeaders.engine.value"),
       ),
+    )
+  }
+
+  single {
+    DocumentationConfig(
       openApiPath = config.string("http.documentation.openApiPath"),
       swaggerPath = config.string("http.documentation.swaggerPath"),
+      redocPath = config.string("http.documentation.redocPath"),
     )
   }
 

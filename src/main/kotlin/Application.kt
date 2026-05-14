@@ -1,5 +1,6 @@
 package com.qlink
 
+import com.qlink.plugin.configureDocs
 import com.qlink.plugin.configureHttp
 import com.qlink.plugin.configureKoin
 import com.qlink.plugin.configureMonitoring
@@ -29,6 +30,7 @@ fun Application.module() {
   configureSerialization()
   configureSecurity()
   configureResources()
+  configureDocs()
   configureStatusPages()
   configureRequestValidation()
   configureRouting()

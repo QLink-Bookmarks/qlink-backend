@@ -157,10 +157,13 @@ dependencies {
   implementation(libs.logback.classic)
   implementation(libs.micrometer.registryPrometheus)
 
-  // Swagger
-  implementation(ktorLibs.server.openapi)
-  implementation(ktorLibs.server.routingOpenapi)
-  implementation(ktorLibs.server.swagger)
+  // Documentation
+  implementation("io.github.smiley4:ktor-openapi:5.7.0")
+  implementation("io.github.smiley4:ktor-swagger-ui:5.7.0")
+  implementation("io.github.smiley4:ktor-redoc:5.7.0")
+  implementation("io.github.smiley4:schema-kenerator-core:2.7.2")
+  implementation("io.github.smiley4:schema-kenerator-serialization:2.7.2")
+  implementation("io.github.smiley4:schema-kenerator-swagger:2.7.2")
 
   // Test
   testImplementation(kotlin("test"))
