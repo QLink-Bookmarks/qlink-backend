@@ -47,9 +47,6 @@ fun pluginModule(config: ApplicationConfig) = module {
 
   single {
     SecurityConfig(
-      jwtAudience = config.string("security.jwt.audience"),
-      jwtDomain = config.string("security.jwt.domain"),
-      jwtRealm = config.string("security.jwt.realm"),
       jwtSecret = config.string("security.jwt.secret"),
     )
   }

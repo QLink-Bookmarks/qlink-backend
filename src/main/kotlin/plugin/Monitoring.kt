@@ -1,12 +1,12 @@
 package com.qlink.plugin
 
+import com.qlink.auth.domain.JwtPrincipal
 import com.qlink.config.MonitoringConfig
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.install
-import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
 import io.ktor.server.metrics.micrometer.MicrometerMetrics
 import io.ktor.server.plugins.calllogging.CallLogging
@@ -90,6 +90,6 @@ private fun ApplicationCall.traceId(length: Int): String {
 }
 
 private fun ApplicationCall.userId(): String =
-  principal<JWTPrincipal>()?.payload?.subject ?: "anonymous"
+  principal<JwtPrincipal>()?.userId?.toString() ?: "anonymous"
 
 private fun String?.dashIfBlank(): String = if (isNullOrBlank()) "-" else this
