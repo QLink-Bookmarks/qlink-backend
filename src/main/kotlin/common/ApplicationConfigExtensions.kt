@@ -10,5 +10,4 @@ fun ApplicationConfig.int(path: String): Int = property(path).getString().toInt(
 
 fun ApplicationConfig.stringList(path: String): List<String> = property(path).getList()
 
-fun ApplicationConfig.optionalStringList(path: String): List<String> =
-  propertyOrNull(path)?.getList().orEmpty()
+fun ApplicationConfig.optionalStringList(path: String): List<String> = propertyOrNull(path)?.getList().orEmpty()

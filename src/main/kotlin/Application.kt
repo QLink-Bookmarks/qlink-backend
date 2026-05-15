@@ -1,5 +1,6 @@
 package com.qlink
 
+import com.qlink.plugin.configureDocs
 import com.qlink.plugin.configureHttp
 import com.qlink.plugin.configureKoin
 import com.qlink.plugin.configureMonitoring
@@ -14,22 +15,24 @@ import org.flywaydb.core.Flyway
 import org.koin.ktor.ext.inject
 
 fun main(args: Array<String>) {
-  io.ktor.server.netty.EngineMain.main(args)
+    io.ktor.server.netty.EngineMain
+        .main(args)
 }
 
 fun Application.module() {
-  configureKoin()
+    configureKoin()
 
-  val flyway by inject<Flyway>()
+    val flyway by inject<Flyway>()
 
-  flyway.migrate()
+    flyway.migrate()
 
-  configureHttp()
-  configureMonitoring()
-  configureSerialization()
-  configureSecurity()
-  configureResources()
-  configureStatusPages()
-  configureRequestValidation()
-  configureRouting()
+    configureHttp()
+    configureMonitoring()
+    configureSerialization()
+    configureSecurity()
+    configureResources()
+    configureDocs()
+    configureStatusPages()
+    configureRequestValidation()
+    configureRouting()
 }

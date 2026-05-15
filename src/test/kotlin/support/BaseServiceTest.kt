@@ -7,21 +7,22 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.koin.core.component.KoinComponent
 import org.koin.core.context.GlobalContext
 
-abstract class BaseServiceTest(body: FunSpec.() -> Unit) :
-  FunSpec({
-    beforeSpec {
-      ServiceTestEnvironment.start()
-      assumeTrue(ServiceTestEnvironment.isStarted)
-    }
+abstract class BaseServiceTest(
+    body: FunSpec.() -> Unit,
+) : FunSpec({
+        beforeSpec {
+            ServiceTestEnvironment.start()
+            assumeTrue(ServiceTestEnvironment.isStarted)
+        }
 
-    aroundTest { (testCase, execute) ->
-      suspendTransaction(db = GlobalContext.get().get<Database>()) {
-        val result = execute(testCase)
-        rollback()
-        result
-      }
-    }
+        aroundTest { (testCase, execute) ->
+            suspendTransaction(db = GlobalContext.get().get<Database>()) {
+                val result = execute(testCase)
+                rollback()
+                result
+            }
+        }
 
-    body()
-  }),
-  KoinComponent
+        body()
+    }),
+    KoinComponent

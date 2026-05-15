@@ -38,6 +38,7 @@ http:
   documentation:
     openApiPath: openapi
     swaggerPath: docs
+    redocPath: redoc
 
 monitoring:
   metricsPath: /metrics-micrometer
@@ -53,7 +54,4 @@ logging:
 
 security:
   jwt:
-    audience: jwt-audience
-    domain: https://jwt-provider-domain/
-    realm: ktor sample app
-    secret: secret
+    secret: Y1d4cGJtc3RZbTl2YTIxaGNtdHo=

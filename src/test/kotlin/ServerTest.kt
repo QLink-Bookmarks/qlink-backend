@@ -8,14 +8,14 @@ import io.ktor.server.testing.testApplication
 import support.ServiceTestEnvironment
 
 class ServerTest :
-  StringSpec({
-    "application context starts with PostgreSQL testcontainer" {
-      testApplication {
-        environment {
-          config = ServiceTestEnvironment.applicationConfig()
-        }
+    StringSpec({
+        "application context starts with PostgreSQL testcontainer" {
+            testApplication {
+                environment {
+                    config = ServiceTestEnvironment.applicationConfig()
+                }
 
-        client.get("/").status shouldBe HttpStatusCode.OK
-      }
-    }
-  })
+                client.get("/").status shouldBe HttpStatusCode.OK
+            }
+        }
+    })

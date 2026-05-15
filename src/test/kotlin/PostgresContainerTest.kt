@@ -6,22 +6,22 @@ import support.ServiceTestEnvironment
 import java.sql.DriverManager
 
 class PostgresContainerTest :
-  StringSpec({
-    "PostgreSQL testcontainer responds to a simple query" {
-      ServiceTestEnvironment.start()
+    StringSpec({
+        "PostgreSQL testcontainer responds to a simple query" {
+            ServiceTestEnvironment.start()
 
-      DriverManager
-        .getConnection(
-          ServiceTestEnvironment.jdbcUrl,
-          ServiceTestEnvironment.username,
-          ServiceTestEnvironment.password,
-        ).use { connection ->
-          connection.createStatement().use { statement ->
-            statement.executeQuery("SELECT current_database()").use { resultSet ->
-              resultSet.next() shouldBe true
-              resultSet.getString(1) shouldBe ServiceTestEnvironment.databaseName
-            }
-          }
+            DriverManager
+                .getConnection(
+                    ServiceTestEnvironment.jdbcUrl,
+                    ServiceTestEnvironment.username,
+                    ServiceTestEnvironment.password,
+                ).use { connection ->
+                    connection.createStatement().use { statement ->
+                        statement.executeQuery("SELECT current_database()").use { resultSet ->
+                            resultSet.next() shouldBe true
+                            resultSet.getString(1) shouldBe ServiceTestEnvironment.databaseName
+                        }
+                    }
+                }
         }
-    }
-  })
+    })

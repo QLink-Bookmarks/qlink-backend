@@ -12,51 +12,56 @@ import org.jetbrains.exposed.v1.jdbc.Database
 import org.koin.dsl.module
 import javax.sql.DataSource
 
-fun dataModule(config: ApplicationConfig, dataSourceConfig: DataSourceConfig? = null) = module {
-  single {
-    FlywayConfig(
-      schema = config.string("flyway.schema"),
-      locations = config.stringList("flyway.locations"),
-    )
-  }
-
-  single {
-    val resolvedDataSourceConfig = dataSourceConfig ?: DataSourceConfig(
-      jdbcUrl = config.string("dataSource.jdbcUrl"),
-      username = config.string("dataSource.username"),
-      password = config.string("dataSource.password"),
-      driverClassName = config.string("dataSource.driverClassName"),
-    )
-
-    HikariConfig().apply {
-      jdbcUrl = resolvedDataSourceConfig.jdbcUrl
-      username = resolvedDataSourceConfig.username
-      password = resolvedDataSourceConfig.password
-      driverClassName = resolvedDataSourceConfig.driverClassName
-      connectionInitSql = "SET TIME ZONE 'UTC'"
+fun dataModule(
+    config: ApplicationConfig,
+    dataSourceConfig: DataSourceConfig? = null,
+) = module {
+    single {
+        FlywayConfig(
+            schema = config.string("flyway.schema"),
+            locations = config.stringList("flyway.locations"),
+        )
     }
-  }
 
-  single {
-    HikariDataSource(get())
-  }
+    single {
+        val resolvedDataSourceConfig =
+            dataSourceConfig ?: DataSourceConfig(
+                jdbcUrl = config.string("dataSource.jdbcUrl"),
+                username = config.string("dataSource.username"),
+                password = config.string("dataSource.password"),
+                driverClassName = config.string("dataSource.driverClassName"),
+            )
 
-  single<DataSource> {
-    get<HikariDataSource>()
-  }
+        HikariConfig().apply {
+            jdbcUrl = resolvedDataSourceConfig.jdbcUrl
+            username = resolvedDataSourceConfig.username
+            password = resolvedDataSourceConfig.password
+            driverClassName = resolvedDataSourceConfig.driverClassName
+            connectionInitSql = "SET TIME ZONE 'UTC'"
+        }
+    }
 
-  single {
-    Database.connect(get<DataSource>())
-  }
+    single {
+        HikariDataSource(get())
+    }
 
-  single {
-    val flywayConfig = get<FlywayConfig>()
+    single<DataSource> {
+        get<HikariDataSource>()
+    }
 
-    Flyway.configure()
-      .dataSource(get<DataSource>())
-      .schemas(flywayConfig.schema)
-      .createSchemas(true)
-      .locations(*flywayConfig.locations.toTypedArray())
-      .load()
-  }
+    single {
+        Database.connect(get<DataSource>())
+    }
+
+    single {
+        val flywayConfig = get<FlywayConfig>()
+
+        Flyway
+            .configure()
+            .dataSource(get<DataSource>())
+            .schemas(flywayConfig.schema)
+            .createSchemas(true)
+            .locations(*flywayConfig.locations.toTypedArray())
+            .load()
+    }
 }
