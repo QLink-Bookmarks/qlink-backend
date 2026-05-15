@@ -26,70 +26,72 @@ import org.slf4j.event.Level
 import java.util.UUID
 
 fun Application.configureMonitoring() {
-  val config by inject<MonitoringConfig>()
-  val appMicrometerRegistry by inject<PrometheusMeterRegistry>()
-  val httpLogger = LoggerFactory.getLogger("com.qlink.http")
+    val config by inject<MonitoringConfig>()
+    val appMicrometerRegistry by inject<PrometheusMeterRegistry>()
+    val httpLogger = LoggerFactory.getLogger("com.qlink.http")
 
-  install(CallLogging) {
-    logger = httpLogger
-    level = Level.INFO
-    mdc("traceId") { call ->
-      call.traceId(config.httpLogging.traceIdLength)
+    install(CallLogging) {
+        logger = httpLogger
+        level = Level.INFO
+        mdc("traceId") { call ->
+            call.traceId(config.httpLogging.traceIdLength)
+        }
+        format { call ->
+            val query =
+                LogSanitizer.sanitize(
+                    value = call.request.queryString().dashIfBlank(),
+                    sensitiveKeys = config.httpLogging.sensitiveKeys,
+                    maxLength = config.httpLogging.maxLength,
+                )
+            val contentLength = call.request.header(HttpHeaders.ContentLength).dashIfBlank()
+            val durationMs = call.processingTimeMillis()
+            val status = call.response.status() ?: HttpStatusCode.OK
+            val event =
+                if (durationMs >= config.httpLogging.slowThresholdMs) {
+                    "[HTTP-SLOW]"
+                } else {
+                    "[HTTP]"
+                }
+
+            "$event method=${call.request.httpMethod.value} " +
+                "uri=${call.request.path().ifEmpty { "/" }}, " +
+                "query=$query, " +
+                "contentLength=$contentLength, " +
+                "status=${status.value}, " +
+                "durationMs=$durationMs, " +
+                "userId=${call.userId()}, " +
+                "user-agent=${call.request.header(HttpHeaders.UserAgent).orEmpty()}"
+        }
     }
-    format { call ->
-      val query = LogSanitizer.sanitize(
-        value = call.request.queryString().dashIfBlank(),
-        sensitiveKeys = config.httpLogging.sensitiveKeys,
-        maxLength = config.httpLogging.maxLength,
-      )
-      val contentLength = call.request.header(HttpHeaders.ContentLength).dashIfBlank()
-      val durationMs = call.processingTimeMillis()
-      val status = call.response.status() ?: HttpStatusCode.OK
-      val event = if (durationMs >= config.httpLogging.slowThresholdMs) {
-        "[HTTP-SLOW]"
-      } else {
-        "[HTTP]"
-      }
 
-      "$event method=${call.request.httpMethod.value} " +
-        "uri=${call.request.path().ifEmpty { "/" }} " +
-        "query=$query " +
-        "contentLength=$contentLength " +
-        "status=${status.value} " +
-        "durationMs=$durationMs " +
-        "userId=${call.userId()} " +
-        "user-agent=${call.request.header(HttpHeaders.UserAgent).orEmpty()}"
+    install(MicrometerMetrics) {
+        registry = appMicrometerRegistry
+        // ...
     }
-  }
 
-  install(MicrometerMetrics) {
-    registry = appMicrometerRegistry
-    // ...
-  }
-
-  routing {
-    get(config.metricsPath) {
-      call.respond(appMicrometerRegistry.scrape())
+    routing {
+        get(config.metricsPath) {
+            call.respond(appMicrometerRegistry.scrape())
+        }
     }
-  }
 }
 
 private val TraceIdKey = AttributeKey<String>("TraceId")
 
 private fun ApplicationCall.traceId(length: Int): String {
-  attributes.getOrNull(TraceIdKey)?.let { return it }
+    attributes.getOrNull(TraceIdKey)?.let { return it }
 
-  val traceId = UUID
-    .randomUUID()
-    .toString()
-    .replace("-", "")
-    .take(length.coerceIn(1, 32))
+    val traceId =
+        UUID
+            .randomUUID()
+            .toString()
+            .replace("-", "")
+            .take(length.coerceIn(1, 32))
 
-  attributes.put(TraceIdKey, traceId)
-  return traceId
+    attributes.put(TraceIdKey, traceId)
+    return traceId
 }
 
-private fun ApplicationCall.userId(): String =
-  principal<JwtPrincipal>()?.userId?.toString() ?: "anonymous"
+private fun ApplicationCall.userId(): String = principal<JwtPrincipal>()?.userId?.toString() ?: "anonymous"
 
 private fun String?.dashIfBlank(): String = if (isNullOrBlank()) "-" else this
