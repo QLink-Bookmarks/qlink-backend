@@ -15,23 +15,24 @@ import org.flywaydb.core.Flyway
 import org.koin.ktor.ext.inject
 
 fun main(args: Array<String>) {
-  io.ktor.server.netty.EngineMain.main(args)
+    io.ktor.server.netty.EngineMain
+        .main(args)
 }
 
 fun Application.module() {
-  configureKoin()
+    configureKoin()
 
-  val flyway by inject<Flyway>()
+    val flyway by inject<Flyway>()
 
-  flyway.migrate()
+    flyway.migrate()
 
-  configureHttp()
-  configureMonitoring()
-  configureSerialization()
-  configureSecurity()
-  configureResources()
-  configureDocs()
-  configureStatusPages()
-  configureRequestValidation()
-  configureRouting()
+    configureHttp()
+    configureMonitoring()
+    configureSerialization()
+    configureSecurity()
+    configureResources()
+    configureDocs()
+    configureStatusPages()
+    configureRequestValidation()
+    configureRouting()
 }

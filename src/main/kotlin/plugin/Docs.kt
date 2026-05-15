@@ -21,52 +21,52 @@ import org.koin.ktor.ext.inject
 private const val BEARER_AUTH_SCHEME = "bearerAuth"
 
 fun Application.configureDocs() {
-  val config by inject<DocumentationConfig>()
+    val config by inject<DocumentationConfig>()
 
-  install(OpenApi) {
-    info {
-      title = "QLink API"
-      version = "1.0.0"
+    install(OpenApi) {
+        info {
+            title = "QLink API"
+            version = "1.0.0"
+        }
+        outputFormat = OutputFormat.JSON
+        openApiVersion = OpenApiVersion.V3_0
+        schemas {
+            generator = SchemaGenerator.kotlinx()
+        }
+        security {
+            securityScheme(BEARER_AUTH_SCHEME) {
+                type = AuthType.HTTP
+                scheme = AuthScheme.BEARER
+                bearerFormat = "JWT"
+            }
+            defaultSecuritySchemeNames(BEARER_AUTH_SCHEME)
+            defaultUnauthorizedResponse {
+                description = "Bearer token is missing or invalid."
+                body<ErrorDetail>()
+            }
+        }
     }
-    outputFormat = OutputFormat.JSON
-    openApiVersion = OpenApiVersion.V3_0
-    schemas {
-      generator = SchemaGenerator.kotlinx()
-    }
-    security {
-      securityScheme(BEARER_AUTH_SCHEME) {
-        type = AuthType.HTTP
-        scheme = AuthScheme.BEARER
-        bearerFormat = "JWT"
-      }
-      defaultSecuritySchemeNames(BEARER_AUTH_SCHEME)
-      defaultUnauthorizedResponse {
-        description = "Bearer token is missing or invalid."
-        body<ErrorDetail>()
-      }
-    }
-  }
 
-  routing {
-    route(config.openApiPath) {
-      openApi()
+    routing {
+        route(config.openApiPath) {
+            openApi()
+        }
+        route(config.swaggerPath) {
+            swaggerUI("/${config.openApiPath}") {
+                deepLinking = true
+                operationsSorter = OperationsSort.HTTP_METHOD
+                persistAuthorization = true
+                tryItOutEnabled = true
+            }
+        }
+        route(config.redocPath) {
+            redoc("/${config.openApiPath}") {
+                pageTitle = "QLink API Reference"
+                disableSearch = false
+                hideDownloadButton = false
+                pathInMiddlePanel = true
+                requiredPropsFirst = true
+            }
+        }
     }
-    route(config.swaggerPath) {
-      swaggerUI("/${config.openApiPath}") {
-        deepLinking = true
-        operationsSorter = OperationsSort.HTTP_METHOD
-        persistAuthorization = true
-        tryItOutEnabled = true
-      }
-    }
-    route(config.redocPath) {
-      redoc("/${config.openApiPath}") {
-        pageTitle = "QLink API Reference"
-        disableSearch = false
-        hideDownloadButton = false
-        pathInMiddlePanel = true
-        requiredPropsFirst = true
-      }
-    }
-  }
 }
