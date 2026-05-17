@@ -8,7 +8,11 @@ kotlin = "2.3.21"
 logback = "1.5.21"
 prometheus = "1.16.4"
 spotless = "8.4.0"
+postgresql = "42.7.10"
+openapi = "5.7.0"
+schema = "2.7.2"
 testcontainers = "1.21.4"
+datafaker = "2.5.4"
 
 [libraries]
 exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed" }
@@ -23,9 +27,16 @@ kotest-assertions-core = { module = "io.kotest:kotest-assertions-core-jvm", vers
 kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5-jvm", version.ref = "kotest" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 micrometer-registryPrometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "prometheus" }
-postgresql = { module = "org.postgresql:postgresql", version = "42.7.10" }
+postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
+ktor-openapi = { module = "io.github.smiley4:ktor-openapi", version.ref = "openapi" }
+ktor-swagger-ui = { module = "io.github.smiley4:ktor-swagger-ui", version.ref = "openapi" }
+ktor-redoc = { module = "io.github.smiley4:ktor-redoc", version.ref = "openapi" }
+schema-kenerator-core = { module = "io.github.smiley4:schema-kenerator-core", version.ref = "schema" }
+schema-kenerator-serialization = { module = "io.github.smiley4:schema-kenerator-serialization", version.ref = "schema" }
+schema-kenerator-swagger = { module = "io.github.smiley4:schema-kenerator-swagger", version.ref = "schema" }
 testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
 testcontainers-postgresql = { module = "org.testcontainers:postgresql", version.ref = "testcontainers" }
+datafaker = { module = "net.datafaker:datafaker", version.ref = "datafaker" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
