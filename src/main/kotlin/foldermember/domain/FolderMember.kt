@@ -1,12 +1,12 @@
 package com.qlink.foldermember.domain
 
-import java.time.OffsetDateTime
+import kotlin.time.Instant
 
 data class FolderMember(
     val folderId: Long,
     val userId: Long,
     val role: String,
-    val joinedAt: OffsetDateTime,
-    val createdAt: OffsetDateTime,
-    val updatedAt: OffsetDateTime,
+    val joinedAt: Instant,
+    val createdAt: Instant,
+    val updatedAt: Instant,
 )

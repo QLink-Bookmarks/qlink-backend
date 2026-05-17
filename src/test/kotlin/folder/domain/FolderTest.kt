@@ -1,15 +1,16 @@
-package com.qlink.folder.domain
+package folder.domain
 
+import com.qlink.folder.domain.Folder
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import java.time.OffsetDateTime
-import java.time.ZoneOffset
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.seconds
 
 class FolderTest :
     StringSpec({
         "creates a folder domain model" {
-            val now = OffsetDateTime.now(ZoneOffset.UTC)
+            val now = Clock.System.now()
             val folder =
                 Folder(
                     id = 1,
@@ -29,8 +30,8 @@ class FolderTest :
             folder.copy(name = "Home") shouldNotBe folder
             folder.copy(emoji = null) shouldNotBe folder
             folder.copy(sharedAt = null) shouldNotBe folder
-            folder.copy(createdAt = now.plusSeconds(1)) shouldNotBe folder
-            folder.copy(updatedAt = now.plusSeconds(2)) shouldNotBe folder
+            folder.copy(createdAt = now + 1.seconds) shouldNotBe folder
+            folder.copy(updatedAt = now + 2.seconds) shouldNotBe folder
             folder.equals("folder") shouldBe false
             folder.hashCode() shouldBe folder.copy().hashCode()
         }
