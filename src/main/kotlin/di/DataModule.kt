@@ -1,9 +1,9 @@
 package com.qlink.di
 
-import com.qlink.common.string
-import com.qlink.common.stringList
 import com.qlink.config.DataSourceConfig
 import com.qlink.config.FlywayConfig
+import com.qlink.config.string
+import com.qlink.config.stringList
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.config.ApplicationConfig

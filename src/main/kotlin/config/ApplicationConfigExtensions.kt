@@ -1,4 +1,4 @@
-package com.qlink.common
+package com.qlink.config
 
 import io.ktor.server.config.ApplicationConfig
 

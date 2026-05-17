@@ -5,7 +5,7 @@ import com.auth0.jwt.algorithms.Algorithm
 import com.qlink.auth.domain.JwtPrincipal
 import com.qlink.auth.domain.Role
 import com.qlink.common.error.ErrorCode
-import com.qlink.common.error.respondError
+import com.qlink.common.response.respondError
 import com.qlink.config.SecurityConfig
 import io.ktor.http.HttpHeaders
 import io.ktor.server.application.Application
@@ -51,10 +51,10 @@ fun Application.configureSecurity() {
 
                 val errorCode =
                     when (cause) {
-                        is AuthenticationFailedCause.NoCredentials -> ErrorCode.AUTH_401_0001
-                        is AuthenticationFailedCause.InvalidCredentials -> ErrorCode.AUTH_401_0002
-                        is AuthenticationFailedCause.Error -> ErrorCode.AUTH_401_0003
-                        else -> ErrorCode.AUTH_401_0004
+                        is AuthenticationFailedCause.NoCredentials -> ErrorCode.AUTH_NO_CREDENTIALS
+                        is AuthenticationFailedCause.InvalidCredentials -> ErrorCode.AUTH_INVALID_CREDENTIALS
+                        is AuthenticationFailedCause.Error -> ErrorCode.AUTH_WRONG_CREDENTIALS
+                        else -> ErrorCode.AUTH_UNEXPECTED_CREDENTIALS
                     }
 
                 call.respondError(

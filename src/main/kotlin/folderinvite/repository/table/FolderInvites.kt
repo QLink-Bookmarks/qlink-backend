@@ -4,17 +4,18 @@ import com.qlink.folder.repository.table.Folders
 import com.qlink.user.repository.table.Users
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.javatime.timestampWithTimeZone
+import org.jetbrains.exposed.v1.javatime.CurrentTimestamp
+import org.jetbrains.exposed.v1.javatime.timestamp
 
 object FolderInvites : Table("folder_invites") {
     val id = long("id").autoIncrement()
     val folderId = reference("folder_id", Folders.id, onDelete = ReferenceOption.CASCADE)
     val inviterId = reference("inviter_id", Users.id, onDelete = ReferenceOption.CASCADE)
     val token = varchar("token", 64)
-    val expiresAt = timestampWithTimeZone("expires_at")
-    val acceptedAt = timestampWithTimeZone("accepted_at").nullable()
-    val createdAt = timestampWithTimeZone("created_at")
-    val updatedAt = timestampWithTimeZone("updated_at")
+    val expiresAt = timestamp("expires_at")
+    val acceptedAt = timestamp("accepted_at").nullable()
+    val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
+    val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp)
 
     override val primaryKey = PrimaryKey(id)
 

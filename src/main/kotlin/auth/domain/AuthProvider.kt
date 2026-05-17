@@ -1,12 +1,12 @@
 package com.qlink.auth.domain
 
-import java.time.OffsetDateTime
+import kotlin.time.Instant
 
 data class AuthProvider(
     val id: Long,
     val userId: Long,
     val providerType: String,
     val providerId: String,
-    val createdAt: OffsetDateTime,
-    val updatedAt: OffsetDateTime,
+    val createdAt: Instant,
+    val updatedAt: Instant,
 )

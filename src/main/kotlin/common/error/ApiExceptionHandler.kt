@@ -1,22 +1,28 @@
 package com.qlink.common.error
 
-import com.qlink.common.response.ApiResponse
-import com.qlink.common.response.ErrorDetail
+import com.qlink.common.response.respondError
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.ApplicationCall
+import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.statuspages.StatusPagesConfig
-import io.ktor.server.response.respond
+import io.ktor.util.rootCause
 import kotlinx.coroutines.CancellationException
+import org.slf4j.LoggerFactory
 
 class ApiExceptionHandler {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     val exceptionHandlerConfig: StatusPagesConfig.() -> Unit = {
         exception<BusinessException> { call, cause ->
-            call.respondError(cause.errorCode)
+            call.respondError(cause.errorCode, cause.cause)
+        }
+
+        exception<BadRequestException> { call, cause ->
+            call.respondError(ErrorCode.COMMON_BAD_REQUEST, cause.cause)
         }
 
         status(HttpStatusCode.NotFound) { call, _ ->
             call.respondError(
-                errorCode = ErrorCode.INT_404_0001,
+                errorCode = ErrorCode.COMMON_URL_NOT_FOUND,
             )
         }
 
@@ -25,32 +31,12 @@ class ApiExceptionHandler {
                 throw cause
             }
 
+            log.error(cause.message ?: "Unknown Exception happened - ", cause)
+
             call.respondError(
-                errorCode = ErrorCode.INT_500_0001,
+                errorCode = ErrorCode.COMMON_INTERNAL_SERVER_ERROR,
                 cause = cause,
             )
         }
     }
-}
-
-suspend fun ApplicationCall.respondError(
-    errorCode: ErrorCode,
-    cause: Throwable? = null,
-    causeName: String? = null,
-    causeMessage: String? = null,
-) {
-    respond(
-        status = HttpStatusCode.fromValue(errorCode.status),
-        message =
-            ApiResponse<String>(
-                success = false,
-                error =
-                    ErrorDetail(
-                        code = errorCode.name,
-                        message = errorCode.message,
-                        cause = cause?.javaClass?.name ?: causeName,
-                        causeMessage = cause?.message ?: causeMessage,
-                    ),
-            ),
-    )
 }

@@ -151,12 +151,12 @@ dependencies {
     implementation(libs.micrometer.registryPrometheus)
 
     // Documentation
-    implementation("io.github.smiley4:ktor-openapi:5.7.0")
-    implementation("io.github.smiley4:ktor-swagger-ui:5.7.0")
-    implementation("io.github.smiley4:ktor-redoc:5.7.0")
-    implementation("io.github.smiley4:schema-kenerator-core:2.7.2")
-    implementation("io.github.smiley4:schema-kenerator-serialization:2.7.2")
-    implementation("io.github.smiley4:schema-kenerator-swagger:2.7.2")
+    implementation(libs.ktor.openapi)
+    implementation(libs.ktor.swagger.ui)
+    implementation(libs.ktor.redoc)
+    implementation(libs.schema.kenerator.core)
+    implementation(libs.schema.kenerator.serialization)
+    implementation(libs.schema.kenerator.swagger)
 
     // Test
     testImplementation(kotlin("test"))
@@ -165,4 +165,5 @@ dependencies {
     testImplementation(ktorLibs.server.testHost)
     testImplementation(libs.testcontainers.junit.jupiter)
     testImplementation(libs.testcontainers.postgresql)
+    testImplementation(libs.datafaker)
 }
