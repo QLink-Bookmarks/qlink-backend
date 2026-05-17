@@ -12,7 +12,10 @@ fun Boolean.requireFalse(errorCode: ErrorCode) {
     }
 }
 
-fun String.requireNotOver(length: Int, errorCode: ErrorCode) {
+fun String.requireNotOver(
+    length: Int,
+    errorCode: ErrorCode,
+) {
     if (this.length > length) {
         throw BusinessException(errorCode)
     }

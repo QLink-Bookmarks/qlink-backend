@@ -21,8 +21,8 @@ object Users : Table("users") {
     override val primaryKey = PrimaryKey(id)
 }
 
-fun ResultRow.toUserDomain(): User {
-    return User(
+fun ResultRow.toUserDomain(): User =
+    User(
         id = this[Users.id],
         displayName = this[Users.displayName],
         avatarUrl = this[Users.avatarUrl],
@@ -30,7 +30,6 @@ fun ResultRow.toUserDomain(): User {
         createdAt = this[Users.createdAt].toKotlinInstant(),
         updatedAt = this[Users.updatedAt].toKotlinInstant(),
     )
-}
 
 fun UpdateBuilder<*>.fromDomain(user: User) {
     this[Users.displayName] = user.displayName

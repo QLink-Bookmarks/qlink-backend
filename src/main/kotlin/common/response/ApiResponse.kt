@@ -13,13 +13,17 @@ data class ApiResponse<T>(
     val error: ErrorDetail? = null,
 )
 
-suspend inline fun <reified T> ApplicationCall.respondSuccess(status: HttpStatusCode, data: T) {
+suspend inline fun <reified T> ApplicationCall.respondSuccess(
+    status: HttpStatusCode,
+    data: T,
+) {
     respond(
         status = status,
-        message = ApiResponse(
-            success = true,
-            data = data,
-        )
+        message =
+            ApiResponse(
+                success = true,
+                data = data,
+            ),
     )
 }
 

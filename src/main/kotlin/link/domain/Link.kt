@@ -38,12 +38,13 @@ class Link(
     private fun validateUrl(url: String) {
         url.isNotBlank().requireTrue(ErrorCode.LINK_URL_BLANK)
 
-        val uri = runCatching { URI(url.trim()) }.getOrElse { e ->
-            throw BusinessException(
-                ErrorCode.LINK_URL_WRONG_FORMAT,
-                e
-            )
-        }
+        val uri =
+            runCatching { URI(url.trim()) }.getOrElse { e ->
+                throw BusinessException(
+                    ErrorCode.LINK_URL_WRONG_FORMAT,
+                    e,
+                )
+            }
 
         uri.host.isNullOrBlank().requireFalse(ErrorCode.LINK_URL_WRONG_HOST)
         uri.isWebScheme().requireTrue(ErrorCode.LINK_URL_NOT_HTTP)
@@ -54,7 +55,5 @@ class Link(
         title.requireNotOver(MAX_TITLE_LENGTH, ErrorCode.LINK_TITLE_OVER_MAX)
     }
 
-    private fun URI.isWebScheme(): Boolean {
-        return scheme.lowercase() in WEB_PROTOCOL
-    }
+    private fun URI.isWebScheme(): Boolean = scheme.lowercase() in WEB_PROTOCOL
 }

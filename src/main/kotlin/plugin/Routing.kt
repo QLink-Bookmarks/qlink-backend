@@ -57,5 +57,4 @@ fun Application.configureRouting() {
     }
 }
 
-fun ApplicationCall.jwtPrincipalOrGuest(): JwtPrincipal =
-    principal<JwtPrincipal>() ?: JwtPrincipal(userId = 0, role = Role.GUEST)
+fun ApplicationCall.jwtPrincipalOrGuest(): JwtPrincipal = principal<JwtPrincipal>() ?: JwtPrincipal(userId = 0, role = Role.GUEST)

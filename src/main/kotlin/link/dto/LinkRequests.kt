@@ -1,3 +1,5 @@
+@file:Suppress("ktlint:standard:filename")
+
 package com.qlink.link.dto
 
 import com.qlink.link.domain.SourceType

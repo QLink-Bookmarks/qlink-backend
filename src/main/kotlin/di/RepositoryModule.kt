@@ -8,16 +8,17 @@ import com.qlink.user.repository.DbUserRepository
 import com.qlink.user.repository.UserRepository
 import org.koin.dsl.module
 
-fun repositoryModule() = module {
-    single<LinkRepository> {
-        DbLinkRepository()
-    }
+fun repositoryModule() =
+    module {
+        single<LinkRepository> {
+            DbLinkRepository()
+        }
 
-    single<FolderRepository> {
-        DbFolderRepository()
-    }
+        single<FolderRepository> {
+            DbFolderRepository()
+        }
 
-    single<UserRepository> {
-        DbUserRepository()
+        single<UserRepository> {
+            DbUserRepository()
+        }
     }
-}

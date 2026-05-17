@@ -14,29 +14,31 @@ class CreateLinkService(
     private val tx: TransactionRunner,
     private val linkRepository: LinkRepository,
     private val userRepository: UserRepository,
-    private val folderRepository: FolderRepository
+    private val folderRepository: FolderRepository,
 ) {
-
-    suspend fun createLink(loginId: Long, request: CreateLinkRequest): CreateLinkResponse =
+    suspend fun createLink(
+        loginId: Long,
+        request: CreateLinkRequest,
+    ): CreateLinkResponse =
         tx.required {
             userRepository.emptyById(loginId).requireFalse(ErrorCode.LINK_OWNER_NOT_FOUND)
             request.folderId?.let {
                 folderRepository.emptyById(it).requireFalse(ErrorCode.LINK_FOLDER_NOT_FOUND)
             }
 
-            val link = Link(
-                ownerId = loginId,
-                folderId = request.folderId,
-                url = request.url,
-                title = request.title,
-                summary = request.summary,
-                tags = request.tags,
-                thumbnailUrl = request.thumbnailUrl,
-                sourceType = request.sourceType,
-                reminderAt = request.reminderAt
-            )
+            val link =
+                Link(
+                    ownerId = loginId,
+                    folderId = request.folderId,
+                    url = request.url,
+                    title = request.title,
+                    summary = request.summary,
+                    tags = request.tags,
+                    thumbnailUrl = request.thumbnailUrl,
+                    sourceType = request.sourceType,
+                    reminderAt = request.reminderAt,
+                )
 
             CreateLinkResponse(linkRepository.insert(link).id!!)
         }
-
 }

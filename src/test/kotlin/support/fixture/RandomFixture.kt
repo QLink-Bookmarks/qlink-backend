@@ -14,44 +14,52 @@ object RandomFixture {
     fun randomId(): Long = randomLong(1L, Long.MAX_VALUE)
 
     fun randomSentenceWithMax(maxLength: Int): String =
-        faker.lorem()
+        faker
+            .lorem()
             .maxLengthSentence(maxLength)
 
     fun randomSentence(
         minLength: Int,
         maxLength: Int,
     ): String =
-        faker.lorem()
+        faker
+            .lorem()
             .characters(minLength, maxLength)
 
     fun randomFixedSentence(length: Int): String =
-        faker.lorem()
+        faker
+            .lorem()
             .characters(length)
 
     fun randomInt(
         min: Int,
         max: Int,
     ): Int =
-        faker.random()
+        faker
+            .random()
             .nextInt(min, max)
 
     fun randomPositive(): Int =
-        faker.number()
+        faker
+            .number()
             .positive()
 
     fun randomNegative(): Int =
-        faker.number()
+        faker
+            .number()
             .negative()
 
     fun randomLong(
         min: Long,
         max: Long,
     ): Long =
-        faker.random()
+        faker
+            .random()
             .nextLong(min, max)
 
     fun randomColor(): String =
-        faker.color()
+        faker
+            .color()
             .hex()
             .substring(1)
 
@@ -59,7 +67,8 @@ object RandomFixture {
         val tomorrow = OffsetDateTime.now(ZoneOffset.UTC).plusDays(1)
         val until = OffsetDateTime.now(ZoneOffset.UTC).plusDays(futureDaysScope.toLong())
 
-        return faker.timeAndDate()
+        return faker
+            .timeAndDate()
             .between(tomorrow.toInstant(), until.toInstant())
             .toOffsetDateTime()
             .toLocalDate()
@@ -69,14 +78,16 @@ object RandomFixture {
         val yesterday = OffsetDateTime.now(ZoneOffset.UTC).minusDays(1)
         val until = OffsetDateTime.now(ZoneOffset.UTC).minusDays(pastDaysScope.toLong())
 
-        return faker.timeAndDate()
+        return faker
+            .timeAndDate()
             .between(until.toInstant(), yesterday.toInstant())
             .toOffsetDateTime()
             .toLocalDate()
     }
 
     fun randomDateTime(): OffsetDateTime =
-        faker.timeAndDate()
+        faker
+            .timeAndDate()
             .birthday()
             .atStartOfDay()
             .atOffset(ZoneOffset.UTC)
@@ -85,7 +96,8 @@ object RandomFixture {
         pastScope: Int,
         timeUnit: TimeUnit,
     ): OffsetDateTime =
-        faker.timeAndDate()
+        faker
+            .timeAndDate()
             .past(pastScope.toLong(), timeUnit)
             .toOffsetDateTime()
 
@@ -93,7 +105,8 @@ object RandomFixture {
         futureScope: Int,
         timeUnit: TimeUnit,
     ): OffsetDateTime =
-        faker.timeAndDate()
+        faker
+            .timeAndDate()
             .future(futureScope.toLong(), timeUnit)
             .toOffsetDateTime()
 
@@ -101,24 +114,26 @@ object RandomFixture {
         from: OffsetDateTime,
         to: OffsetDateTime,
     ): OffsetDateTime =
-        faker.timeAndDate()
+        faker
+            .timeAndDate()
             .between(from.toInstant(), to.toInstant())
             .toOffsetDateTime()
 
     fun randomDateTimeInScopeFromNow(dayScope: Int): OffsetDateTime {
         val now = OffsetDateTime.now(ZoneOffset.UTC)
 
-        return faker.timeAndDate()
+        return faker
+            .timeAndDate()
             .between(
                 now.minusDays(dayScope.toLong()).toInstant(),
-                now.plusDays(dayScope.toLong()).toInstant()
-            )
-            .toOffsetDateTime()
+                now.plusDays(dayScope.toLong()).toInstant(),
+            ).toOffsetDateTime()
     }
 
     fun randomTime(): LocalTime {
         val randomNanoTime =
-            faker.time()
+            faker
+                .time()
                 .between(LocalTime.MIN, LocalTime.MAX)
 
         return LocalTime.ofNanoOfDay(randomNanoTime)
@@ -126,7 +141,8 @@ object RandomFixture {
 
     fun futureTime(): LocalTime {
         val futureNano =
-            faker.time()
+            faker
+                .time()
                 .between(LocalTime.now(), LocalTime.MAX)
 
         return LocalTime.ofNanoOfDay(futureNano)
@@ -134,7 +150,8 @@ object RandomFixture {
 
     fun pastTime(): LocalTime {
         val pastNano =
-            faker.time()
+            faker
+                .time()
                 .between(LocalTime.MIN, LocalTime.now())
 
         return LocalTime.ofNanoOfDay(pastNano)
@@ -142,7 +159,8 @@ object RandomFixture {
 
     fun randomAm(): LocalTime {
         val amNano =
-            faker.time()
+            faker
+                .time()
                 .between(LocalTime.MIN, LocalTime.NOON)
 
         return LocalTime.ofNanoOfDay(amNano)
@@ -150,7 +168,8 @@ object RandomFixture {
 
     fun randomPm(): LocalTime {
         val pmNano =
-            faker.time()
+            faker
+                .time()
                 .between(LocalTime.NOON, LocalTime.MAX)
 
         return LocalTime.ofNanoOfDay(pmNano)
@@ -158,7 +177,8 @@ object RandomFixture {
 
     fun futureTimeFrom(from: LocalTime): LocalTime {
         val futureNano =
-            faker.time()
+            faker
+                .time()
                 .between(from, LocalTime.MAX)
 
         return LocalTime.ofNanoOfDay(futureNano)
@@ -166,7 +186,8 @@ object RandomFixture {
 
     fun pastTimeFrom(from: LocalTime): LocalTime {
         val pastNano =
-            faker.time()
+            faker
+                .time()
                 .between(LocalTime.MIN, from)
 
         return LocalTime.ofNanoOfDay(pastNano)
@@ -176,7 +197,10 @@ object RandomFixture {
 
     fun randomEmoji(): String = faker.emoji().smiley()
 
-    fun randomSentenceList(maxSize: Int? = null, maxSentenceLength: String? = null): List<String> {
+    fun randomSentenceList(
+        maxSize: Int? = null,
+        maxSentenceLength: String? = null,
+    ): List<String> {
         val size = maxSize ?: faker.number().numberBetween(0, 100)
         val maxLength = maxSentenceLength?.length ?: faker.number().numberBetween(0, 100)
 

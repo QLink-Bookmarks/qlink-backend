@@ -38,11 +38,10 @@ object Links : Table("links") {
         index("links_folder_id_idx", false, folderId)
         index("links_tags_idx", false, tags, indexType = "GIN")
     }
-
 }
 
-fun ResultRow.toLinkDomain(): Link {
-    return Link(
+fun ResultRow.toLinkDomain(): Link =
+    Link(
         id = this[Links.id],
         ownerId = this[Links.ownerId],
         folderId = this[Links.folderId],
@@ -57,7 +56,6 @@ fun ResultRow.toLinkDomain(): Link {
         createdAt = this[Links.createdAt].toKotlinInstant(),
         updatedAt = this[Links.updatedAt].toKotlinInstant(),
     )
-}
 
 fun UpdateBuilder<*>.fromDomain(link: Link) {
     this[Links.ownerId] = link.ownerId

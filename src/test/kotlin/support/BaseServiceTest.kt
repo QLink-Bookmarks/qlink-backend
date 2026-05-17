@@ -9,22 +9,22 @@ import org.koin.core.component.KoinComponent
 abstract class BaseServiceTest(
     body: BehaviorSpec.() -> Unit,
 ) : BehaviorSpec({
-    ServiceTestEnvironment.start()
-
-    val tx = koinGet<TransactionRunner>()
-    val db = koinGet<Database>()
-
-    beforeSpec {
         ServiceTestEnvironment.start()
-        assumeTrue(ServiceTestEnvironment.isStarted)
-    }
 
-    aroundTest { (testCase, execute) ->
-        tx.rollback(db) {
-            execute(testCase)
+        val tx = koinGet<TransactionRunner>()
+        val db = koinGet<Database>()
+
+        beforeSpec {
+            ServiceTestEnvironment.start()
+            assumeTrue(ServiceTestEnvironment.isStarted)
         }
-    }
 
-    body()
-}),
+        aroundTest { (testCase, execute) ->
+            tx.rollback(db) {
+                execute(testCase)
+            }
+        }
+
+        body()
+    }),
     KoinComponent

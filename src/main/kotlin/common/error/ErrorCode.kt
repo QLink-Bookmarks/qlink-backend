@@ -26,5 +26,5 @@ enum class ErrorCode(
 
     LINK_NOT_FOUND("LINK_404_0001", 404, "링크를 찾을 수 없어요"),
     LINK_OWNER_NOT_FOUND("LINK_404_0002", 404, "로그인 사용자를 찾을 수 없어요"),
-    LINK_FOLDER_NOT_FOUND("LINK_404_0003", 404, "폴더를 찾을 수 없어요");
+    LINK_FOLDER_NOT_FOUND("LINK_404_0003", 404, "폴더를 찾을 수 없어요"),
 }

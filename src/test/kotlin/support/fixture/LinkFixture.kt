@@ -5,9 +5,11 @@ import com.qlink.link.domain.SourceType
 import kotlin.random.Random
 
 object LinkFixture {
-
-    fun createRandomLinkOf(ownerId: Long, folderId: Long? = null): Link {
-        return Link(
+    fun createRandomLinkOf(
+        ownerId: Long,
+        folderId: Long? = null,
+    ): Link =
+        Link(
             id = RandomFixture.randomId(),
             ownerId = ownerId,
             folderId = folderId,
@@ -16,8 +18,6 @@ object LinkFixture {
             summary = RandomFixture.randomSentenceWithMax(1000),
             thumbnailUrl = RandomFixture.randomUrl(),
             sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
-            tags = RandomFixture.randomSentenceList()
+            tags = RandomFixture.randomSentenceList(),
         )
-    }
-
 }

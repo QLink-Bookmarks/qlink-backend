@@ -143,8 +143,11 @@ object ServiceTestEnvironment {
 
 inline fun <reified T : Any> koinGet(): T = GlobalContext.get().get()
 
-suspend fun <T> TransactionRunner.rollback(database: Database, block: suspend () -> T): T {
-    return withContext(Dispatchers.IO) {
+suspend fun <T> TransactionRunner.rollback(
+    database: Database,
+    block: suspend () -> T,
+): T =
+    withContext(Dispatchers.IO) {
         suspendTransaction(db = database, readOnly = false) {
             try {
                 block()
@@ -153,7 +156,6 @@ suspend fun <T> TransactionRunner.rollback(database: Database, block: suspend ()
             }
         }
     }
-}
 
 private class OverlayApplicationConfig(
     private val overrides: ApplicationConfig,

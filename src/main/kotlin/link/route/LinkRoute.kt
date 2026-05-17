@@ -10,14 +10,14 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
+import io.ktor.server.resources.resource
 import io.ktor.server.routing.Route
-import io.ktor.server.routing.route
 import org.koin.ktor.ext.inject
 
 fun Route.linkRoutes() {
     val createLinkService by inject<CreateLinkService>()
 
-    route("/links") {
+    resource<LinkResources> {
         authenticate {
             post({
                 summary = "링크 생성 API"
