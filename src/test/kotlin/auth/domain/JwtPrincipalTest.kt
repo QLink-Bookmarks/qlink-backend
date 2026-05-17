@@ -1,5 +1,7 @@
-package com.qlink.auth.domain
+package auth.domain
 
+import com.qlink.auth.domain.JwtPrincipal
+import com.qlink.auth.domain.Role
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 import kotlinx.serialization.json.Json
