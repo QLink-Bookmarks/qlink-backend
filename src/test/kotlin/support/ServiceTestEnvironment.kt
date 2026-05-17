@@ -3,12 +3,18 @@ package support
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.config.DataSourceConfig
 import com.qlink.di.dataModule
+import com.qlink.di.repositoryModule
+import com.qlink.di.serviceModule
+import com.qlink.di.transactionModule
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.config.ApplicationConfig
 import io.ktor.server.config.MapApplicationConfig
 import io.ktor.server.config.yaml.YamlConfig
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
@@ -103,9 +109,9 @@ object ServiceTestEnvironment {
         startKoin {
             modules(
                 dataModule(testApplicationConfig(), testDataSourceConfig()),
-                module {
-                    single<TransactionRunner> { TestTransactionRunner(get()) }
-                },
+                transactionModule(),
+                repositoryModule(),
+                serviceModule(),
             )
         }
     }
@@ -132,6 +138,20 @@ object ServiceTestEnvironment {
     private fun ServicePostgreSQLContainer.currentSchemaJdbcUrl(): String {
         val separator = if (jdbcUrl.contains("?")) "&" else "?"
         return "$jdbcUrl${separator}currentSchema=$SCHEMA"
+    }
+}
+
+inline fun <reified T : Any> koinGet(): T = GlobalContext.get().get()
+
+suspend fun <T> TransactionRunner.rollback(database: Database, block: suspend () -> T): T {
+    return withContext(Dispatchers.IO) {
+        suspendTransaction(db = database, readOnly = false) {
+            try {
+                block()
+            } finally {
+                rollback()
+            }
+        }
     }
 }
 

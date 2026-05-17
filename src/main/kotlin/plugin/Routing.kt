@@ -2,10 +2,10 @@ package com.qlink.plugin
 
 import com.qlink.auth.domain.JwtPrincipal
 import com.qlink.auth.domain.Role
+import com.qlink.link.route.linkRoutes
 import io.github.smiley4.ktoropenapi.get
-import io.github.smiley4.ktoropenapi.resources.get
+import io.github.smiley4.ktoropenapi.route
 import io.ktor.http.HttpStatusCode
-import io.ktor.resources.Resource
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.auth.authenticate
@@ -13,24 +13,11 @@ import io.ktor.server.auth.principal
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.routing
-import kotlinx.serialization.Serializable
-
-@Serializable
-@Resource("/articles")
-private class Articles(
-    val sort: String? = "new",
-)
 
 fun Application.configureRouting() {
     routing {
         get("/") {
             call.respondText("Hello, World!")
-        }
-        get<Articles> { article ->
-            call.respond("List of articles sorted starting from ${article.sort}")
-        }
-        get("/json/kotlinx-serialization") {
-            call.respond(mapOf("hello" to "world"))
         }
         authenticate {
             get("/sample/jwt", {
@@ -63,7 +50,12 @@ fun Application.configureRouting() {
                 call.respond(principal)
             }
         }
+
+        route("/api") {
+            linkRoutes()
+        }
     }
 }
 
-fun ApplicationCall.jwtPrincipalOrGuest(): JwtPrincipal = principal<JwtPrincipal>() ?: JwtPrincipal(userId = 0, role = Role.GUEST)
+fun ApplicationCall.jwtPrincipalOrGuest(): JwtPrincipal =
+    principal<JwtPrincipal>() ?: JwtPrincipal(userId = 0, role = Role.GUEST)

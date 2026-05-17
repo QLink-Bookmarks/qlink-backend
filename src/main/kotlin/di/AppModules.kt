@@ -7,4 +7,6 @@ fun appModules(config: ApplicationConfig) =
         dataModule(config),
         transactionModule(),
         pluginModule(config),
+        repositoryModule(),
+        serviceModule(),
     )
