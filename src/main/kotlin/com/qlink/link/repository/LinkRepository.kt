@@ -6,4 +6,6 @@ interface LinkRepository {
     suspend fun insert(link: Link): Link
 
     suspend fun findById(linkId: Long): Link?
+
+    suspend fun deleteById(linkId: Long)
 }

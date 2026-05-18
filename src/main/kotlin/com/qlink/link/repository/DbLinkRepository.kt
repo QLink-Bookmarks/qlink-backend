@@ -5,6 +5,7 @@ import com.qlink.link.repository.table.Links
 import com.qlink.link.repository.table.fromDomain
 import com.qlink.link.repository.table.toLinkDomain
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.selectAll
 
@@ -17,4 +18,8 @@ class DbLinkRepository : LinkRepository {
             .where { Links.id eq linkId }
             .singleOrNull()
             ?.toLinkDomain()
+
+    override suspend fun deleteById(linkId: Long) {
+        Links.deleteWhere { id eq linkId }
+    }
 }
