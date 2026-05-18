@@ -20,6 +20,7 @@ conventions that are not obvious from reading the code.
   condition being tested.
 - Give fixture functions meaningful names so tests stay reusable and readable.
 - Domain tests should verify pure domain logic without external dependencies.
+- For domain method tests that are not testing object creation, create the domain object through a fixture. The fixture should expose parameters for values relevant to the method under test, while randomizing unrelated valid values.
 - Service tests must extend `BaseServiceTest` and use Koin DI through `support.koinGet<T>()`.
 - In service tests, prepare required persisted data in `beforeTest` using fixtures and repositories.
 - In service test `Then` blocks, verify behavior by querying the database through repositories.
@@ -77,6 +78,7 @@ When("input is invalid") {
 
 - Place DTOs under each domain's `dto` package.
 - Keep DTO files limited to `Requests`, `Responses`, and `Queries`.
+- Create and use Query DTO only if Domain Logic is not involved. If Domain Logic is involved, checking Link Owner for example, select all for domain to conduct its logic and then make a separate query to make Response.
 - Declare request, response, and query data classes in the matching file.
 - Mark API request/response DTOs with `@Serializable`.
 
@@ -85,6 +87,16 @@ When("input is invalid") {
 - Use `respondSuccess` for success responses and `respondError` for error responses.
 - Manage API resources under each domain's `route` package, using nested classes to represent nested
   paths.
+- Use field from resources if path variable or query string is needed.
+
+Example:
+
+```kotlin
+get<LinkResources.ById> { resource ->
+  val principal = call.principal<JwtPrincipal>()!!
+  service.getLinkDetail(principal.userId, resource.id)
+}
+```
 
 ## Documentation
 
