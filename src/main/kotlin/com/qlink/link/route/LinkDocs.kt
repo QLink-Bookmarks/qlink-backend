@@ -95,10 +95,7 @@ internal fun deleteLinkDocs(): RouteConfig.() -> Unit =
             code(HttpStatusCode.NotFound) {
                 description = "링크 삭제 대상 리소스 조회 실패"
                 body<ApiResponse<ErrorDetail>> {
-                    examples(
-                        ErrorCode.LINK_OWNER_NOT_FOUND,
-                        ErrorCode.LINK_NOT_FOUND,
-                    )
+                    examples(ErrorCode.LINK_OWNER_NOT_FOUND)
                 }
             }
         }

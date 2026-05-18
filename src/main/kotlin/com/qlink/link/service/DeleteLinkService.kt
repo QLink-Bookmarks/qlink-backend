@@ -19,7 +19,7 @@ class DeleteLinkService(
         tx.required {
             userRepository.emptyById(loginId).requireFalse(ErrorCode.LINK_OWNER_NOT_FOUND)
 
-            val link = linkRepository.findById(linkId) ?: throw BusinessException(ErrorCode.LINK_NOT_FOUND)
+            val link = linkRepository.findById(linkId) ?: return@required
 
             link.validateOwner(loginId)
             linkRepository.deleteById(linkId)

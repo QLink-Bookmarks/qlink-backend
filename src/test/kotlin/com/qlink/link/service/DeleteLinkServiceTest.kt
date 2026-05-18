@@ -87,8 +87,8 @@ class DeleteLinkServiceTest :
                         deleteLinkService.deleteLink(user.id!!, invalidLinkId)
                     }
 
-                Then("예외를 반환한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_NOT_FOUND.message) {
+                Then("성공한다") {
+                    shouldNotThrow<BusinessException> {
                         delete()
                     }
                 }
