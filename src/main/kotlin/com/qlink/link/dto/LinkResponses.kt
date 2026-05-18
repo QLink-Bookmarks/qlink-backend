@@ -24,3 +24,16 @@ data class GetLinkDetailResponse(
     val folderId: Long?,
     val folderName: String?,
 )
+
+@Serializable
+data class UpdateLinkResponse(
+    val folderId: Long?,
+    val url: String,
+    val title: String,
+    val summary: String?,
+    val memo: String?,
+    val tags: List<String>,
+    val thumbnailUrl: String?,
+    val sourceType: SourceType,
+    val remindAt: Instant?,
+)

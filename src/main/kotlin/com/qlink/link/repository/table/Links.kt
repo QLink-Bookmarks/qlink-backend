@@ -69,3 +69,7 @@ fun UpdateBuilder<*>.fromDomain(link: Link) {
     this[Links.sourceType] = link.sourceType
     this[Links.reminderAt] = link.reminderAt?.toJavaInstant()
 }
+
+fun UpdateBuilder<*>.refreshUpdatedAt() {
+    this[Links.updatedAt] = Clock.System.now().toJavaInstant()
+}

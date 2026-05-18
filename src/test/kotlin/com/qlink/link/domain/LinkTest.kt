@@ -257,4 +257,69 @@ class LinkTest :
                 }
             }
         }
+
+        Given("수정 테스트") {
+            val ownerId = RandomFixture.randomId()
+            val link = LinkFixture.createRandomLinkOf(ownerId = ownerId)
+
+            When("링크 수정을") {
+                val folderId = RandomFixture.randomId()
+                val url = RandomFixture.randomUrl()
+                val title = RandomFixture.randomSentenceWithMax(300)
+                val summary = RandomFixture.randomSentenceWithMax(1_000)
+                val memo = RandomFixture.randomSentenceWithMax(1_000)
+                val tags = RandomFixture.randomSentenceList()
+                val thumbnailUrl = RandomFixture.randomUrl()
+                val sourceType = SourceType.entries.first { it != link.sourceType }
+
+                val actual =
+                    link.update(
+                        folderId = folderId,
+                        url = url,
+                        title = title,
+                        summary = summary,
+                        memo = memo,
+                        tags = tags,
+                        thumbnailUrl = thumbnailUrl,
+                        sourceType = sourceType,
+                        reminderAt = null,
+                    )
+
+                Then("성공한다") {
+                    actual.id shouldBe link.id
+                    actual.ownerId shouldBe link.ownerId
+                    actual.folderId shouldBe folderId
+                    actual.url shouldBe url
+                    actual.title shouldBe title
+                    actual.summary shouldBe summary
+                    actual.memo shouldBe memo
+                    actual.tags shouldBe tags
+                    actual.thumbnailUrl shouldBe thumbnailUrl
+                    actual.sourceType shouldBe sourceType
+                    actual.reminderAt shouldBe null
+                }
+            }
+
+            When("수정 URL이 공백이면") {
+                val update = {
+                    link.update(
+                        folderId = link.folderId,
+                        url = "",
+                        title = RandomFixture.randomSentenceWithMax(300),
+                        summary = RandomFixture.randomSentenceWithMax(1_000),
+                        memo = RandomFixture.randomSentenceWithMax(1_000),
+                        tags = RandomFixture.randomSentenceList(),
+                        thumbnailUrl = RandomFixture.randomUrl(),
+                        sourceType = link.sourceType,
+                        reminderAt = null,
+                    )
+                }
+
+                Then("예외를 반환한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_URL_BLANK.message) {
+                        update()
+                    }
+                }
+            }
+        }
     })
