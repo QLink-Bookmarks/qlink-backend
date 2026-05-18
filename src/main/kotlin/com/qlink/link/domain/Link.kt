@@ -35,6 +35,12 @@ class Link(
         thumbnailUrl?.let { validateUrl(it) }
     }
 
+    fun validateOwner(ownerId: Long) {
+        if (this.ownerId != ownerId) {
+            throw BusinessException(ErrorCode.LINK_DIFFERENT_OWNER)
+        }
+    }
+
     private fun validateUrl(url: String) {
         url.isNotBlank().requireTrue(ErrorCode.LINK_URL_BLANK)
 

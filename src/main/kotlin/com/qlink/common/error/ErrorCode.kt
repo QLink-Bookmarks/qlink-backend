@@ -24,6 +24,8 @@ enum class ErrorCode(
     LINK_TITLE_BLANK("LINK_400_0005", 400, "링크 제목이 입력되지 않았어요"),
     LINK_TITLE_OVER_MAX("LINK_400_0006", 400, "링크 제목은 최대 300자에요"),
 
+    LINK_DIFFERENT_OWNER("LINK_403_0001", 403, "링크에 대한 권한이 없어요"),
+
     LINK_NOT_FOUND("LINK_404_0001", 404, "링크를 찾을 수 없어요"),
     LINK_OWNER_NOT_FOUND("LINK_404_0002", 404, "로그인 사용자를 찾을 수 없어요"),
     LINK_FOLDER_NOT_FOUND("LINK_404_0003", 404, "폴더를 찾을 수 없어요"),

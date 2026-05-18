@@ -4,7 +4,9 @@ import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.SourceType
+import com.qlink.support.fixture.LinkFixture
 import com.qlink.support.fixture.RandomFixture
+import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
@@ -221,6 +223,36 @@ class LinkTest :
                 Then("생성을 실패한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_URL_NOT_HTTP.message) {
                         notWebCreate()
+                    }
+                }
+            }
+        }
+
+        Given("소유자 검증 테스트") {
+            val ownerId = RandomFixture.randomId()
+            val link = LinkFixture.createRandomLinkOf(ownerId = ownerId)
+
+            When("소유자 검증을") {
+                val validate = {
+                    link.validateOwner(ownerId)
+                }
+
+                Then("성공한다") {
+                    shouldNotThrow<BusinessException> {
+                        validate()
+                    }
+                }
+            }
+
+            When("다른 소유자로 검증하면") {
+                val otherOwnerId = ownerId + 1
+                val validate = {
+                    link.validateOwner(otherOwnerId)
+                }
+
+                Then("예외를 반환한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_DIFFERENT_OWNER.message) {
+                        validate()
                     }
                 }
             }
