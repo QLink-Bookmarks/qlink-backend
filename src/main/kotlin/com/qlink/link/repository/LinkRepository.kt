@@ -8,4 +8,6 @@ interface LinkRepository {
     suspend fun findById(linkId: Long): Link?
 
     suspend fun update(link: Link): Link
+
+    suspend fun deleteById(linkId: Long)
 }

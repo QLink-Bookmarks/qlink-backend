@@ -1,6 +1,7 @@
 package com.qlink.di
 
 import com.qlink.link.service.CreateLinkService
+import com.qlink.link.service.DeleteLinkService
 import com.qlink.link.service.GetLinkDetailService
 import com.qlink.link.service.UpdateLinkService
 import org.koin.dsl.module
@@ -30,6 +31,14 @@ fun serviceModule() =
                 linkRepository = get(),
                 userRepository = get(),
                 folderRepository = get(),
+            )
+        }
+
+        single {
+            DeleteLinkService(
+                tx = get(),
+                linkRepository = get(),
+                userRepository = get(),
             )
         }
     }

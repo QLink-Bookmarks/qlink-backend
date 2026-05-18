@@ -4,6 +4,7 @@ import com.qlink.common.docs.authErrorResponse
 import com.qlink.common.docs.examples
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.response.ApiResponse
+import com.qlink.common.response.EmptySuccessResponse
 import com.qlink.common.response.ErrorDetail
 import com.qlink.link.dto.CreateLinkRequest
 import com.qlink.link.dto.CreateLinkResponse
@@ -118,6 +119,30 @@ internal fun updateLinkDocs(): RouteConfig.() -> Unit =
                         ErrorCode.LINK_NOT_FOUND,
                         ErrorCode.LINK_FOLDER_NOT_FOUND,
                     )
+                }
+            }
+        }
+    }
+
+internal fun deleteLinkDocs(): RouteConfig.() -> Unit =
+    {
+        summary = "링크 삭제 API"
+        response {
+            code(HttpStatusCode.OK) {
+                description = "링크 삭제 성공"
+                body<EmptySuccessResponse>()
+            }
+            authErrorResponse()
+            code(HttpStatusCode.Forbidden) {
+                description = "링크 삭제 권한 검증 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.LINK_DIFFERENT_OWNER)
+                }
+            }
+            code(HttpStatusCode.NotFound) {
+                description = "링크 삭제 대상 리소스 조회 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.LINK_OWNER_NOT_FOUND)
                 }
             }
         }

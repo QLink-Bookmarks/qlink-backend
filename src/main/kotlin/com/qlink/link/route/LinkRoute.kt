@@ -5,8 +5,10 @@ import com.qlink.common.response.respondSuccess
 import com.qlink.link.dto.CreateLinkRequest
 import com.qlink.link.dto.UpdateLinkRequest
 import com.qlink.link.service.CreateLinkService
+import com.qlink.link.service.DeleteLinkService
 import com.qlink.link.service.GetLinkDetailService
 import com.qlink.link.service.UpdateLinkService
+import io.github.smiley4.ktoropenapi.resources.delete
 import io.github.smiley4.ktoropenapi.resources.get
 import io.github.smiley4.ktoropenapi.resources.post
 import io.github.smiley4.ktoropenapi.resources.put
@@ -21,6 +23,7 @@ fun Route.linkRoutes() {
     val createLinkService by inject<CreateLinkService>()
     val getLinkDetailService by inject<GetLinkDetailService>()
     val updateLinkService by inject<UpdateLinkService>()
+    val deleteLinkService by inject<DeleteLinkService>()
 
     authenticate {
         post<LinkResources>(createLinkDocs()) {
@@ -48,6 +51,15 @@ fun Route.linkRoutes() {
             val response = updateLinkService.updateLink(principal.userId, resource.id, request)
 
             call.respondSuccess(HttpStatusCode.OK, response)
+        }
+    }
+
+    authenticate {
+        delete<LinkResources.ById>(deleteLinkDocs()) { resource ->
+            val principal = call.principal<JwtPrincipal>()!!
+            deleteLinkService.deleteLink(principal.userId, resource.id)
+
+            call.respondSuccess(HttpStatusCode.OK)
         }
     }
 }

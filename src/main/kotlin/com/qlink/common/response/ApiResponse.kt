@@ -13,6 +13,12 @@ data class ApiResponse<T>(
     val error: T? = null,
 )
 
+@Serializable
+data class EmptySuccessResponse(
+    val success: Boolean,
+    val data: Unit?,
+)
+
 suspend inline fun <reified T> ApplicationCall.respondSuccess(
     status: HttpStatusCode,
     data: T,
@@ -23,6 +29,17 @@ suspend inline fun <reified T> ApplicationCall.respondSuccess(
             ApiResponse(
                 success = true,
                 data = data,
+            ),
+    )
+}
+
+suspend fun ApplicationCall.respondSuccess(status: HttpStatusCode) {
+    respond(
+        status = status,
+        message =
+            EmptySuccessResponse(
+                success = true,
+                data = null,
             ),
     )
 }
