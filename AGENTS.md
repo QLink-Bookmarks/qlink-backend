@@ -83,10 +83,16 @@ When("input is invalid") {
 ## API Rules
 
 - Use `respondSuccess` for success responses and `respondError` for error responses.
-- Write smiley4 OpenAPI documentation inside each endpoint route.
-- Include success response schemas and expected error responses in endpoint documentation.
 - Manage API resources under each domain's `route` package, using nested classes to represent nested
   paths.
+
+## Documentation
+
+- Write smiley4 OpenAPI documentation in `*Docs.kt`.
+- Include all examples of errors which can happen in the api call, using `SimpleBodyConfig.examples`
+  extension in `ErrorExamples.kt`.
+- For authentication routes, include `authErrorResponse()` from `ErrorExamples.kt` in the
+  `*Docs.kt`.
 
 ## Constructor Rules
 
