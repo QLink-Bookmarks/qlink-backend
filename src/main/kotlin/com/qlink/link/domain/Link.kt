@@ -22,7 +22,6 @@ class Link(
     val tags: List<String>,
     val thumbnailUrl: String? = null,
     val sourceType: SourceType,
-    val reminderAt: Instant? = null,
     val createdAt: Instant? = null,
     val updatedAt: Instant? = null,
 ) {
@@ -50,7 +49,6 @@ class Link(
         tags: List<String>,
         thumbnailUrl: String?,
         sourceType: SourceType,
-        reminderAt: Instant?,
     ): Link =
         Link(
             id = id,
@@ -63,7 +61,6 @@ class Link(
             tags = tags,
             thumbnailUrl = thumbnailUrl,
             sourceType = sourceType,
-            reminderAt = reminderAt,
             createdAt = createdAt,
             updatedAt = updatedAt,
         )

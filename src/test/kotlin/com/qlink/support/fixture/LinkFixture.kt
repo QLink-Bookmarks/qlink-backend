@@ -4,7 +4,6 @@ import com.qlink.link.domain.Link
 import com.qlink.link.domain.SourceType
 import com.qlink.link.dto.UpdateLinkRequest
 import kotlin.random.Random
-import kotlin.time.Instant
 
 object LinkFixture {
     fun createRandomLinkOf(
@@ -17,7 +16,6 @@ object LinkFixture {
         tags: List<String> = RandomFixture.randomSentenceList(),
         thumbnailUrl: String? = RandomFixture.randomUrl(),
         sourceType: SourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
-        reminderAt: Instant? = null,
     ): Link =
         Link(
             id = RandomFixture.randomId(),
@@ -30,7 +28,6 @@ object LinkFixture {
             thumbnailUrl = thumbnailUrl,
             sourceType = sourceType,
             tags = tags,
-            reminderAt = reminderAt,
         )
 
     fun createValidUpdateLinkRequest(folderId: Long? = null): UpdateLinkRequest =
@@ -43,6 +40,5 @@ object LinkFixture {
             tags = RandomFixture.randomSentenceList(),
             thumbnailUrl = RandomFixture.randomUrl(),
             sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
-            remindAt = null,
         )
 }

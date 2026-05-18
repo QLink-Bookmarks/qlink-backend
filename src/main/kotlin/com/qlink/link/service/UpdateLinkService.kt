@@ -43,7 +43,6 @@ class UpdateLinkService(
                     tags = request.tags,
                     thumbnailUrl = request.thumbnailUrl,
                     sourceType = request.sourceType,
-                    reminderAt = request.remindAt,
                 )
 
             val savedLink = linkRepository.update(updatedLink)
@@ -61,6 +60,5 @@ class UpdateLinkService(
             tags = tags,
             thumbnailUrl = thumbnailUrl,
             sourceType = sourceType,
-            remindAt = reminderAt,
         )
 }

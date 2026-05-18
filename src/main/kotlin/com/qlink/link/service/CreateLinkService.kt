@@ -38,7 +38,6 @@ class CreateLinkService(
                     tags = request.tags,
                     thumbnailUrl = request.thumbnailUrl,
                     sourceType = request.sourceType,
-                    reminderAt = request.reminderAt,
                 )
 
             CreateLinkResponse(linkRepository.insert(link).id!!)
