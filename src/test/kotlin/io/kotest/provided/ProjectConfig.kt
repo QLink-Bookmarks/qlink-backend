@@ -1,7 +1,7 @@
 package io.kotest.provided
 
+import com.qlink.support.ServiceTestEnvironment
 import io.kotest.core.config.AbstractProjectConfig
-import support.ServiceTestEnvironment
 
 object ProjectConfig : AbstractProjectConfig() {
     override suspend fun beforeProject() {

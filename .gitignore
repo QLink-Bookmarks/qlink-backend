@@ -150,4 +150,4 @@ gradle-app.setting
 *.hprof
 
 # Ktor Swagger Plugin
-docs/
+/docs/
