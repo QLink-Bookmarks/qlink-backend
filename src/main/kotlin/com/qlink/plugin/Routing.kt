@@ -3,6 +3,7 @@ package com.qlink.plugin
 import com.qlink.auth.domain.JwtPrincipal
 import com.qlink.auth.domain.Role
 import com.qlink.link.route.linkRoutes
+import com.qlink.todo.route.todoRoutes
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.route
 import io.ktor.http.HttpStatusCode
@@ -53,6 +54,7 @@ fun Application.configureRouting() {
 
         route("/api") {
             linkRoutes()
+            todoRoutes()
         }
     }
 }

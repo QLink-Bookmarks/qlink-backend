@@ -4,7 +4,6 @@ package com.qlink.link.dto
 
 import com.qlink.link.domain.SourceType
 import kotlinx.serialization.Serializable
-import kotlin.time.Instant
 
 @Serializable
 data class CreateLinkRequest(
@@ -15,7 +14,6 @@ data class CreateLinkRequest(
     val tags: List<String>,
     val thumbnailUrl: String? = null,
     val sourceType: SourceType,
-    val reminderAt: Instant? = null,
 )
 
 @Serializable
@@ -28,5 +26,4 @@ data class UpdateLinkRequest(
     val tags: List<String>,
     val thumbnailUrl: String? = null,
     val sourceType: SourceType,
-    val remindAt: Instant? = null,
 )

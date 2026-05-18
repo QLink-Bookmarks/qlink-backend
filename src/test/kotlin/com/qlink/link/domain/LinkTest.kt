@@ -282,7 +282,6 @@ class LinkTest :
                         tags = tags,
                         thumbnailUrl = thumbnailUrl,
                         sourceType = sourceType,
-                        reminderAt = null,
                     )
 
                 Then("성공한다") {
@@ -296,7 +295,6 @@ class LinkTest :
                     actual.tags shouldBe tags
                     actual.thumbnailUrl shouldBe thumbnailUrl
                     actual.sourceType shouldBe sourceType
-                    actual.reminderAt shouldBe null
                 }
             }
 
@@ -311,7 +309,6 @@ class LinkTest :
                         tags = RandomFixture.randomSentenceList(),
                         thumbnailUrl = RandomFixture.randomUrl(),
                         sourceType = link.sourceType,
-                        reminderAt = null,
                     )
                 }
 

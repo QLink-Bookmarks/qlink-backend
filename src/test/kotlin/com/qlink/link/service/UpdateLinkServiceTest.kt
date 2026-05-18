@@ -100,7 +100,6 @@ class UpdateLinkServiceTest :
                     response.tags shouldBe request.tags
                     response.thumbnailUrl shouldBe request.thumbnailUrl
                     response.sourceType shouldBe request.sourceType
-                    response.remindAt shouldBe request.remindAt
 
                     actual shouldNotBe null
                     actual!!.folderId shouldBe request.folderId
@@ -111,7 +110,6 @@ class UpdateLinkServiceTest :
                     actual.tags shouldBe request.tags
                     actual.thumbnailUrl shouldBe request.thumbnailUrl
                     actual.sourceType shouldBe request.sourceType
-                    actual.reminderAt shouldBe request.remindAt
                     actual.updatedAt shouldNotBe link.updatedAt
                 }
             }

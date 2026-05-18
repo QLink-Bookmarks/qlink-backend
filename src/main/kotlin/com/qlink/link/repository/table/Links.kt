@@ -27,7 +27,6 @@ object Links : Table("links") {
     val tags = array<String>("tags", TextColumnType()).default(emptyList())
     val thumbnailUrl = text("thumbnail_url").nullable()
     val sourceType = enumerationByName<SourceType>("source_type", 30)
-    val reminderAt = timestamp("reminder_at").nullable()
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
     val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp)
 
@@ -52,7 +51,6 @@ fun ResultRow.toLinkDomain(): Link =
         tags = this[Links.tags],
         thumbnailUrl = this[Links.thumbnailUrl],
         sourceType = this[Links.sourceType],
-        reminderAt = this[Links.reminderAt]?.toKotlinInstant(),
         createdAt = this[Links.createdAt].toKotlinInstant(),
         updatedAt = this[Links.updatedAt].toKotlinInstant(),
     )
@@ -67,7 +65,6 @@ fun UpdateBuilder<*>.fromDomain(link: Link) {
     this[Links.tags] = link.tags
     this[Links.thumbnailUrl] = link.thumbnailUrl
     this[Links.sourceType] = link.sourceType
-    this[Links.reminderAt] = link.reminderAt?.toJavaInstant()
 }
 
 fun UpdateBuilder<*>.refreshUpdatedAt() {

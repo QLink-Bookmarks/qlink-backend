@@ -48,7 +48,6 @@ CREATE TABLE links (
     tags TEXT[] NOT NULL DEFAULT '{}',
     thumbnail_url TEXT,
     source_type VARCHAR(30) NOT NULL,
-    reminder_at TIMESTAMP,
     created_at TIMESTAMP NOT NULL DEFAULT now(),
     updated_at TIMESTAMP NOT NULL DEFAULT now()
 );
@@ -65,6 +64,17 @@ CREATE TABLE folder_invites (
     CONSTRAINT folder_invites_token_unique UNIQUE (token)
 );
 
+CREATE TABLE todos (
+    id BIGSERIAL PRIMARY KEY,
+    link_id BIGINT NOT NULL REFERENCES links(id) ON DELETE CASCADE,
+    owner_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(50) NOT NULL,
+    reminder_at TIMESTAMP,
+    completed_at TIMESTAMP,
+    created_at timestamp NOT NULL DEFAULT now(),
+    updated_at timestamp NOT NULL DEFAULT now()
+);
+
 CREATE INDEX auth_providers_user_id_idx ON auth_providers(user_id);
 CREATE INDEX folders_owner_id_idx ON folders(owner_id);
 CREATE INDEX folder_members_user_id_idx ON folder_members(user_id);
@@ -73,3 +83,5 @@ CREATE INDEX links_folder_id_idx ON links(folder_id);
 CREATE INDEX links_tags_idx ON links USING GIN (tags);
 CREATE INDEX folder_invites_folder_id_idx ON folder_invites(folder_id);
 CREATE INDEX folder_invites_inviter_id_idx ON folder_invites(inviter_id);
+CREATE INDEX todos_link_id_idx ON todos(link_id);
+CREATE INDEX todos_owner_id_idx ON todos(owner_id);
