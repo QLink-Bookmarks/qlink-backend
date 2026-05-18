@@ -1,5 +1,8 @@
 package com.qlink.plugin
 
+import com.qlink.common.docs.examples
+import com.qlink.common.error.ErrorCode
+import com.qlink.common.response.ApiResponse
 import com.qlink.common.response.ErrorDetail
 import com.qlink.config.DocumentationConfig
 import io.github.smiley4.ktoropenapi.OpenApi
@@ -19,6 +22,14 @@ import io.ktor.server.routing.routing
 import org.koin.ktor.ext.inject
 
 private const val BEARER_AUTH_SCHEME = "bearerAuth"
+private const val API_PREFIX = "api"
+
+private val apiTags =
+    mapOf(
+        "links" to "링크 API",
+        "users" to "유저 API",
+        "folders" to "폴더 API",
+    )
 
 fun Application.configureDocs() {
     val config by inject<DocumentationConfig>()
@@ -33,6 +44,17 @@ fun Application.configureDocs() {
         schemas {
             generator = SchemaGenerator.kotlinx()
         }
+        tags {
+            apiTags.values.forEach { tag ->
+                tag(tag) {
+                    description = tag
+                }
+            }
+            tagGenerator = { url ->
+                val resource = url.dropWhile { it == API_PREFIX }.firstOrNull()
+                listOfNotNull(apiTags[resource])
+            }
+        }
         security {
             securityScheme(BEARER_AUTH_SCHEME) {
                 type = AuthType.HTTP
@@ -41,8 +63,15 @@ fun Application.configureDocs() {
             }
             defaultSecuritySchemeNames(BEARER_AUTH_SCHEME)
             defaultUnauthorizedResponse {
-                description = "Bearer token is missing or invalid."
-                body<ErrorDetail>()
+                description = "인증 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(
+                        ErrorCode.AUTH_NO_CREDENTIALS,
+                        ErrorCode.AUTH_INVALID_CREDENTIALS,
+                        ErrorCode.AUTH_WRONG_CREDENTIALS,
+                        ErrorCode.AUTH_UNEXPECTED_CREDENTIALS,
+                    )
+                }
             }
         }
     }
