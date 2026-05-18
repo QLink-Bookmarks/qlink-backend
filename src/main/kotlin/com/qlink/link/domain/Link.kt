@@ -41,6 +41,33 @@ class Link(
         }
     }
 
+    fun update(
+        folderId: Long?,
+        url: String,
+        title: String,
+        summary: String?,
+        memo: String?,
+        tags: List<String>,
+        thumbnailUrl: String?,
+        sourceType: SourceType,
+        reminderAt: Instant?,
+    ): Link =
+        Link(
+            id = id,
+            ownerId = ownerId,
+            folderId = folderId,
+            url = url,
+            title = title,
+            summary = summary,
+            memo = memo,
+            tags = tags,
+            thumbnailUrl = thumbnailUrl,
+            sourceType = sourceType,
+            reminderAt = reminderAt,
+            createdAt = createdAt,
+            updatedAt = updatedAt,
+        )
+
     private fun validateUrl(url: String) {
         url.isNotBlank().requireTrue(ErrorCode.LINK_URL_BLANK)
 

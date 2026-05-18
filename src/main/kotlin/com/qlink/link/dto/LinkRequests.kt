@@ -17,3 +17,16 @@ data class CreateLinkRequest(
     val sourceType: SourceType,
     val reminderAt: Instant? = null,
 )
+
+@Serializable
+data class UpdateLinkRequest(
+    val folderId: Long? = null,
+    val url: String,
+    val title: String,
+    val summary: String? = null,
+    val memo: String? = null,
+    val tags: List<String>,
+    val thumbnailUrl: String? = null,
+    val sourceType: SourceType,
+    val remindAt: Instant? = null,
+)
