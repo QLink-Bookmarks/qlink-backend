@@ -35,5 +35,4 @@ data class UpdateLinkResponse(
     val tags: List<String>,
     val thumbnailUrl: String?,
     val sourceType: SourceType,
-    val remindAt: Instant?,
 )
