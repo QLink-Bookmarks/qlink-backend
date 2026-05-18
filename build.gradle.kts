@@ -1,4 +1,6 @@
 import com.diffplug.spotless.LineEnding
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import org.gradle.api.file.DuplicatesStrategy
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
@@ -107,6 +109,11 @@ tasks.jacocoTestCoverageVerification {
 
 tasks.check {
     dependsOn(tasks.jacocoTestCoverageVerification)
+}
+
+tasks.withType<ShadowJar> {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    mergeServiceFiles()
 }
 
 dependencies {
