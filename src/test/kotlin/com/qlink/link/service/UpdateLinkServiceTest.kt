@@ -32,29 +32,58 @@ class UpdateLinkServiceTest :
             lateinit var otherUser: User
             lateinit var folder: Folder
             lateinit var otherFolder: Folder
+            lateinit var link: Link
+            lateinit var otherUserLink: Link
+            lateinit var linkWithoutRequestedFolder: Link
+            lateinit var linkWithOtherUserFolderRequest: Link
+            lateinit var updateRequest: UpdateLinkRequest
+            lateinit var otherUserLinkUpdateRequest: UpdateLinkRequest
+            lateinit var missingFolderRequest: UpdateLinkRequest
+            lateinit var otherUserFolderRequest: UpdateLinkRequest
 
             beforeTest {
                 user = userRepository.insert(UserFixture.createRandomValidUser())
                 otherUser = userRepository.insert(UserFixture.createRandomValidUser())
                 folder = folderRepository.insert(FolderFixture.createValidUnsharedFolder(user.id!!))
                 otherFolder = folderRepository.insert(FolderFixture.createValidUnsharedFolder(otherUser.id!!))
+                link =
+                    linkRepository.insert(
+                        LinkFixture.createRandomLinkOf(
+                            ownerId = user.id!!,
+                        ),
+                    )
+                otherUserLink =
+                    linkRepository.insert(
+                        LinkFixture.createRandomLinkOf(
+                            ownerId = otherUser.id!!,
+                        ),
+                    )
+                linkWithoutRequestedFolder =
+                    linkRepository.insert(
+                        LinkFixture.createRandomLinkOf(
+                            ownerId = user.id!!,
+                        ),
+                    )
+                linkWithOtherUserFolderRequest =
+                    linkRepository.insert(
+                        LinkFixture.createRandomLinkOf(
+                            ownerId = user.id!!,
+                        ),
+                    )
+                updateRequest = LinkFixture.createValidUpdateLinkRequest(folderId = folder.id)
+                otherUserLinkUpdateRequest = LinkFixture.createValidUpdateLinkRequest()
+                missingFolderRequest = LinkFixture.createValidUpdateLinkRequest(folderId = RandomFixture.randomId())
+                otherUserFolderRequest = LinkFixture.createValidUpdateLinkRequest(folderId = otherFolder.id)
             }
 
             When("본인 링크 수정을") {
                 val update =
                     suspend {
-                        val link =
-                            linkRepository.insert(
-                                LinkFixture.createRandomLinkOf(
-                                    ownerId = user.id!!,
-                                ),
-                            )
-                        val request = LinkFixture.createValidUpdateLinkRequest(folderId = folder.id)
-                        val response = updateLinkService.updateLink(user.id!!, link.id!!, request)
+                        val response = updateLinkService.updateLink(user.id!!, link.id!!, updateRequest)
 
                         UpdateResult(
                             link = link,
-                            request = request,
+                            request = updateRequest,
                             response = response,
                         )
                     }
@@ -118,17 +147,9 @@ class UpdateLinkServiceTest :
             }
 
             When("다른 사용자의 링크 수정을") {
-                val request = LinkFixture.createValidUpdateLinkRequest()
                 val update =
                     suspend {
-                        val link: Link =
-                            linkRepository.insert(
-                                LinkFixture.createRandomLinkOf(
-                                    ownerId = otherUser.id!!,
-                                ),
-                            )
-
-                        updateLinkService.updateLink(user.id!!, link.id!!, request)
+                        updateLinkService.updateLink(user.id!!, otherUserLink.id!!, otherUserLinkUpdateRequest)
                     }
 
                 Then("예외를 반환한다") {
@@ -139,17 +160,9 @@ class UpdateLinkServiceTest :
             }
 
             When("요청 폴더가 없으면") {
-                val request = LinkFixture.createValidUpdateLinkRequest(folderId = RandomFixture.randomId())
                 val update =
                     suspend {
-                        val link =
-                            linkRepository.insert(
-                                LinkFixture.createRandomLinkOf(
-                                    ownerId = user.id!!,
-                                ),
-                            )
-
-                        updateLinkService.updateLink(user.id!!, link.id!!, request)
+                        updateLinkService.updateLink(user.id!!, linkWithoutRequestedFolder.id!!, missingFolderRequest)
                     }
 
                 Then("예외를 반환한다") {
@@ -162,15 +175,7 @@ class UpdateLinkServiceTest :
             When("요청 폴더가 다른 사용자 소유이면") {
                 val update =
                     suspend {
-                        val link =
-                            linkRepository.insert(
-                                LinkFixture.createRandomLinkOf(
-                                    ownerId = user.id!!,
-                                ),
-                            )
-                        val request = LinkFixture.createValidUpdateLinkRequest(folderId = otherFolder.id)
-
-                        updateLinkService.updateLink(user.id!!, link.id!!, request)
+                        updateLinkService.updateLink(user.id!!, linkWithOtherUserFolderRequest.id!!, otherUserFolderRequest)
                     }
 
                 Then("예외를 반환한다") {

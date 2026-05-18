@@ -46,7 +46,7 @@ class UpdateLinkService(
                     reminderAt = request.remindAt,
                 )
 
-            val savedLink = linkRepository.update(updatedLink) ?: throw BusinessException(ErrorCode.LINK_NOT_FOUND)
+            val savedLink = linkRepository.update(updatedLink)
 
             savedLink.toResponse()
         }
