@@ -18,7 +18,6 @@ import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
-import org.koin.dsl.module
 import org.testcontainers.containers.PostgreSQLContainer
 import javax.sql.DataSource
 
