@@ -88,11 +88,11 @@ When("input is invalid") {
 
 ## Documentation
 
-- Write smiley4 OpenAPI documentation in `*Docs.kt`.
+- Write smiley4 OpenAPI documentation in `*Docs.kt` under `route` package of each domain package.
 - Include all examples of errors which can happen in the api call, using `SimpleBodyConfig.examples`
   extension in `ErrorExamples.kt`.
 - For authentication routes, include `authErrorResponse()` from `ErrorExamples.kt` in the
-  `*Docs.kt`.
+  `{domain}/route/{Domain}Docs.kt`.
 
 ## Constructor Rules
 
