@@ -28,7 +28,7 @@ class UpdateTodoService(
             val todo = todoRepository.findById(todoId) ?: throw BusinessException(ErrorCode.TODO_NOT_FOUND)
             todo.validateOwner(loginId)
 
-            if (todo.linkId != request.linkId) {
+            if (todo.isDifferentLink(request.linkId)) {
                 linkRepository
                     .findById(request.linkId)
                     ?.also { it.validateOwner(loginId) }
