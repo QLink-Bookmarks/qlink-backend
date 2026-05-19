@@ -42,18 +42,14 @@ fun ResultRow.toTodoDomain(): Todo =
         updatedAt = this[Todos.updatedAt].toKotlinInstant(),
     )
 
-fun UpdateBuilder<*>.fromDomain(todo: Todo): UpdateBuilder<*> {
+fun UpdateBuilder<*>.fromDomain(todo: Todo) {
     this[Todos.linkId] = todo.linkId
     this[Todos.ownerId] = todo.ownerId
     this[Todos.title] = todo.title
     this[Todos.reminderAt] = todo.reminderAt?.toJavaInstant()
     this[Todos.completedAt] = todo.completedAt?.toJavaInstant()
-
-    return this
 }
 
-fun UpdateBuilder<*>.refreshUpdatedAt(): UpdateBuilder<*> {
+fun UpdateBuilder<*>.refreshUpdatedAt() {
     this[Todos.updatedAt] = java.time.Instant.now()
-
-    return this
 }
