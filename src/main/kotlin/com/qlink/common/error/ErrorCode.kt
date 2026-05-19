@@ -34,8 +34,11 @@ enum class ErrorCode(
     TODO_TITLE_BLANK("TODO_400_0001", 400, "할 일 제목이 입력되지 않았어요"),
     TODO_TITLE_OVER_MAX("TODO_400_0002", 400, "할 일 제목은 최대 50자에요"),
 
+    TODO_DIFFERENT_OWNER("TODO_403_0001", 403, "할 일에 대한 권한이 없어요"),
+
     TODO_OWNER_NOT_FOUND("TODO_404_0001", 404, "로그인 사용자를 찾을 수 없어요"),
     TODO_LINK_NOT_FOUND("TODO_404_0002", 404, "링크를 찾을 수 없어요"),
+    TODO_NOT_FOUND("TODO_404_0003", 404, "할 일을 찾을 수 없어요"),
 
     // Folder
     FOLDER_DIFFERENT_OWNER("FOLDER_403_0001", 403, "폴더에 대한 권한이 없어요"),

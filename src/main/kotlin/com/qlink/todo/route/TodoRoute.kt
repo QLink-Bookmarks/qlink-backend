@@ -3,8 +3,11 @@ package com.qlink.todo.route
 import com.qlink.auth.domain.JwtPrincipal
 import com.qlink.common.response.respondSuccess
 import com.qlink.todo.dto.CreateTodoRequest
+import com.qlink.todo.dto.UpdateTodoRequest
 import com.qlink.todo.service.CreateTodoService
+import com.qlink.todo.service.UpdateTodoService
 import io.github.smiley4.ktoropenapi.resources.post
+import io.github.smiley4.ktoropenapi.resources.put
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.principal
@@ -14,6 +17,7 @@ import org.koin.ktor.ext.inject
 
 fun Route.todoRoutes() {
     val createTodoService by inject<CreateTodoService>()
+    val updateTodoService by inject<UpdateTodoService>()
 
     authenticate {
         post<TodoResources>(createTodoDocs()) {
@@ -22,6 +26,14 @@ fun Route.todoRoutes() {
             val response = createTodoService.createTodo(principal.userId, request)
 
             call.respondSuccess(HttpStatusCode.Created, response)
+        }
+
+        put<TodoResources.ById>(updateTodoDocs()) { resource ->
+            val principal = call.principal<JwtPrincipal>()!!
+            val request = call.receive<UpdateTodoRequest>()
+            val response = updateTodoService.updateTodo(principal.userId, resource.id, request)
+
+            call.respondSuccess(HttpStatusCode.OK, response)
         }
     }
 }

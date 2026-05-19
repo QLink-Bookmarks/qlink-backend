@@ -5,6 +5,7 @@ import com.qlink.link.service.DeleteLinkService
 import com.qlink.link.service.GetLinkDetailService
 import com.qlink.link.service.UpdateLinkService
 import com.qlink.todo.service.CreateTodoService
+import com.qlink.todo.service.UpdateTodoService
 import org.koin.dsl.module
 
 fun serviceModule() =
@@ -45,6 +46,15 @@ fun serviceModule() =
 
         single {
             CreateTodoService(
+                tx = get(),
+                todoRepository = get(),
+                linkRepository = get(),
+                userRepository = get(),
+            )
+        }
+
+        single {
+            UpdateTodoService(
                 tx = get(),
                 todoRepository = get(),
                 linkRepository = get(),
