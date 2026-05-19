@@ -18,3 +18,8 @@ data class UpdateTodoRequest(
     val title: String,
     val reminderAt: Instant? = null,
 )
+
+@Serializable
+data class CompleteTodoRequest(
+    val isComplete: Boolean,
+)

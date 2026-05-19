@@ -1,6 +1,7 @@
 package com.qlink.support.fixture
 
 import com.qlink.todo.domain.Todo
+import com.qlink.todo.dto.CompleteTodoRequest
 import com.qlink.todo.dto.UpdateTodoRequest
 import kotlin.time.Instant
 import kotlin.time.toKotlinInstant
@@ -31,5 +32,10 @@ object TodoFixture {
             linkId = linkId,
             title = title,
             reminderAt = reminderAt,
+        )
+
+    fun createCompleteTodoRequest(isComplete: Boolean): CompleteTodoRequest =
+        CompleteTodoRequest(
+            isComplete = isComplete,
         )
 }

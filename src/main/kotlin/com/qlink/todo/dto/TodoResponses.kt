@@ -16,3 +16,8 @@ data class UpdateTodoResponse(
     val title: String,
     val reminderAt: Instant?,
 )
+
+@Serializable
+data class CompleteTodoResponse(
+    val completeAt: Instant?,
+)

@@ -3,11 +3,13 @@ package com.qlink.todo.domain
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.support.fixture.RandomFixture
+import com.qlink.support.fixture.TodoFixture
 import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import kotlin.time.Clock
 
 class TodoTest :
     BehaviorSpec({
@@ -155,6 +157,74 @@ class TodoTest :
                     shouldThrowWithMessage<BusinessException>(ErrorCode.TODO_TITLE_BLANK.message) {
                         update()
                     }
+                }
+            }
+        }
+
+        Given("완료 상태 변경 테스트") {
+            val linkId = RandomFixture.randomId()
+            val ownerId = RandomFixture.randomId()
+
+            When("미완료 할 일을 완료하면") {
+                val todo =
+                    TodoFixture.createRandomTodoOf(
+                        linkId = linkId,
+                        ownerId = ownerId,
+                        completedAt = null,
+                    )
+                val completedAt = Clock.System.now()
+                val actual = todo.complete(completedAt)
+
+                Then("완료 상태가 된다") {
+                    actual.id shouldBe todo.id
+                    actual.completedAt shouldBe completedAt
+                    actual.isCompleted shouldBe true
+                }
+            }
+
+            When("완료된 할 일을 다시 완료하면") {
+                val originalCompletedAt = Clock.System.now()
+                val todo =
+                    TodoFixture.createRandomTodoOf(
+                        linkId = linkId,
+                        ownerId = ownerId,
+                        completedAt = originalCompletedAt,
+                    )
+                val actual = todo.complete(Clock.System.now())
+
+                Then("기존 완료 시간이 유지된다") {
+                    actual.completedAt shouldBe originalCompletedAt
+                    actual.isCompleted shouldBe true
+                }
+            }
+
+            When("완료된 할 일을 미완료하면") {
+                val todo =
+                    TodoFixture.createRandomTodoOf(
+                        linkId = linkId,
+                        ownerId = ownerId,
+                        completedAt = Clock.System.now(),
+                    )
+                val actual = todo.incomplete()
+
+                Then("미완료 상태가 된다") {
+                    actual.completedAt shouldBe null
+                    actual.isCompleted shouldBe false
+                }
+            }
+
+            When("미완료 할 일을 다시 미완료하면") {
+                val todo =
+                    TodoFixture.createRandomTodoOf(
+                        linkId = linkId,
+                        ownerId = ownerId,
+                        completedAt = null,
+                    )
+                val actual = todo.incomplete()
+
+                Then("미완료 상태가 유지된다") {
+                    actual.completedAt shouldBe null
+                    actual.isCompleted shouldBe false
                 }
             }
         }
