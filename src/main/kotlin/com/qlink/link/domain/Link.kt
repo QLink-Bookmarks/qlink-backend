@@ -19,12 +19,14 @@ class Link(
     val title: String,
     val summary: String? = null,
     val memo: String? = null,
-    val tags: List<String>,
+    tags: List<String>,
     val thumbnailUrl: String? = null,
     val sourceType: SourceType,
     val createdAt: Instant? = null,
     val updatedAt: Instant? = null,
 ) {
+    val tags: List<String> = tags.distinct()
+
     init {
         validateUrl(url)
         validateTitle(title)
