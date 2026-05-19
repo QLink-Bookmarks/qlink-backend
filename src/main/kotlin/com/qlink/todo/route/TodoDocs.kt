@@ -4,6 +4,7 @@ import com.qlink.common.docs.authErrorResponse
 import com.qlink.common.docs.examples
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.response.ApiResponse
+import com.qlink.common.response.EmptySuccessResponse
 import com.qlink.common.response.ErrorDetail
 import com.qlink.todo.dto.CompleteTodoRequest
 import com.qlink.todo.dto.CompleteTodoResponse
@@ -115,6 +116,30 @@ internal fun updateTodoDocs(): RouteConfig.() -> Unit =
                         ErrorCode.TODO_NOT_FOUND,
                         ErrorCode.TODO_LINK_NOT_FOUND,
                     )
+                }
+            }
+        }
+    }
+
+internal fun deleteTodoDocs(): RouteConfig.() -> Unit =
+    {
+        summary = "할 일 삭제 API"
+        response {
+            code(HttpStatusCode.OK) {
+                description = "할 일 삭제 성공"
+                body<EmptySuccessResponse>()
+            }
+            authErrorResponse()
+            code(HttpStatusCode.Forbidden) {
+                description = "할 일 삭제 권한 검증 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.TODO_DIFFERENT_OWNER)
+                }
+            }
+            code(HttpStatusCode.NotFound) {
+                description = "할 일 삭제 대상 리소스 조회 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.TODO_OWNER_NOT_FOUND)
                 }
             }
         }

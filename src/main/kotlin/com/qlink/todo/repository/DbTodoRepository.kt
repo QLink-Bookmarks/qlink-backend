@@ -6,6 +6,7 @@ import com.qlink.todo.repository.table.fromDomain
 import com.qlink.todo.repository.table.refreshUpdatedAt
 import com.qlink.todo.repository.table.toTodoDomain
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.updateReturning
@@ -32,4 +33,8 @@ class DbTodoRepository : TodoRepository {
             }
             .single()
             .toTodoDomain()
+
+    override suspend fun deleteById(todoId: Long) {
+        Todos.deleteWhere { id eq todoId }
+    }
 }

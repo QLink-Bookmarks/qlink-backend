@@ -8,4 +8,6 @@ interface TodoRepository {
     suspend fun findById(todoId: Long): Todo?
 
     suspend fun update(todo: Todo): Todo
+
+    suspend fun deleteById(todoId: Long)
 }
