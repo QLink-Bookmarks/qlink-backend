@@ -28,8 +28,7 @@ class DbTodoRepository : TodoRepository {
     override suspend fun update(todo: Todo): Todo =
         Todos
             .updateReturning(where = { Todos.id eq todo.id!! }) {
-                it.fromDomain(todo)
-                it.refreshUpdatedAt()
+                it.fromDomain(todo).refreshUpdatedAt()
             }
             .single()
             .toTodoDomain()

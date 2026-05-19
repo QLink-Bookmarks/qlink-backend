@@ -27,15 +27,13 @@ class CompleteTodoService(
             val todo = todoRepository.findById(todoId) ?: throw BusinessException(ErrorCode.TODO_NOT_FOUND)
             todo.validateOwner(loginId)
 
-            val completedTodo = todo.completeBy(request.isComplete)
-            val result =
-                if (completedTodo === todo) {
-                    todo
-                } else {
-                    todoRepository.update(completedTodo)
-                }
+            if (todo.isCompleted == request.isComplete) {
+                return@required todo.toResponse()
+            }
 
-            result.toResponse()
+            val completedTodo = todo.completeBy(request.isComplete)
+
+            todoRepository.update(completedTodo).toResponse()
         }
 
     private fun Todo.completeBy(isComplete: Boolean): Todo =
