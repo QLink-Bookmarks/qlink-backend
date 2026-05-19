@@ -75,18 +75,21 @@ class UpdateTodoServiceTest :
             }
 
             When("다른 본인 링크로 할 일 수정을") {
-                val newLink = linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = user.id!!))
-                val updateRequest = TodoFixture.createValidUpdateTodoRequest(linkId = newLink.id!!)
                 val update =
                     suspend {
+                        val newLink = linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = user.id!!))
+                        val updateRequest = TodoFixture.createValidUpdateTodoRequest(linkId = newLink.id!!)
+
                         updateTodoService.updateTodo(user.id!!, todo.id!!, updateRequest)
+
+                        newLink.id
                     }
 
                 Then("성공한다") {
-                    update()
+                    val expectedLinkId = update()
 
                     val actual = todoRepository.findById(todo.id!!)
-                    actual!!.linkId shouldBe newLink.id
+                    actual!!.linkId shouldBe expectedLinkId
                 }
             }
 
