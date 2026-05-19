@@ -43,8 +43,30 @@ class LinkTest :
                     actual.folderId shouldBe folderId
                     actual.title shouldBe title
                     actual.summary shouldBe summary
-                    actual.tags shouldBe tags
+                    actual.tags shouldBe tags.distinct()
                     actual.sourceType shouldBe sourceType
+                }
+            }
+
+            When("중복 태그로 링크를 생성하면") {
+                val firstTag = "${RandomFixture.randomSentenceWithMax(10)}-${RandomFixture.randomId()}"
+                val secondTag = "${RandomFixture.randomSentenceWithMax(10)}-${RandomFixture.randomId()}"
+                val thirdTag = "${RandomFixture.randomSentenceWithMax(10)}-${RandomFixture.randomId()}"
+                val duplicatedTags = listOf(firstTag, secondTag, firstTag, thirdTag, secondTag)
+
+                val actual =
+                    Link(
+                        ownerId = ownerId,
+                        folderId = folderId,
+                        url = url,
+                        title = title,
+                        summary = summary,
+                        tags = duplicatedTags,
+                        sourceType = sourceType,
+                    )
+
+                Then("처음 등장한 순서대로 중복 태그를 제거한다") {
+                    actual.tags shouldBe listOf(firstTag, secondTag, thirdTag)
                 }
             }
 
@@ -292,9 +314,39 @@ class LinkTest :
                     actual.title shouldBe title
                     actual.summary shouldBe summary
                     actual.memo shouldBe memo
-                    actual.tags shouldBe tags
+                    actual.tags shouldBe tags.distinct()
                     actual.thumbnailUrl shouldBe thumbnailUrl
                     actual.sourceType shouldBe sourceType
+                }
+            }
+
+            When("중복 태그로 링크를 수정하면") {
+                val folderId = RandomFixture.randomId()
+                val url = RandomFixture.randomUrl()
+                val title = RandomFixture.randomSentenceWithMax(300)
+                val summary = RandomFixture.randomSentenceWithMax(1_000)
+                val memo = RandomFixture.randomSentenceWithMax(1_000)
+                val firstTag = "${RandomFixture.randomSentenceWithMax(10)}-${RandomFixture.randomId()}"
+                val secondTag = "${RandomFixture.randomSentenceWithMax(10)}-${RandomFixture.randomId()}"
+                val thirdTag = "${RandomFixture.randomSentenceWithMax(10)}-${RandomFixture.randomId()}"
+                val duplicatedTags = listOf(firstTag, secondTag, firstTag, thirdTag, secondTag)
+                val thumbnailUrl = RandomFixture.randomUrl()
+                val sourceType = SourceType.entries.first { it != link.sourceType }
+
+                val actual =
+                    link.update(
+                        folderId = folderId,
+                        url = url,
+                        title = title,
+                        summary = summary,
+                        memo = memo,
+                        tags = duplicatedTags,
+                        thumbnailUrl = thumbnailUrl,
+                        sourceType = sourceType,
+                    )
+
+                Then("처음 등장한 순서대로 중복 태그를 제거한다") {
+                    actual.tags shouldBe listOf(firstTag, secondTag, thirdTag)
                 }
             }
 
