@@ -31,20 +31,22 @@ class Todo(
         }
     }
 
+    fun isDifferentLink(linkId: Long): Boolean = this.linkId != linkId
+
     fun update(
         linkId: Long,
         title: String,
         reminderAt: Instant?,
     ): Todo =
         Todo(
-            id = id,
+            id = this.id,
             linkId = linkId,
-            ownerId = ownerId,
+            ownerId = this.ownerId,
             title = title,
             reminderAt = reminderAt,
-            completedAt = completedAt,
-            createdAt = createdAt,
-            updatedAt = updatedAt,
+            completedAt = this.completedAt,
+            createdAt = this.createdAt,
+            updatedAt = this.updatedAt,
         )
 
     private fun validateTitle(title: String) {

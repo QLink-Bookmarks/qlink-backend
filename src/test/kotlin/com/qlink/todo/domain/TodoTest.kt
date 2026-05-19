@@ -142,6 +142,16 @@ class TodoTest :
                 }
             }
 
+            When("같은 링크인지 확인하면") {
+                val sameLinkId = todo.linkId
+                val otherLinkId = todo.linkId + 1
+
+                Then("현재 링크와 다르면 true를 반환한다") {
+                    todo.isDifferentLink(sameLinkId) shouldBe false
+                    todo.isDifferentLink(otherLinkId) shouldBe true
+                }
+            }
+
             When("수정 제목이 공백이면") {
                 val update = {
                     todo.update(
