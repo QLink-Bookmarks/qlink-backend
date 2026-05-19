@@ -8,5 +8,10 @@ class TodoResources {
     class ById(
         val parent: TodoResources = TodoResources(),
         val id: Long,
-    )
+    ) {
+        @Resource("completed")
+        class Completed(
+            val parent: ById,
+        )
+    }
 }

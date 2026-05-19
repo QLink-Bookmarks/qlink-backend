@@ -49,6 +49,38 @@ class Todo(
             updatedAt = this.updatedAt,
         )
 
+    fun complete(completedAt: Instant): Todo =
+        if (isCompleted) {
+            this
+        } else {
+            Todo(
+                id = id,
+                linkId = linkId,
+                ownerId = ownerId,
+                title = title,
+                reminderAt = reminderAt,
+                completedAt = completedAt,
+                createdAt = createdAt,
+                updatedAt = updatedAt,
+            )
+        }
+
+    fun incomplete(): Todo =
+        if (!isCompleted) {
+            this
+        } else {
+            Todo(
+                id = id,
+                linkId = linkId,
+                ownerId = ownerId,
+                title = title,
+                reminderAt = reminderAt,
+                completedAt = null,
+                createdAt = createdAt,
+                updatedAt = updatedAt,
+            )
+        }
+
     private fun validateTitle(title: String) {
         title.isNotBlank().requireTrue(ErrorCode.TODO_TITLE_BLANK)
         title.requireNotOver(MAX_TITLE_LENGTH, ErrorCode.TODO_TITLE_OVER_MAX)
