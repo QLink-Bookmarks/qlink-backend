@@ -34,8 +34,8 @@ object TodoFixture {
             reminderAt = reminderAt,
         )
 
-    fun createCompleteTodoRequest(isComplete: Boolean): CompleteTodoRequest =
+    fun createCompleteTodoRequest(isCompleted: Boolean): CompleteTodoRequest =
         CompleteTodoRequest(
-            isComplete = isComplete,
+            isCompleted = isCompleted,
         )
 }

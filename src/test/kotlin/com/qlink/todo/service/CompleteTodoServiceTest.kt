@@ -66,7 +66,7 @@ class CompleteTodoServiceTest :
             }
 
             When("미완료 할 일을 완료하면") {
-                val request = TodoFixture.createCompleteTodoRequest(isComplete = true)
+                val request = TodoFixture.createCompleteTodoRequest(isCompleted = true)
                 val complete =
                     suspend {
                         completeTodoService.completeTodo(user.id!!, incompleteTodo.id!!, request)
@@ -84,7 +84,7 @@ class CompleteTodoServiceTest :
             }
 
             When("완료된 할 일을 다시 완료하면") {
-                val request = TodoFixture.createCompleteTodoRequest(isComplete = true)
+                val request = TodoFixture.createCompleteTodoRequest(isCompleted = true)
                 val complete =
                     suspend {
                         completeTodoService.completeTodo(user.id!!, completedTodo.id!!, request)
@@ -101,7 +101,7 @@ class CompleteTodoServiceTest :
             }
 
             When("완료된 할 일을 미완료하면") {
-                val request = TodoFixture.createCompleteTodoRequest(isComplete = false)
+                val request = TodoFixture.createCompleteTodoRequest(isCompleted = false)
                 val complete =
                     suspend {
                         completeTodoService.completeTodo(user.id!!, completedTodo.id!!, request)
@@ -118,7 +118,7 @@ class CompleteTodoServiceTest :
             }
 
             When("미완료 할 일을 다시 미완료하면") {
-                val request = TodoFixture.createCompleteTodoRequest(isComplete = false)
+                val request = TodoFixture.createCompleteTodoRequest(isCompleted = false)
                 val complete =
                     suspend {
                         completeTodoService.completeTodo(user.id!!, incompleteTodo.id!!, request)
@@ -136,7 +136,7 @@ class CompleteTodoServiceTest :
 
             When("로그인 사용자가 없으면") {
                 val invalidUserId = RandomFixture.randomId()
-                val request = TodoFixture.createCompleteTodoRequest(isComplete = true)
+                val request = TodoFixture.createCompleteTodoRequest(isCompleted = true)
                 val complete =
                     suspend {
                         completeTodoService.completeTodo(invalidUserId, incompleteTodo.id!!, request)
@@ -151,7 +151,7 @@ class CompleteTodoServiceTest :
 
             When("할 일이 없으면") {
                 val invalidTodoId = RandomFixture.randomId()
-                val request = TodoFixture.createCompleteTodoRequest(isComplete = true)
+                val request = TodoFixture.createCompleteTodoRequest(isCompleted = true)
                 val complete =
                     suspend {
                         completeTodoService.completeTodo(user.id!!, invalidTodoId, request)
@@ -165,7 +165,7 @@ class CompleteTodoServiceTest :
             }
 
             When("본인 소유 할 일이 아니면") {
-                val request = TodoFixture.createCompleteTodoRequest(isComplete = true)
+                val request = TodoFixture.createCompleteTodoRequest(isCompleted = true)
                 val complete =
                     suspend {
                         completeTodoService.completeTodo(user.id!!, otherUserTodo.id!!, request)

@@ -21,5 +21,5 @@ data class UpdateTodoRequest(
 
 @Serializable
 data class CompleteTodoRequest(
-    val isComplete: Boolean,
+    val isCompleted: Boolean,
 )
