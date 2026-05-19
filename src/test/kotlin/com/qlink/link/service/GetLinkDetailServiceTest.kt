@@ -10,12 +10,18 @@ import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.FolderFixture
 import com.qlink.support.fixture.LinkFixture
 import com.qlink.support.fixture.RandomFixture
+import com.qlink.support.fixture.TodoFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
+import com.qlink.todo.domain.Todo
+import com.qlink.todo.dto.LinkDetailTodoQuery
+import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.domain.User
 import com.qlink.user.repository.UserRepository
 import io.kotest.assertions.throwables.shouldThrowWithMessage
+import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
+import kotlin.time.toKotlinInstant
 
 class GetLinkDetailServiceTest :
     BaseServiceTest({
@@ -23,6 +29,7 @@ class GetLinkDetailServiceTest :
         val userRepository = koinGet<UserRepository>()
         val linkRepository = koinGet<LinkRepository>()
         val folderRepository = koinGet<FolderRepository>()
+        val todoRepository = koinGet<TodoRepository>()
 
         Given("링크 상세 조회 서비스 테스트") {
             lateinit var user: User
@@ -35,7 +42,7 @@ class GetLinkDetailServiceTest :
                 folder = folderRepository.insert(FolderFixture.createValidUnsharedFolder(user.id!!))
             }
 
-            When("폴더가 있는 본인 링크 상세 조회를") {
+            When("폴더와 할 일이 있는 본인 링크 상세 조회를") {
                 val link =
                     linkRepository.insert(
                         LinkFixture.createRandomLinkOf(
@@ -43,6 +50,34 @@ class GetLinkDetailServiceTest :
                             folderId = folder.id,
                         ),
                     )
+                val otherLink =
+                    linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = user.id!!))
+                val todos =
+                    listOf(
+                        todoRepository.insert(
+                            TodoFixture.createRandomTodoOf(
+                                linkId = link.id!!,
+                                ownerId = user.id!!,
+                            ),
+                        ),
+                        todoRepository.insert(
+                            TodoFixture.createRandomTodoOf(
+                                linkId = link.id!!,
+                                ownerId = user.id!!,
+                                completedAt =
+                                    RandomFixture
+                                        .randomDateTime()
+                                        .toInstant()
+                                        .toKotlinInstant(),
+                            ),
+                        ),
+                    )
+                todoRepository.insert(
+                    TodoFixture.createRandomTodoOf(
+                        linkId = otherLink.id!!,
+                        ownerId = user.id!!,
+                    ),
+                )
                 val expectedFolderId = folder.id
                 val expectedFolderName = folder.name
                 val actual = getLinkDetailService.getLinkDetail(user.id!!, link.id!!)
@@ -58,6 +93,7 @@ class GetLinkDetailServiceTest :
                     actual.createdAt shouldBe link.createdAt
                     actual.folderId shouldBe expectedFolderId
                     actual.folderName shouldBe expectedFolderName
+                    actual.todos shouldContainExactly todos.map { it.toExpectedTodo() }
                 }
             }
 
@@ -74,6 +110,7 @@ class GetLinkDetailServiceTest :
                     actual.id shouldBe link.id
                     actual.folderId shouldBe null
                     actual.folderName shouldBe null
+                    actual.todos shouldBe emptyList()
                 }
             }
 
@@ -111,3 +148,11 @@ class GetLinkDetailServiceTest :
             }
         }
     })
+
+private fun Todo.toExpectedTodo() =
+    LinkDetailTodoQuery(
+        id = id!!,
+        title = title,
+        completedAt = completedAt,
+        reminderAt = reminderAt,
+    )

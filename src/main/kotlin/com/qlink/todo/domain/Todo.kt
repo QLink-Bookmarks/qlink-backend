@@ -1,5 +1,6 @@
 package com.qlink.todo.domain
 
+import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireNotOver
 import com.qlink.common.error.requireTrue
@@ -23,6 +24,62 @@ class Todo(
 
     val isCompleted: Boolean
         get() = completedAt != null
+
+    fun validateOwner(ownerId: Long) {
+        if (this.ownerId != ownerId) {
+            throw BusinessException(ErrorCode.TODO_DIFFERENT_OWNER)
+        }
+    }
+
+    fun isDifferentLink(linkId: Long): Boolean = this.linkId != linkId
+
+    fun update(
+        linkId: Long,
+        title: String,
+        reminderAt: Instant?,
+    ): Todo =
+        Todo(
+            id = this.id,
+            linkId = linkId,
+            ownerId = this.ownerId,
+            title = title,
+            reminderAt = reminderAt,
+            completedAt = this.completedAt,
+            createdAt = this.createdAt,
+            updatedAt = this.updatedAt,
+        )
+
+    fun complete(completedAt: Instant): Todo =
+        if (isCompleted) {
+            this
+        } else {
+            Todo(
+                id = id,
+                linkId = linkId,
+                ownerId = ownerId,
+                title = title,
+                reminderAt = reminderAt,
+                completedAt = completedAt,
+                createdAt = createdAt,
+                updatedAt = updatedAt,
+            )
+        }
+
+    fun incomplete(): Todo =
+        if (!isCompleted) {
+            this
+        } else {
+            Todo(
+                id = id,
+                linkId = linkId,
+                ownerId = ownerId,
+                title = title,
+                reminderAt = reminderAt,
+                completedAt = null,
+                createdAt = createdAt,
+                updatedAt = updatedAt,
+            )
+        }
 
     private fun validateTitle(title: String) {
         title.isNotBlank().requireTrue(ErrorCode.TODO_TITLE_BLANK)

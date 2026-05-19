@@ -49,3 +49,7 @@ fun UpdateBuilder<*>.fromDomain(todo: Todo) {
     this[Todos.reminderAt] = todo.reminderAt?.toJavaInstant()
     this[Todos.completedAt] = todo.completedAt?.toJavaInstant()
 }
+
+fun UpdateBuilder<*>.refreshUpdatedAt() {
+    this[Todos.updatedAt] = java.time.Instant.now()
+}

@@ -11,3 +11,15 @@ data class CreateTodoRequest(
     val title: String,
     val reminderAt: Instant? = null,
 )
+
+@Serializable
+data class UpdateTodoRequest(
+    val linkId: Long,
+    val title: String,
+    val reminderAt: Instant? = null,
+)
+
+@Serializable
+data class CompleteTodoRequest(
+    val isCompleted: Boolean,
+)
