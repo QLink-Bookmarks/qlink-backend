@@ -26,6 +26,7 @@ fun serviceModule() =
                 tx = get(),
                 linkRepository = get(),
                 folderRepository = get(),
+                todoRepository = get(),
             )
         }
 
