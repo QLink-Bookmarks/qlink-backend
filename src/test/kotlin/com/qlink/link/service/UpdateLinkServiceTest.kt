@@ -91,13 +91,14 @@ class UpdateLinkServiceTest :
                 Then("성공한다") {
                     val (link, request, response) = update()
                     val actual = linkRepository.findById(link.id!!)
+                    val expectedTags = request.tags.distinct()
 
                     response.folderId shouldBe request.folderId
                     response.url shouldBe request.url
                     response.title shouldBe request.title
                     response.summary shouldBe request.summary
                     response.memo shouldBe request.memo
-                    response.tags shouldBe request.tags
+                    response.tags shouldBe expectedTags
                     response.thumbnailUrl shouldBe request.thumbnailUrl
                     response.sourceType shouldBe request.sourceType
 
@@ -107,7 +108,7 @@ class UpdateLinkServiceTest :
                     actual.title shouldBe request.title
                     actual.summary shouldBe request.summary
                     actual.memo shouldBe request.memo
-                    actual.tags shouldBe request.tags
+                    actual.tags shouldBe expectedTags
                     actual.thumbnailUrl shouldBe request.thumbnailUrl
                     actual.sourceType shouldBe request.sourceType
                     actual.updatedAt shouldNotBe link.updatedAt
