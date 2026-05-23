@@ -20,6 +20,9 @@ fun Application.configureRouting() {
         get("/") {
             call.respondText("Hello, World!")
         }
+        get("/health") {
+            call.respond(mapOf("status" to "HEALTHY"))
+        }
         authenticate {
             get("/sample/jwt", {
                 summary = "Required JWT sample"
