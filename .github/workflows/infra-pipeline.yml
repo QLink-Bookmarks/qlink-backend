@@ -1,0 +1,187 @@
+name: 인프라 관리 파이프라인
+
+on:
+  workflow_call:
+    inputs:
+      env:
+        required: true
+        type: string
+      ecr_repository_name:
+        required: true
+        type: string
+      ecr_repository_tag_name:
+        required: true
+        type: string
+      rds_db_name:
+        required: false
+        default: ""
+        type: string
+      rds_username:
+        required: false
+        default: ""
+        type: string
+      infra_update_enabled:
+        required: false
+        default: false
+        type: boolean
+      infra_shared_update_enabled:
+        required: false
+        default: false
+        type: boolean
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      SUBMODULES_SECRET:
+        required: true
+      TF_VAR_DB_PASSWORD:
+        required: false
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: ap-northeast-2
+
+jobs:
+  infra:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 체크아웃
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.SUBMODULES_SECRET }}
+          submodules: true
+
+      - name: AWS Credentials 설정
+        if: ${{ inputs.infra_update_enabled || inputs.infra_shared_update_enabled }}
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform 설치
+        if: ${{ inputs.infra_update_enabled || inputs.infra_shared_update_enabled }}
+        uses: hashicorp/setup-terraform@v4
+
+      - name: Terraform Init (Remote Backend)
+        if: ${{ inputs.infra_update_enabled }}
+        working-directory: terraform/${{ inputs.env }}
+        run: |
+          terraform init \
+            -reconfigure \
+            -input=false
+
+      - name: Terraform Format Check
+        if: ${{ inputs.infra_update_enabled }}
+        working-directory: terraform/${{ inputs.env }}
+        run: |
+          terraform fmt \
+            -check \
+            -recursive
+
+      - name: Terraform Validate
+        if: ${{ inputs.infra_update_enabled }}
+        working-directory: terraform/${{ inputs.env }}
+        env:
+          TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD }}
+          TF_VAR_rds_db_name: ${{ inputs.rds_db_name }}
+          TF_VAR_rds_username: ${{ inputs.rds_username }}
+          TF_VAR_ecs_image_tag: latest
+          TF_VAR_ecr_repository_name: ${{ inputs.ecr_repository_name }}
+          TF_VAR_ecr_repository_tag_name: ${{ inputs.ecr_repository_tag_name }}
+        run: terraform validate
+
+      - name: Terraform Plan
+        if: ${{ inputs.infra_update_enabled }}
+        working-directory: terraform/${{ inputs.env }}
+        env:
+          TF_IN_AUTOMATION: "true"
+          TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD }}
+          TF_VAR_rds_db_name: ${{ inputs.rds_db_name }}
+          TF_VAR_rds_username: ${{ inputs.rds_username }}
+          TF_VAR_ecs_image_tag: latest
+          TF_VAR_ecr_repository_name: ${{ inputs.ecr_repository_name }}
+          TF_VAR_ecr_repository_tag_name: ${{ inputs.ecr_repository_tag_name }}
+        run: |
+          terraform plan \
+            -input=false \
+            -out=tfplan \
+            -target=module.network \
+            -target=module.security \
+            -target=module.ecr \
+            -target=module.alb \
+            -target=module.route53_dev \
+            -target=module.rds \
+            -target=module.ecs.aws_iam_role.ecs_instance_role \
+            -target=module.ecs.aws_iam_role_policy_attachment.ecs_instance_role_policy \
+            -target=module.ecs.aws_iam_instance_profile.ecs_instance_profile \
+            -target=module.ecs.aws_ecs_cluster.qlink_ecs_cluster \
+            -target=module.ecs.aws_launch_template.ecs_launch_template \
+            -target=module.ecs.aws_autoscaling_group.ecs_asg \
+            -target=module.ecs.aws_iam_role.ecs_task_execution_role \
+            -target=module.ecs.aws_iam_role_policy_attachment.ecs_task_execution_role_policy \
+            -target=module.ecs.aws_cloudwatch_log_group.ecs_log_group \
+            -target=module.ecs.aws_ecs_capacity_provider.qlink_capacity_provider \
+            -target=module.ecs.aws_ecs_cluster_capacity_providers.qlink_cluster_cp
+
+      - name: Terraform Apply
+        if: ${{ inputs.infra_update_enabled }}
+        working-directory: terraform/${{ inputs.env }}
+        env:
+          TF_IN_AUTOMATION: "true"
+          TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD }}
+          TF_VAR_rds_db_name: ${{ inputs.rds_db_name }}
+          TF_VAR_rds_username: ${{ inputs.rds_username }}
+          TF_VAR_ecs_image_tag: latest
+          TF_VAR_ecr_repository_name: ${{ inputs.ecr_repository_name }}
+          TF_VAR_ecr_repository_tag_name: ${{ inputs.ecr_repository_tag_name }}
+        run: |
+          terraform apply \
+            -input=false \
+            -auto-approve \
+            tfplan
+
+      - name: Terraform Shared Init (Remote Backend)
+        if: ${{ inputs.infra_shared_update_enabled }}
+        working-directory: terraform/shared
+        run: |
+          terraform init \
+            -reconfigure \
+            -input=false
+
+      - name: Terraform Shared Format Check
+        if: ${{ inputs.infra_shared_update_enabled }}
+        working-directory: terraform/shared
+        run: |
+          terraform fmt \
+            -check \
+            -recursive
+
+      - name: Terraform Shared Validate
+        if: ${{ inputs.infra_shared_update_enabled }}
+        working-directory: terraform/shared
+        run: terraform validate
+
+      - name: Terraform Shared Plan
+        if: ${{ inputs.infra_shared_update_enabled }}
+        working-directory: terraform/shared
+        env:
+          TF_IN_AUTOMATION: "true"
+        run: |
+          terraform plan \
+            -input=false \
+            -out=tfplan
+
+      - name: Terraform Shared Apply
+        if: ${{ inputs.infra_shared_update_enabled }}
+        working-directory: terraform/shared
+        env:
+          TF_IN_AUTOMATION: "true"
+        run: |
+          terraform apply \
+            -input=false \
+            -auto-approve \
+            tfplan
