@@ -1,3 +1,7 @@
+locals {
+  rds_jdbc_url = "jdbc:postgresql://${module.rds.endpoint}:5432/${var.rds_db_name}?currentSchema=qlink_local"
+}
+
 module "network" {
   source = "../modules/network"
 
@@ -126,6 +130,12 @@ module "ecs" {
   task_port_name           = var.ecs_task_port_name
   task_app_protocol        = var.ecs_task_app_protocol
   task_image               = "${module.ecr.repository_url}:${var.ecs_image_tag}"
+  task_environment = {
+    DB_JDBC_URL          = local.rds_jdbc_url
+    DB_USERNAME          = var.rds_username
+    DB_PASSWORD          = var.db_password
+    DB_DRIVER_CLASS_NAME = "org.postgresql.Driver"
+  }
   task_healthcheck_command = var.ecs_task_healthcheck_command
   task_definition_tag_name = var.ecs_task_definition_tag_name
 

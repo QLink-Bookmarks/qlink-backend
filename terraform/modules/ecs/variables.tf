@@ -118,6 +118,10 @@ variable "task_image" {
   type = string
 }
 
+variable "task_environment" {
+  type = map(string)
+}
+
 variable "task_healthcheck_command" {
   type = string
 }

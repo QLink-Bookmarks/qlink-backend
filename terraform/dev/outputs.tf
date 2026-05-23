@@ -8,6 +8,21 @@ output "rds_endpoint" {
   value       = module.rds.endpoint
 }
 
+output "rds_db_name" {
+  description = "RDS database name"
+  value       = module.rds.db_name
+}
+
+output "rds_username" {
+  description = "RDS master username"
+  value       = module.rds.username
+}
+
+output "rds_jdbc_url" {
+  description = "JDBC URL for manually syncing secrets/application-dev.yaml"
+  value       = local.rds_jdbc_url
+}
+
 output "vpc_id" {
   description = "ID of the VPC"
   value       = module.network.vpc_id

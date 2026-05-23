@@ -166,7 +166,12 @@ resource "aws_ecs_task_definition" "qlink_task" {
         }
       ]
 
-      environment      = []
+      environment = [
+        for key, value in var.task_environment : {
+          name  = key
+          value = value
+        }
+      ]
       environmentFiles = []
       mountPoints      = []
       volumesFrom      = []
