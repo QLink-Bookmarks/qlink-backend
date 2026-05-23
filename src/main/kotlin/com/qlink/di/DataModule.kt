@@ -25,12 +25,23 @@ fun dataModule(
 
     single {
         val resolvedDataSourceConfig =
-            dataSourceConfig ?: DataSourceConfig(
-                jdbcUrl = config.string("dataSource.jdbcUrl"),
-                username = config.string("dataSource.username"),
-                password = config.string("dataSource.password"),
-                driverClassName = config.string("dataSource.driverClassName"),
-            )
+            dataSourceConfig ?: run {
+                val resolvedJdbcUrl = System.getenv("DB_JDBC_URL")?.takeUnless { it.isBlank() } ?: config.string("dataSource.jdbcUrl")
+                val resolvedUsername =
+                    System.getenv("DB_USERNAME")?.takeUnless { it.isBlank() } ?: config.string("dataSource.username")
+                val resolvedPassword =
+                    System.getenv("DB_PASSWORD")?.takeUnless { it.isBlank() } ?: config.string("dataSource.password")
+                val resolvedDriverClassName =
+                    System.getenv("DB_DRIVER_CLASS_NAME")?.takeUnless { it.isBlank() }
+                        ?: config.string("dataSource.driverClassName")
+
+                DataSourceConfig(
+                    jdbcUrl = resolvedJdbcUrl,
+                    username = resolvedUsername,
+                    password = resolvedPassword,
+                    driverClassName = resolvedDriverClassName,
+                )
+            }
 
         HikariConfig().apply {
             jdbcUrl = resolvedDataSourceConfig.jdbcUrl
