@@ -1,4 +1,4 @@
-resource "aws_ecr_repository" "qlink_spring_app" {
+resource "aws_ecr_repository" "qlink_ktor_app" {
   name                 = var.repository_name
   image_tag_mutability = var.image_tag_mutability
 
@@ -15,8 +15,8 @@ resource "aws_ecr_repository" "qlink_spring_app" {
   }
 }
 
-resource "aws_ecr_lifecycle_policy" "qlink_spring_app" {
-  repository = aws_ecr_repository.qlink_spring_app.name
+resource "aws_ecr_lifecycle_policy" "qlink_ktor_app" {
+  repository = aws_ecr_repository.qlink_ktor_app.name
   policy = jsonencode({
     rules = [
       {

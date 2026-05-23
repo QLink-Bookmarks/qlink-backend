@@ -44,7 +44,7 @@ jobs:
 
   infra_update:
     needs: detect
-    if: ${{ needs.detect.outputs.infra_changed == 'true' || needs.detect.outputs.infra_shared_changed == 'true' }}
+    if: ${{ needs.detect.outputs.infra_changed == 'true' }}
     uses: ./.github/workflows/infra-pipeline.yml
     with:
       env: dev
@@ -53,7 +53,7 @@ jobs:
       rds_db_name: qlink
       rds_username: qlink
       infra_update_enabled: ${{ needs.detect.outputs.infra_changed == 'true' }}
-      infra_shared_update_enabled: ${{ needs.detect.outputs.infra_shared_changed == 'true' }}
+      infra_shared_update_enabled: false
     secrets:
       AWS_ACCESS_KEY_ID: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
@@ -64,7 +64,7 @@ jobs:
     needs:
       - detect
       - infra_update
-    if: ${{ always() && needs.detect.result == 'success' && (needs.detect.outputs.app_changed == 'true' || needs.detect.outputs.infra_changed == 'true' || needs.detect.outputs.infra_shared_changed == 'true') && (needs.infra_update.result == 'success' || needs.infra_update.result == 'skipped') }}
+    if: ${{ always() && needs.detect.result == 'success' && (needs.detect.outputs.app_changed == 'true' || needs.detect.outputs.infra_changed == 'true') && (needs.infra_update.result == 'success' || needs.infra_update.result == 'skipped') }}
     uses: ./.github/workflows/deploy-pipeline.yml
     with:
       env: dev
