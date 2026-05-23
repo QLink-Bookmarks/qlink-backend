@@ -50,6 +50,7 @@ class CreateLinkServiceTest :
 
                 Then("성공한다") {
                     val actual = linkRepository.findById(expected.id)
+                    val expectedTags = request.tags.distinct()
 
                     actual shouldNotBe null
                     actual!!.id shouldBe expected.id
@@ -58,7 +59,7 @@ class CreateLinkServiceTest :
                     actual.summary shouldBe request.summary
                     actual.sourceType shouldBe request.sourceType
                     actual.thumbnailUrl shouldBe request.thumbnailUrl
-                    actual.tags shouldBe request.tags
+                    actual.tags shouldBe expectedTags
                 }
             }
 

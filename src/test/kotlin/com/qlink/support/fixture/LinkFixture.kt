@@ -6,6 +6,8 @@ import com.qlink.link.dto.UpdateLinkRequest
 import kotlin.random.Random
 
 object LinkFixture {
+    private fun randomDistinctTags(): List<String> = RandomFixture.randomSentenceList().distinct()
+
     fun createRandomLinkOf(
         ownerId: Long,
         folderId: Long? = null,
@@ -13,7 +15,7 @@ object LinkFixture {
         title: String = RandomFixture.randomSentenceWithMax(300),
         summary: String? = RandomFixture.randomSentenceWithMax(1000),
         memo: String? = null,
-        tags: List<String> = RandomFixture.randomSentenceList(),
+        tags: List<String> = randomDistinctTags(),
         thumbnailUrl: String? = RandomFixture.randomUrl(),
         sourceType: SourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
     ): Link =
@@ -37,7 +39,7 @@ object LinkFixture {
             title = RandomFixture.randomSentenceWithMax(300),
             summary = RandomFixture.randomSentenceWithMax(1000),
             memo = RandomFixture.randomSentenceWithMax(1000),
-            tags = RandomFixture.randomSentenceList(),
+            tags = randomDistinctTags(),
             thumbnailUrl = RandomFixture.randomUrl(),
             sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
         )
