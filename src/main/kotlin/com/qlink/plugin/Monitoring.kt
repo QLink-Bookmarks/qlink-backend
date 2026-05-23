@@ -33,6 +33,9 @@ fun Application.configureMonitoring() {
     install(CallLogging) {
         logger = httpLogger
         level = Level.INFO
+        filter { call ->
+            call.request.path().startsWith("/api")
+        }
         mdc("traceId") { call ->
             call.traceId(config.httpLogging.traceIdLength)
         }

@@ -21,6 +21,7 @@ http:
   cors:
     methods:
       - OPTIONS
+      - HEAD
       - GET
       - POST
       - PUT
@@ -30,7 +31,8 @@ http:
       - Authorization
       - MyCustomHeader
     anyHost: true
-    hosts: []
+    hosts:
+      - localhost:8081
   defaultHeaders:
     engine:
       name: X-Engine
