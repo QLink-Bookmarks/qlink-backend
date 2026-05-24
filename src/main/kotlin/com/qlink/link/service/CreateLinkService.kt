@@ -35,6 +35,7 @@ class CreateLinkService(
                     url = request.url,
                     title = request.title,
                     summary = request.summary,
+                    memo = request.memo,
                     tags = request.tags,
                     thumbnailUrl = request.thumbnailUrl,
                     sourceType = request.sourceType,

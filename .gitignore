@@ -151,3 +151,8 @@ gradle-app.setting
 
 # Ktor Swagger Plugin
 /docs/
+
+# Terraform
+terraform/**/.terraform
+terraform/**/.terraform.*
+terraform/**/local.secrets.*

@@ -16,4 +16,6 @@ data class CorsConfig(
     val headers: List<String>,
     val anyHost: Boolean,
     val hosts: List<String>,
+    val allowCredentials: Boolean,
+    val allowNonSimpleContentTypes: Boolean,
 )

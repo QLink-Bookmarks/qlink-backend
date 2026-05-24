@@ -42,6 +42,7 @@ class CreateLinkServiceTest :
                         url = RandomFixture.randomUrl(),
                         title = RandomFixture.randomSentenceWithMax(300),
                         summary = RandomFixture.randomSentenceWithMax(1_000),
+                        memo = RandomFixture.randomSentenceWithMax(1_000),
                         sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
                         thumbnailUrl = RandomFixture.randomUrl(),
                         tags = RandomFixture.randomSentenceList(),
@@ -57,6 +58,7 @@ class CreateLinkServiceTest :
                     actual.url shouldBe request.url
                     actual.title shouldBe request.title
                     actual.summary shouldBe request.summary
+                    actual.memo shouldBe request.memo
                     actual.sourceType shouldBe request.sourceType
                     actual.thumbnailUrl shouldBe request.thumbnailUrl
                     actual.tags shouldBe expectedTags
@@ -70,6 +72,7 @@ class CreateLinkServiceTest :
                         url = RandomFixture.randomUrl(),
                         title = RandomFixture.randomSentenceWithMax(300),
                         summary = RandomFixture.randomSentenceWithMax(1_000),
+                        memo = RandomFixture.randomSentenceWithMax(1_000),
                         sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
                         thumbnailUrl = RandomFixture.randomUrl(),
                         tags = RandomFixture.randomSentenceList(),
@@ -94,6 +97,7 @@ class CreateLinkServiceTest :
                         url = RandomFixture.randomUrl(),
                         title = RandomFixture.randomSentenceWithMax(300),
                         summary = RandomFixture.randomSentenceWithMax(1_000),
+                        memo = RandomFixture.randomSentenceWithMax(1_000),
                         sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
                         thumbnailUrl = RandomFixture.randomUrl(),
                         tags = RandomFixture.randomSentenceList(),
