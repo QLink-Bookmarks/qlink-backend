@@ -1,6 +1,6 @@
 services:
   qlink_local:
-    image: dungvti/postgres-bigm:18-alpine
+    image: postgres:16
     container_name: qlink_local
     restart: unless-stopped
     environment:

@@ -36,7 +36,8 @@ class GetLinksService(
         tx.readOnly {
             userRepository.emptyById(loginId).requireFalse(ErrorCode.LINK_OWNER_NOT_FOUND)
 
-            val normalizedOrder = LinkSearchOrder.from(order) ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+            val normalizedOrder =
+                LinkSearchOrder.from(order.ifBlank { DEFAULT_ORDER }) ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
             val cursor = scrollRequest.cursor?.let { decodeCursor(it, normalizedOrder) }
             val size = scrollRequest.size.takeIf { it > 0 } ?: DEFAULT_SCROLL_SIZE
             val queries =
@@ -136,6 +137,7 @@ class GetLinksService(
         )
 
     companion object {
+        private const val DEFAULT_ORDER = "latest"
         private val json = Json { ignoreUnknownKeys = true }
     }
 }

@@ -84,6 +84,38 @@ class GetLinksServiceTest :
                 }
             }
 
+            When("order가 비어 있으면") {
+                Then("기본 최신순으로 조회한다") {
+                    val firstLink =
+                        linkRepository.insert(
+                            LinkFixture.createRandomLinkOf(
+                                ownerId = user.id!!,
+                                title = "default order first",
+                                url = "https://example.com/default-first",
+                            ),
+                        )
+                    val secondLink =
+                        linkRepository.insert(
+                            LinkFixture.createRandomLinkOf(
+                                ownerId = user.id!!,
+                                title = "default order second",
+                                url = "https://example.com/default-second",
+                            ),
+                        )
+
+                    val response =
+                        getLinksService.getLinks(
+                            loginId = user.id!!,
+                            query = "default order",
+                            folderId = null,
+                            order = "",
+                            scrollRequest = ScrollRequest(size = 10),
+                        )
+
+                    response.contents.map { it.id } shouldBe listOf(secondLink.id, firstLink.id)
+                }
+            }
+
             When("폴더 필터와 커서로 다음 페이지를 조회하면") {
                 Then("다음 페이지를 이어서 조회한다") {
                     val first =
