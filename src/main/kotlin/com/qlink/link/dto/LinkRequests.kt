@@ -11,6 +11,7 @@ data class CreateLinkRequest(
     val url: String,
     val title: String,
     val summary: String? = null,
+    val memo: String? = null,
     val tags: List<String>,
     val thumbnailUrl: String? = null,
     val sourceType: SourceType,
