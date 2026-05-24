@@ -6,10 +6,10 @@ ktor:
       - com.qlink.ApplicationKt.module
 
 dataSource:
-  jdbcUrl: jdbc:postgresql://localhost:5432/qlink?currentSchema=qlink_local
-  username: local
-  password: 1234
-  driverClassName: org.postgresql.Driver
+  jdbcUrl: ${DB_JDBC_URL}
+  username: ${DB_USERNAME}
+  password: ${DB_PASSWORD}
+  driverClassName: ${DB_DRIVER_CLASS_NAME}
 
 flyway:
   schema: qlink_local
