@@ -80,6 +80,7 @@ class GetLinkDetailServiceTest :
                 )
                 val expectedFolderId = folder.id
                 val expectedFolderName = folder.name
+                val expectedFolderEmoji = folder.emoji
                 val actual = getLinkDetailService.getLinkDetail(user.id!!, link.id!!)
 
                 Then("성공한다") {
@@ -93,6 +94,7 @@ class GetLinkDetailServiceTest :
                     actual.createdAt shouldBe link.createdAt
                     actual.folderId shouldBe expectedFolderId
                     actual.folderName shouldBe expectedFolderName
+                    actual.folderEmoji shouldBe expectedFolderEmoji
                     actual.todos shouldContainExactly todos.map { it.toExpectedTodo() }
                 }
             }
@@ -110,6 +112,7 @@ class GetLinkDetailServiceTest :
                     actual.id shouldBe link.id
                     actual.folderId shouldBe null
                     actual.folderName shouldBe null
+                    actual.folderEmoji shouldBe null
                     actual.todos shouldBe emptyList()
                 }
             }

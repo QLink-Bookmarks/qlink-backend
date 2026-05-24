@@ -19,10 +19,11 @@ import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.utility.DockerImageName
 import javax.sql.DataSource
 
 private class ServicePostgreSQLContainer(
-    imageName: String,
+    imageName: DockerImageName,
 ) : PostgreSQLContainer<ServicePostgreSQLContainer>(imageName)
 
 object ServiceTestEnvironment {
@@ -30,8 +31,11 @@ object ServiceTestEnvironment {
     private const val DRIVER_CLASS_NAME = "org.postgresql.Driver"
 
     private val container =
-        ServicePostgreSQLContainer("postgres:16")
-            .withDatabaseName("qlink")
+        ServicePostgreSQLContainer(
+            DockerImageName
+                .parse("dungvti/postgres-bigm:18-alpine")
+                .asCompatibleSubstituteFor("postgres"),
+        ).withDatabaseName("qlink")
             .withUsername("local")
             .withPassword("1234")
 

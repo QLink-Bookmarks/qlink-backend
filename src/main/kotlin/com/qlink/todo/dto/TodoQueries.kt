@@ -16,6 +16,15 @@ data class LinkDetailTodoQuery(
     val reminderAt: Instant?,
 )
 
+data class LinkSearchTodoQuery(
+    val linkId: Long,
+    val id: Long,
+    val title: String,
+    val completedAt: Instant?,
+    val reminderAt: Instant?,
+    val totalCount: Int,
+)
+
 fun ResultRow.toLinkDetailTodoQuery(): LinkDetailTodoQuery =
     LinkDetailTodoQuery(
         id = this[Todos.id],

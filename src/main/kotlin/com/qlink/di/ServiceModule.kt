@@ -3,6 +3,7 @@ package com.qlink.di
 import com.qlink.link.service.CreateLinkService
 import com.qlink.link.service.DeleteLinkService
 import com.qlink.link.service.GetLinkDetailService
+import com.qlink.link.service.GetLinksService
 import com.qlink.link.service.UpdateLinkService
 import com.qlink.todo.service.CompleteTodoService
 import com.qlink.todo.service.CreateTodoService
@@ -27,6 +28,15 @@ fun serviceModule() =
                 linkRepository = get(),
                 folderRepository = get(),
                 todoRepository = get(),
+            )
+        }
+
+        single {
+            GetLinksService(
+                tx = get(),
+                linkRepository = get(),
+                todoRepository = get(),
+                userRepository = get(),
             )
         }
 

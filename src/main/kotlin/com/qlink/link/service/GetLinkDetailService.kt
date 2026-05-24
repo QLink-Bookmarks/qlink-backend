@@ -25,14 +25,19 @@ class GetLinkDetailService(
 
             link.validateOwner(loginId)
 
-            val folderName = link.folderId?.let { folderRepository.findById(it)?.name }
+            val folder = link.folderId?.let { folderRepository.findById(it) }
             val todos = todoRepository.findAllByLinkIdForLinkDetail(link.id!!)
 
-            link.toResponse(folderName = folderName, todos = todos)
+            link.toResponse(
+                folderName = folder?.name,
+                folderEmoji = folder?.emoji,
+                todos = todos,
+            )
         }
 
     private fun Link.toResponse(
         folderName: String?,
+        folderEmoji: String?,
         todos: List<LinkDetailTodoQuery>,
     ): GetLinkDetailResponse =
         GetLinkDetailResponse(
@@ -46,6 +51,7 @@ class GetLinkDetailService(
             createdAt = createdAt!!,
             folderId = folderId,
             folderName = folderName,
+            folderEmoji = folderEmoji,
             todos = todos,
         )
 }
