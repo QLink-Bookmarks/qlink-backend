@@ -27,6 +27,8 @@ fun pluginModule(config: ApplicationConfig) =
                         headers = config.stringList("http.cors.headers"),
                         anyHost = config.boolean("http.cors.anyHost"),
                         hosts = config.optionalStringList("http.cors.hosts"),
+                        allowCredentials = config.boolean("http.cors.allowCredentials"),
+                        allowNonSimpleContentTypes = config.boolean("http.cors.allowNonSimpleContentTypes"),
                     ),
                 defaultHeaders =
                     mapOf(

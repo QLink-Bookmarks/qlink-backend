@@ -1,6 +1,7 @@
 package com.qlink.plugin
 
 import com.qlink.config.HttpPluginConfig
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -16,9 +17,17 @@ fun Application.configureHttp() {
         config.cors.methods.forEach { method ->
             allowMethod(HttpMethod(method))
         }
+        allowHeader(HttpHeaders.ContentType)
+        allowHeader(HttpHeaders.Accept)
+        allowHeader(HttpHeaders.Origin)
+        allowHeader("X-Requested-With")
+        allowHeadersPrefixed("Content-")
+        allowHeadersPrefixed("Access-Control-")
         config.cors.headers.forEach { header ->
             allowHeader(header)
         }
+        allowCredentials = config.cors.allowCredentials
+        allowNonSimpleContentTypes = config.cors.allowNonSimpleContentTypes
         if (config.cors.anyHost) {
             anyHost() // @TODO: Don't do this in production if possible. Try to limit it.
         } else {

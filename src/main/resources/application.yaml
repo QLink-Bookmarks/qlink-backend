@@ -29,7 +29,13 @@ http:
       - PATCH
     headers:
       - Authorization
+      - Content-Type
+      - Accept
+      - Origin
+      - X-Requested-With
       - MyCustomHeader
+    allowCredentials: true
+    allowNonSimpleContentTypes: true
     anyHost: true
     hosts:
       - localhost:8081
