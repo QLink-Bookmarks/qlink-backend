@@ -6,7 +6,7 @@ ARG APP_ENV=dev
 
 COPY build/libs/qlink-backend-all.jar /app/qlink-backend-all.jar
 COPY src/main/resources/application.yaml /app/config/application.yaml
-COPY secrets/application-dev.yaml /app/config/application-dev.yaml
+COPY src/main/resources/application-dev.yaml /app/config/application-dev.yaml
 
 ENV APP_ENV=${APP_ENV}
 

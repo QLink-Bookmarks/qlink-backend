@@ -4,8 +4,8 @@ services:
     container_name: qlink_local
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: local
+      POSTGRES_PASSWORD: 1234
       POSTGRES_DB: qlink
     ports:
       - "5432:5432"
