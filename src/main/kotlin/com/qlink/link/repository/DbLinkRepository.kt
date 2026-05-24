@@ -149,11 +149,11 @@ class DbLinkRepository : LinkRepository {
             )
         } else {
             ScoreSql(
-                title = "public.bigm_similarity(CAST(coalesce(l.title, '') AS text), CAST(? AS text))",
-                url = "public.bigm_similarity(CAST(coalesce(l.url, '') AS text), CAST(? AS text))",
-                tags = "public.bigm_similarity(CAST(array_to_string(coalesce(l.tags, '{}'), ' ') AS text), CAST(? AS text))",
-                summary = "public.bigm_similarity(CAST(coalesce(l.summary, '') AS text), CAST(? AS text))",
-                memo = "public.bigm_similarity(CAST(coalesce(l.memo, '') AS text), CAST(? AS text))",
+                title = "similarity(coalesce(l.title, ''), CAST(? AS text))",
+                url = "similarity(coalesce(l.url, ''), CAST(? AS text))",
+                tags = "similarity(array_to_string(coalesce(l.tags, '{}'), ' '), CAST(? AS text))",
+                summary = "similarity(coalesce(l.summary, ''), CAST(? AS text))",
+                memo = "similarity(coalesce(l.memo, ''), CAST(? AS text))",
             )
         }
 

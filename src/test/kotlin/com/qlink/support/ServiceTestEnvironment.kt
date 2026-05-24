@@ -32,9 +32,7 @@ object ServiceTestEnvironment {
 
     private val container =
         ServicePostgreSQLContainer(
-            DockerImageName
-                .parse("dungvti/postgres-bigm:18-alpine")
-                .asCompatibleSubstituteFor("postgres"),
+            DockerImageName.parse("postgres:18"),
         ).withDatabaseName("qlink")
             .withUsername("local")
             .withPassword("1234")

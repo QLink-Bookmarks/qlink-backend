@@ -3,6 +3,7 @@ package com.qlink.link.service
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireFalse
+import com.qlink.common.scroll.Base64CursorCodec
 import com.qlink.common.scroll.DEFAULT_SCROLL_SIZE
 import com.qlink.common.scroll.ScrollRequest
 import com.qlink.common.scroll.ScrollResponse
@@ -17,8 +18,6 @@ import com.qlink.link.repository.LinkRepository
 import com.qlink.todo.dto.LinkSearchTodoQuery
 import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.repository.UserRepository
-import kotlinx.serialization.json.Json
-import java.util.Base64
 
 class GetLinksService(
     private val tx: TransactionRunner,
@@ -84,13 +83,7 @@ class GetLinksService(
         encodedCursor: String,
         expectedOrder: LinkSearchOrder,
     ): LinkSearchCursor {
-        val decoded =
-            runCatching {
-                val payload = Base64.getDecoder().decode(encodedCursor)
-                json.decodeFromString<LinkSearchCursor>(payload.decodeToString())
-            }.getOrElse {
-                throw BusinessException(ErrorCode.COMMON_BAD_REQUEST, it)
-            }
+        val decoded = Base64CursorCodec.decode<LinkSearchCursor>(encodedCursor)
 
         if (decoded.order != expectedOrder) {
             throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
@@ -125,7 +118,7 @@ class GetLinksService(
                     ),
             )
 
-        return Base64.getEncoder().encodeToString(json.encodeToString(cursor).encodeToByteArray())
+        return Base64CursorCodec.encode(cursor)
     }
 
     private fun LinkSearchTodoQuery.toResponse(): LinkSearchTodoResponse =
@@ -138,6 +131,5 @@ class GetLinksService(
 
     companion object {
         private const val DEFAULT_ORDER = "latest"
-        private val json = Json { ignoreUnknownKeys = true }
     }
 }
