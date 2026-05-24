@@ -122,14 +122,14 @@ module "ecs" {
   log_group_name              = var.ecs_log_group_name
   log_group_retention_in_days = var.ecs_log_group_retention_in_days
 
-  task_family              = var.ecs_task_family
-  task_cpu                 = var.ecs_task_cpu
-  task_memory              = var.ecs_task_memory
-  task_container_name      = var.ecs_task_container_name
-  task_container_port      = var.ecs_task_container_port
-  task_port_name           = var.ecs_task_port_name
-  task_app_protocol        = var.ecs_task_app_protocol
-  task_image               = "${module.ecr.repository_url}:${var.ecs_image_tag}"
+  task_family         = var.ecs_task_family
+  task_cpu            = var.ecs_task_cpu
+  task_memory         = var.ecs_task_memory
+  task_container_name = var.ecs_task_container_name
+  task_container_port = var.ecs_task_container_port
+  task_port_name      = var.ecs_task_port_name
+  task_app_protocol   = var.ecs_task_app_protocol
+  task_image          = "${module.ecr.repository_url}:${var.ecs_image_tag}"
   task_environment = {
     DB_JDBC_URL          = local.rds_jdbc_url
     DB_USERNAME          = var.rds_username

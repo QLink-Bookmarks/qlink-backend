@@ -62,7 +62,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Fat jar 빌드
-        run: ./gradlew shadowJar
+        run: ./gradlew buildFatJar
 
       - name: AWS Credentials 설정
         uses: aws-actions/configure-aws-credentials@v6
