@@ -44,7 +44,7 @@ jobs:
 
   infra_update:
     needs: detect
-    if: ${{ needs.detect.outputs.infra_changed == 'true' }}
+    if: ${{ needs.detect.outputs.infra_changed == 'true' || needs.detect.outputs.infra_shared_changed == 'true' }}
     uses: ./.github/workflows/infra-pipeline.yml
     with:
       env: dev
