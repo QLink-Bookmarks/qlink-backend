@@ -1,5 +1,5 @@
 locals {
-  rds_jdbc_url = "jdbc:postgresql://${module.rds.endpoint}:5432/${var.rds_db_name}?currentSchema=qlink_local"
+  rds_jdbc_url = "jdbc:postgresql://${module.rds.address}:${module.rds.port}/${var.rds_db_name}?currentSchema=qlink_local"
 }
 
 module "network" {
