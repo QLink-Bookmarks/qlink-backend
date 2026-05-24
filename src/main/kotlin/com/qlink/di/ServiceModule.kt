@@ -1,5 +1,6 @@
 package com.qlink.di
 
+import com.qlink.folder.service.CreateFolderService
 import com.qlink.link.service.CreateLinkService
 import com.qlink.link.service.DeleteLinkService
 import com.qlink.link.service.GetLinkDetailService
@@ -12,6 +13,14 @@ import org.koin.dsl.module
 
 fun serviceModule() =
     module {
+        single {
+            CreateFolderService(
+                tx = get(),
+                folderRepository = get(),
+                userRepository = get(),
+            )
+        }
+
         single {
             CreateLinkService(
                 tx = get(),

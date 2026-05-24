@@ -41,5 +41,11 @@ enum class ErrorCode(
     TODO_NOT_FOUND("TODO_404_0003", 404, "할 일을 찾을 수 없어요"),
 
     // Folder
+    FOLDER_NAME_BLANK("FOLDER_400_0001", 400, "폴더 이름이 입력되지 않았어요"),
+    FOLDER_NAME_OVER_MAX("FOLDER_400_0002", 400, "폴더 이름은 최대 100자에요"),
+    FOLDER_EMOJI_OVER_MAX("FOLDER_400_0003", 400, "폴더 이모지는 최대 20자에요"),
+    FOLDER_EMOJI_INVALID("FOLDER_400_0004", 400, "폴더 이모지 형식이 올바르지 않아요"),
     FOLDER_DIFFERENT_OWNER("FOLDER_403_0001", 403, "폴더에 대한 권한이 없어요"),
+    FOLDER_OWNER_NOT_FOUND("FOLDER_404_0001", 404, "로그인 사용자를 찾을 수 없어요"),
+    FOLDER_DUPLICATE_NAME("FOLDER_409_0001", 409, "같은 이름의 폴더가 이미 있어요"),
 }
