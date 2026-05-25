@@ -4,14 +4,17 @@ import com.qlink.auth.domain.JwtPrincipal
 import com.qlink.common.response.respondSuccess
 import com.qlink.common.scroll.ScrollRequest
 import com.qlink.link.dto.CreateLinkRequest
+import com.qlink.link.dto.PatchLinkRequest
 import com.qlink.link.dto.UpdateLinkRequest
 import com.qlink.link.service.CreateLinkService
 import com.qlink.link.service.DeleteLinkService
 import com.qlink.link.service.GetLinkDetailService
 import com.qlink.link.service.GetLinksService
+import com.qlink.link.service.PatchLinkService
 import com.qlink.link.service.UpdateLinkService
 import io.github.smiley4.ktoropenapi.resources.delete
 import io.github.smiley4.ktoropenapi.resources.get
+import io.github.smiley4.ktoropenapi.resources.patch
 import io.github.smiley4.ktoropenapi.resources.post
 import io.github.smiley4.ktoropenapi.resources.put
 import io.ktor.http.HttpStatusCode
@@ -26,6 +29,7 @@ fun Route.linkRoutes() {
     val getLinkDetailService by inject<GetLinkDetailService>()
     val getLinksService by inject<GetLinksService>()
     val updateLinkService by inject<UpdateLinkService>()
+    val patchLinkService by inject<PatchLinkService>()
     val deleteLinkService by inject<DeleteLinkService>()
 
     authenticate {
@@ -72,6 +76,16 @@ fun Route.linkRoutes() {
             val principal = call.principal<JwtPrincipal>()!!
             val request = call.receive<UpdateLinkRequest>()
             val response = updateLinkService.updateLink(principal.userId, resource.id, request)
+
+            call.respondSuccess(HttpStatusCode.OK, response)
+        }
+    }
+
+    authenticate {
+        patch<LinkResources.ById>(patchLinkDocs()) { resource ->
+            val principal = call.principal<JwtPrincipal>()!!
+            val request = call.receive<PatchLinkRequest>()
+            val response = patchLinkService.patchLink(principal.userId, resource.id, request)
 
             call.respondSuccess(HttpStatusCode.OK, response)
         }

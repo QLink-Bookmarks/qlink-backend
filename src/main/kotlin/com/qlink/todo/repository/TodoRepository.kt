@@ -9,6 +9,10 @@ interface TodoRepository {
 
     suspend fun findById(todoId: Long): Todo?
 
+    suspend fun findAllByIds(todoIds: List<Long>): List<Todo>
+
+    suspend fun findAllByLinkId(linkId: Long): List<Todo>
+
     suspend fun findAllByLinkIdForLinkDetail(linkId: Long): List<LinkDetailTodoQuery>
 
     suspend fun findAllByLinkIdsForLinkSearch(linkIds: List<Long>): List<LinkSearchTodoQuery>

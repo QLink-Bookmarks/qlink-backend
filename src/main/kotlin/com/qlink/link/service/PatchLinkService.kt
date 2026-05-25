@@ -1,0 +1,180 @@
+package com.qlink.link.service
+
+import com.qlink.common.error.BusinessException
+import com.qlink.common.error.ErrorCode
+import com.qlink.common.error.requireFalse
+import com.qlink.common.transaction.TransactionRunner
+import com.qlink.folder.repository.FolderRepository
+import com.qlink.link.domain.Link
+import com.qlink.link.dto.PatchLinkRequest
+import com.qlink.link.dto.PatchLinkResponse
+import com.qlink.link.dto.PatchLinkTodoRequest
+import com.qlink.link.repository.LinkRepository
+import com.qlink.todo.domain.Todo
+import com.qlink.todo.repository.TodoRepository
+import com.qlink.user.repository.UserRepository
+
+class PatchLinkService(
+    private val tx: TransactionRunner,
+    private val linkRepository: LinkRepository,
+    private val todoRepository: TodoRepository,
+    private val userRepository: UserRepository,
+    private val folderRepository: FolderRepository,
+) {
+    suspend fun patchLink(
+        loginId: Long,
+        linkId: Long,
+        request: PatchLinkRequest,
+    ): PatchLinkResponse =
+        tx.required {
+            userRepository.emptyById(loginId).requireFalse(ErrorCode.LINK_OWNER_NOT_FOUND)
+
+            val link =
+                linkRepository.findById(linkId)?.also { it.validateOwner(loginId) }
+                    ?: throw BusinessException(ErrorCode.LINK_NOT_FOUND)
+
+            val targetFolderId = request.resolveFolderId(link, loginId)
+            val targetMemo = request.resolveMemo(link)
+            val targetTags = request.resolveTags(link)
+            val todoChangeSet = request.resolveTodoChangeSet(linkId, loginId)
+
+            val updatedLink =
+                link.update(
+                    folderId = targetFolderId,
+                    url = link.url,
+                    title = link.title,
+                    summary = link.summary,
+                    memo = targetMemo,
+                    tags = targetTags,
+                    thumbnailUrl = link.thumbnailUrl,
+                    sourceType = link.sourceType,
+                )
+
+            val savedLink =
+                if (updatedLink.hasSamePatchFieldsAs(link)) {
+                    link
+                } else {
+                    linkRepository.update(updatedLink)
+                }
+
+            if (todoChangeSet != null) {
+                todoChangeSet.todoIdsToDelete.forEach { todoRepository.deleteById(it) }
+                todoChangeSet.todosToUpdate.forEach { todoRepository.update(it) }
+                todoChangeSet.todosToCreate.forEach { todoRepository.insert(it) }
+            }
+
+            PatchLinkResponse(
+                folderId = savedLink.folderId,
+                memo = savedLink.memo,
+                tags = savedLink.tags,
+                todos = todoRepository.findAllByLinkIdForLinkDetail(linkId),
+            )
+        }
+
+    private suspend fun PatchLinkRequest.resolveFolderId(
+        link: Link,
+        loginId: Long,
+    ): Long? {
+        val folderId = folderId ?: return link.folderId
+
+        if (folderId == 0L) {
+            return null
+        }
+
+        folderRepository.findById(folderId)?.also { it.validateOwner(loginId) }
+            ?: throw BusinessException(ErrorCode.LINK_FOLDER_NOT_FOUND)
+
+        return folderId
+    }
+
+    private fun PatchLinkRequest.resolveMemo(link: Link): String? =
+        when (memo) {
+            null -> link.memo
+            "" -> null
+            else -> memo
+        }
+
+    private fun PatchLinkRequest.resolveTags(link: Link): List<String> =
+        tags ?: link.tags
+
+    private suspend fun PatchLinkRequest.resolveTodoChangeSet(
+        linkId: Long,
+        loginId: Long,
+    ): TodoChangeSet? =
+        todos?.let { buildTodoChangeSet(linkId, loginId, it) }
+
+    private suspend fun buildTodoChangeSet(
+        linkId: Long,
+        loginId: Long,
+        todos: List<PatchLinkTodoRequest>,
+    ): TodoChangeSet {
+        val existingTodos = todoRepository.findAllByLinkId(linkId)
+        val existingTodosById = existingTodos.associateBy { it.id!! }
+        val requestedIds = todos.mapNotNull { it.id }
+
+        if (requestedIds.size != requestedIds.distinct().size) {
+            throw BusinessException(ErrorCode.TODO_DUPLICATE_ID)
+        }
+
+        val requestedTodos = todoRepository.findAllByIds(requestedIds)
+        val requestedTodosById = requestedTodos.associateBy { it.id!! }
+        val missingTodoIds = requestedIds - requestedTodosById.keys
+
+        if (missingTodoIds.isNotEmpty()) {
+            throw BusinessException(ErrorCode.TODO_NOT_FOUND)
+        }
+
+        requestedTodos.forEach { todo ->
+            todo.validateOwner(loginId)
+            if (todo.isDifferentLink(linkId)) {
+                throw BusinessException(ErrorCode.TODO_DIFFERENT_LINK)
+            }
+        }
+
+        val validatedTodosById =
+            requestedIds.associateWith { todoId -> requestedTodosById.getValue(todoId) }
+
+        val todosToUpdate =
+            todos
+                .mapNotNull { todoRequest ->
+                    todoRequest.id?.let { todoId ->
+                        validatedTodosById.getValue(todoId).update(
+                            linkId = linkId,
+                            title = todoRequest.title,
+                            reminderAt = todoRequest.reminderAt,
+                        )
+                    }
+                }
+
+        val todosToCreate =
+            todos
+                .filter { it.id == null }
+                .map { todoRequest ->
+                    Todo(
+                        linkId = linkId,
+                        ownerId = loginId,
+                        title = todoRequest.title,
+                        reminderAt = todoRequest.reminderAt,
+                    )
+                }
+
+        val todoIdsToDelete = existingTodos.mapNotNull { it.id }.filter { it !in requestedIds.toSet() }
+
+        return TodoChangeSet(
+            todosToUpdate = todosToUpdate,
+            todosToCreate = todosToCreate,
+            todoIdsToDelete = todoIdsToDelete,
+        )
+    }
+
+    private fun Link.hasSamePatchFieldsAs(other: Link): Boolean =
+        folderId == other.folderId &&
+            memo == other.memo &&
+            tags == other.tags
+
+    private data class TodoChangeSet(
+        val todosToUpdate: List<Todo>,
+        val todosToCreate: List<Todo>,
+        val todoIdsToDelete: List<Long>,
+    )
+}

@@ -8,6 +8,7 @@ import com.qlink.link.service.CreateLinkService
 import com.qlink.link.service.DeleteLinkService
 import com.qlink.link.service.GetLinkDetailService
 import com.qlink.link.service.GetLinksService
+import com.qlink.link.service.PatchLinkService
 import com.qlink.link.service.UpdateLinkService
 import com.qlink.todo.service.CompleteTodoService
 import com.qlink.todo.service.CreateTodoService
@@ -82,6 +83,16 @@ fun serviceModule() =
             UpdateLinkService(
                 tx = get(),
                 linkRepository = get(),
+                userRepository = get(),
+                folderRepository = get(),
+            )
+        }
+
+        single {
+            PatchLinkService(
+                tx = get(),
+                linkRepository = get(),
+                todoRepository = get(),
                 userRepository = get(),
                 folderRepository = get(),
             )

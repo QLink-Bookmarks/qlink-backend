@@ -33,6 +33,8 @@ enum class ErrorCode(
     // Todo
     TODO_TITLE_BLANK("TODO_400_0001", 400, "할 일 제목이 입력되지 않았어요"),
     TODO_TITLE_OVER_MAX("TODO_400_0002", 400, "할 일 제목은 최대 50자에요"),
+    TODO_DIFFERENT_LINK("TODO_400_0003", 400, "링크가 다른 할 일이에요"),
+    TODO_DUPLICATE_ID("TODO_400_0004", 400, "할 일 ID가 중복되었어요"),
 
     TODO_DIFFERENT_OWNER("TODO_403_0001", 403, "할 일에 대한 권한이 없어요"),
 

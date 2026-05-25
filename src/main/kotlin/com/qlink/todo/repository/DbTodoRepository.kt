@@ -32,6 +32,24 @@ class DbTodoRepository : TodoRepository {
             .singleOrNull()
             ?.toTodoDomain()
 
+    override suspend fun findAllByIds(todoIds: List<Long>): List<Todo> {
+        if (todoIds.isEmpty()) {
+            return emptyList()
+        }
+
+        return Todos
+            .selectAll()
+            .where { Todos.id inList todoIds }
+            .map { it.toTodoDomain() }
+    }
+
+    override suspend fun findAllByLinkId(linkId: Long): List<Todo> =
+        Todos
+            .selectAll()
+            .where { Todos.linkId eq linkId }
+            .orderBy(Todos.id to SortOrder.ASC)
+            .map { it.toTodoDomain() }
+
     override suspend fun findAllByLinkIdForLinkDetail(linkId: Long): List<LinkDetailTodoQuery> =
         Todos
             .select(
