@@ -3,7 +3,7 @@ package com.qlink.folder.service
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireFalse
 import com.qlink.common.transaction.TransactionRunner
-import com.qlink.folder.dto.FolderDeleteOption
+import com.qlink.folder.domain.FolderDeleteOption
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.repository.LinkRepository
 import com.qlink.user.repository.UserRepository

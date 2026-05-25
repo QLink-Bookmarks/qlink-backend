@@ -3,7 +3,7 @@ package com.qlink.folder.service
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireFalse
-import com.qlink.common.scroll.Base64CursorCodec
+import com.qlink.common.search.SearchCursorCodec
 import com.qlink.common.scroll.DEFAULT_SCROLL_SIZE
 import com.qlink.common.scroll.ScrollRequest
 import com.qlink.common.scroll.ScrollResponse
@@ -33,7 +33,7 @@ class GetFoldersService(
 
             val normalizedOrder =
                 FolderSearchOrder.from(order.ifBlank { DEFAULT_FOLDER_SEARCH_ORDER }) ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
-            val cursor = scrollRequest.cursor?.let { decodeCursor(it, normalizedOrder) }
+            val cursor = scrollRequest.cursor?.let { SearchCursorCodec.decode(it, normalizedOrder, ::validateCursorValue) }
             val size = scrollRequest.size.takeIf { it > 0 } ?: DEFAULT_SCROLL_SIZE
             val queries =
                 folderRepository.search(
@@ -64,46 +64,34 @@ class GetFoldersService(
             )
         }
 
-    private fun decodeCursor(
-        encodedCursor: String,
+    private fun validateCursorValue(
+        value: FolderSearchCursorValue,
         expectedOrder: FolderSearchOrder,
-    ): FolderSearchCursor {
-        val decoded = Base64CursorCodec.decode<FolderSearchCursor>(encodedCursor)
-
-        if (decoded.order != expectedOrder) {
-            throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
-        }
-
+    ) {
         when (expectedOrder) {
-            FolderSearchOrder.LATEST, FolderSearchOrder.EARLIEST -> decoded.value.id ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+            FolderSearchOrder.LATEST, FolderSearchOrder.EARLIEST -> value.id ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
             FolderSearchOrder.LAXICO -> {
-                decoded.value.name ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
-                decoded.value.id ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+                value.name ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+                value.id ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
             }
             FolderSearchOrder.SIMILAR -> {
-                decoded.value.score ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
-                decoded.value.id ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+                value.score ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+                value.id ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
             }
         }
-
-        return decoded
     }
 
     private fun encodeCursor(
         query: SearchFoldersQuery,
         order: FolderSearchOrder,
-    ): String {
-        val cursor =
-            FolderSearchCursor(
-                order = order,
-                value =
-                    FolderSearchCursorValue(
-                        id = query.id,
-                        name = query.name,
-                        score = query.score,
-                    ),
-            )
-
-        return Base64CursorCodec.encode(cursor)
-    }
+    ): String =
+        SearchCursorCodec.encode(
+            order = order,
+            value =
+                FolderSearchCursorValue(
+                    id = query.id,
+                    name = query.name,
+                    score = query.score,
+                ),
+        )
 }

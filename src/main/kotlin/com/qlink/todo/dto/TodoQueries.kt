@@ -32,3 +32,13 @@ fun ResultRow.toLinkDetailTodoQuery(): LinkDetailTodoQuery =
         completedAt = this[Todos.completedAt]?.toKotlinInstant(),
         reminderAt = this[Todos.reminderAt]?.toKotlinInstant(),
     )
+
+fun ResultRow.toLinkSearchTodoQuery(): LinkSearchTodoQuery =
+    LinkSearchTodoQuery(
+        linkId = this[Todos.linkId],
+        id = this[Todos.id],
+        title = this[Todos.title],
+        completedAt = this[Todos.completedAt]?.toKotlinInstant(),
+        reminderAt = this[Todos.reminderAt]?.toKotlinInstant(),
+        totalCount = 0,
+    )
