@@ -22,6 +22,10 @@ variable "acm_certificate_arn" {
   type = string
 }
 
+variable "acm_certificate_domain" {
+  type = string
+}
+
 variable "acm_validation_records" {
   type = map(object({
     name  = string
