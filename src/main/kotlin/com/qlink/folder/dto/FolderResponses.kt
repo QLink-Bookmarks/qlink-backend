@@ -10,6 +10,16 @@ data class CreateFolderResponse(
 )
 
 @Serializable
+data class GetFoldersContentResponse(
+    val id: Long,
+    val name: String,
+    val emoji: String?,
+    val isShared: Boolean,
+    val shareCounts: Int,
+    val linkCounts: Int,
+)
+
+@Serializable
 data class UpdateFolderResponse(
     val id: Long,
 )
