@@ -18,6 +18,7 @@ import com.qlink.link.repository.table.Links
 import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.alias
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greater
@@ -26,7 +27,6 @@ import org.jetbrains.exposed.v1.core.less
 import org.jetbrains.exposed.v1.core.like
 import org.jetbrains.exposed.v1.core.neq
 import org.jetbrains.exposed.v1.core.or
-import org.jetbrains.exposed.v1.core.alias
 import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insertReturning
@@ -145,20 +145,29 @@ class DbFolderRepository : FolderRepository {
         score: org.jetbrains.exposed.v1.core.ExpressionWithColumnTypeAlias<Double>,
     ): Op<Boolean> =
         when (order) {
-            FolderSearchOrder.LATEST -> Folders.id less longLiteral(cursorValue.id ?: Long.MIN_VALUE)
-            FolderSearchOrder.EARLIEST -> Folders.id greater longLiteral(cursorValue.id ?: Long.MAX_VALUE)
-            FolderSearchOrder.LAXICO ->
+            FolderSearchOrder.LATEST -> {
+                Folders.id less longLiteral(cursorValue.id ?: Long.MIN_VALUE)
+            }
+
+            FolderSearchOrder.EARLIEST -> {
+                Folders.id greater longLiteral(cursorValue.id ?: Long.MAX_VALUE)
+            }
+
+            FolderSearchOrder.LAXICO -> {
                 (Folders.name greater (cursorValue.name ?: "")) or
                     (
                         (Folders.name eq (cursorValue.name ?: "")) and
                             (Folders.id greater longLiteral(cursorValue.id ?: Long.MIN_VALUE))
                     )
-            FolderSearchOrder.SIMILAR ->
+            }
+
+            FolderSearchOrder.SIMILAR -> {
                 (score less doubleLiteral(cursorValue.score ?: Double.MIN_VALUE)) or
                     (
                         (score eq doubleLiteral(cursorValue.score ?: Double.MIN_VALUE)) and
                             (Folders.id less longLiteral(cursorValue.id ?: Long.MAX_VALUE))
                     )
+            }
         }
 
     private fun orderBy(

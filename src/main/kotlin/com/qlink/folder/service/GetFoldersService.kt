@@ -3,10 +3,10 @@ package com.qlink.folder.service
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireFalse
-import com.qlink.common.search.SearchCursorCodec
 import com.qlink.common.scroll.DEFAULT_SCROLL_SIZE
 import com.qlink.common.scroll.ScrollRequest
 import com.qlink.common.scroll.ScrollResponse
+import com.qlink.common.search.SearchCursorCodec
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.folder.dto.DEFAULT_FOLDER_SEARCH_ORDER
 import com.qlink.folder.dto.FolderSearchCursor
@@ -32,7 +32,8 @@ class GetFoldersService(
             userRepository.emptyById(loginId).requireFalse(ErrorCode.FOLDER_OWNER_NOT_FOUND)
 
             val normalizedOrder =
-                FolderSearchOrder.from(order.ifBlank { DEFAULT_FOLDER_SEARCH_ORDER }) ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+                FolderSearchOrder.from(order.ifBlank { DEFAULT_FOLDER_SEARCH_ORDER })
+                    ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
             val cursor = scrollRequest.cursor?.let { SearchCursorCodec.decode(it, normalizedOrder, ::validateCursorValue) }
             val size = scrollRequest.size.takeIf { it > 0 } ?: DEFAULT_SCROLL_SIZE
             val queries =
@@ -69,11 +70,15 @@ class GetFoldersService(
         expectedOrder: FolderSearchOrder,
     ) {
         when (expectedOrder) {
-            FolderSearchOrder.LATEST, FolderSearchOrder.EARLIEST -> value.id ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+            FolderSearchOrder.LATEST, FolderSearchOrder.EARLIEST -> {
+                value.id ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+            }
+
             FolderSearchOrder.LAXICO -> {
                 value.name ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
                 value.id ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
             }
+
             FolderSearchOrder.SIMILAR -> {
                 value.score ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
                 value.id ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)

@@ -11,8 +11,8 @@ import com.qlink.folder.service.GetFoldersService
 import com.qlink.folder.service.UpdateFolderService
 import io.github.smiley4.ktoropenapi.resources.delete
 import io.github.smiley4.ktoropenapi.resources.get
-import io.github.smiley4.ktoropenapi.resources.put
 import io.github.smiley4.ktoropenapi.resources.post
+import io.github.smiley4.ktoropenapi.resources.put
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.principal

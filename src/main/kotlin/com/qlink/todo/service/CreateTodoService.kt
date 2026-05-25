@@ -27,7 +27,7 @@ class CreateTodoService(
             linkRepository
                 .findById(request.linkId)
                 ?.also { it.validateOwner(loginId) }
-                    ?: throw BusinessException(ErrorCode.TODO_LINK_NOT_FOUND)
+                ?: throw BusinessException(ErrorCode.TODO_LINK_NOT_FOUND)
 
             val todo =
                 Todo(

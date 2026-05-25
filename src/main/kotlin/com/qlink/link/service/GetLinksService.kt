@@ -3,10 +3,10 @@ package com.qlink.link.service
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireFalse
-import com.qlink.common.search.SearchCursorCodec
 import com.qlink.common.scroll.DEFAULT_SCROLL_SIZE
 import com.qlink.common.scroll.ScrollRequest
 import com.qlink.common.scroll.ScrollResponse
+import com.qlink.common.search.SearchCursorCodec
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.link.dto.DEFAULT_LINK_SEARCH_ORDER
 import com.qlink.link.dto.GetLinksContentResponse
@@ -85,11 +85,15 @@ class GetLinksService(
         expectedOrder: LinkSearchOrder,
     ) {
         when (expectedOrder) {
-            LinkSearchOrder.LATEST, LinkSearchOrder.EARLIEST -> value.id ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+            LinkSearchOrder.LATEST, LinkSearchOrder.EARLIEST -> {
+                value.id ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+            }
+
             LinkSearchOrder.LAXICO -> {
                 value.title ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
                 value.id ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
             }
+
             LinkSearchOrder.SIMILAR -> {
                 value.score ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
                 value.id ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)

@@ -9,9 +9,9 @@ import com.qlink.todo.repository.table.Todos
 import com.qlink.todo.repository.table.fromDomain
 import com.qlink.todo.repository.table.refreshUpdatedAt
 import com.qlink.todo.repository.table.toTodoDomain
-import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.select
