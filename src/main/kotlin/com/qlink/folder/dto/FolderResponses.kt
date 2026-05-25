@@ -8,3 +8,8 @@ import kotlinx.serialization.Serializable
 data class CreateFolderResponse(
     val id: Long,
 )
+
+@Serializable
+data class UpdateFolderResponse(
+    val id: Long,
+)
