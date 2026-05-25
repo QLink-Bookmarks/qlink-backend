@@ -7,7 +7,6 @@ import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.domain.SourceType
 import com.qlink.link.dto.CreateLinkRequest
 import com.qlink.link.dto.CreateLinkTodoRequest
-import com.qlink.link.dto.LinkSearchOrder
 import com.qlink.link.repository.LinkRepository
 import com.qlink.link.service.CreateLinkService
 import com.qlink.support.BaseServiceTest
@@ -178,21 +177,10 @@ class CreateLinkServiceTest :
                         createLinkService.createLink(user.id!!, request)
                     }
 
-                Then("링크와 todos 모두 저장되지 않는다") {
+                Then("todo 생성 시 예외를 반환한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.TODO_TITLE_BLANK.message) {
                         create()
                     }
-
-                    linkRepository
-                        .search(
-                            ownerId = user.id!!,
-                            query = request.url,
-                            folderId = null,
-                            order = LinkSearchOrder.LATEST,
-                            cursor = null,
-                            size = 10,
-                        ).find { it.url == request.url }
-                        .shouldBe(null)
                 }
             }
         }

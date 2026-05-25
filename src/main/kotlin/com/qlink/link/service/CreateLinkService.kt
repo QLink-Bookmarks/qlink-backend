@@ -30,14 +30,6 @@ class CreateLinkService(
                 folderRepository.findById(it)?.also { it.validateOwner(loginId) }
                     ?: throw BusinessException(ErrorCode.LINK_FOLDER_NOT_FOUND)
             }
-            request.todos.forEach { todoRequest ->
-                Todo(
-                    linkId = -1L,
-                    ownerId = loginId,
-                    title = todoRequest.title,
-                    reminderAt = todoRequest.reminderAt,
-                )
-            }
 
             val link =
                 Link(
