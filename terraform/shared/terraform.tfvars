@@ -10,8 +10,8 @@ hosted_zone_name_servers = [
 ]
 hosted_zone_soa_value = "ns-1423.awsdns-49.org. awsdns-hostmaster.amazon.com. 1 7200 900 1209600 86400"
 
-acm_certificate_arn    = "arn:aws:acm:ap-northeast-2:650177546654:certificate/0cbfe890-95f9-4e25-af10-be412bf660e4"
-acm_certificate_domain = "*.qlinkapps.com"
+acm_certificate_arn    = "arn:aws:acm:ap-northeast-2:650177546654:certificate/aa14e1b6-aef4-4f74-bea6-2bff4afc8508"
+acm_certificate_domain = "qlinkapps.com"
 
 acm_validation_records = {
   "*.qlinkapps.com" = {
