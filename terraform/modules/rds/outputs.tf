@@ -1,19 +1,19 @@
 output "endpoint" {
-  value = aws_db_instance.qlink_rds.endpoint
+  value = aws_db_instance.qlink_rds_pg18.endpoint
 }
 
 output "address" {
-  value = aws_db_instance.qlink_rds.address
+  value = aws_db_instance.qlink_rds_pg18.address
 }
 
 output "port" {
-  value = aws_db_instance.qlink_rds.port
+  value = aws_db_instance.qlink_rds_pg18.port
 }
 
 output "db_name" {
-  value = aws_db_instance.qlink_rds.db_name
+  value = aws_db_instance.qlink_rds_pg18.db_name
 }
 
 output "username" {
-  value = aws_db_instance.qlink_rds.username
+  value = aws_db_instance.qlink_rds_pg18.username
 }
