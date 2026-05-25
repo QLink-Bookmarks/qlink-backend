@@ -39,8 +39,6 @@ http:
     anyHost: true
     hosts:
       - localhost:8081
-      - qlinkapps.com
-      - dev.qlinkapps.com
   defaultHeaders:
     engine:
       name: X-Engine
