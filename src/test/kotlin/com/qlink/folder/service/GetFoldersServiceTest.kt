@@ -21,6 +21,7 @@ import com.qlink.user.domain.User
 import com.qlink.user.repository.UserRepository
 import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import org.jetbrains.exposed.v1.jdbc.insert
 import kotlin.time.toKotlinInstant
@@ -173,6 +174,32 @@ class GetFoldersServiceTest :
                 }
             }
 
+            When("order가 비어 있으면") {
+                lateinit var first: Folder
+                lateinit var second: Folder
+
+                beforeTest {
+                    first = folderRepository.insert(FolderFixture.createFolderWith(ownerId = user.id!!, name = "default order a"))
+                    second = folderRepository.insert(FolderFixture.createFolderWith(ownerId = user.id!!, name = "default order b"))
+                }
+
+                val get =
+                    suspend {
+                        getFoldersService.getFolders(
+                            loginId = user.id!!,
+                            query = "default order",
+                            order = "",
+                            scrollRequest = ScrollRequest(size = 10),
+                        )
+                    }
+
+                Then("기본 최신순으로 조회한다") {
+                    val response = get()
+
+                    response.contents.map { it.id } shouldBe listOf(second.id, first.id)
+                }
+            }
+
             When("laxico 순으로 조회하면") {
                 beforeTest {
                     folderRepository.insert(FolderFixture.createFolderWith(ownerId = user.id!!, name = "gamma"))
@@ -260,6 +287,37 @@ class GetFoldersServiceTest :
                     firstPage.contents.map { it.id } shouldBe listOf(third.id, second.id)
                     secondPage.hasNext shouldBe false
                     secondPage.contents.map { it.id } shouldBe listOf(first.id)
+                }
+            }
+
+            When("size가 0 이하이면") {
+                beforeTest {
+                    repeat(16) { index ->
+                        folderRepository.insert(
+                            FolderFixture.createFolderWith(
+                                ownerId = user.id!!,
+                                name = "default size $index",
+                            ),
+                        )
+                    }
+                }
+
+                val get =
+                    suspend {
+                        getFoldersService.getFolders(
+                            loginId = user.id!!,
+                            query = "default size",
+                            order = "latest",
+                            scrollRequest = ScrollRequest(size = 0),
+                        )
+                    }
+
+                Then("기본 스크롤 크기 15를 사용한다") {
+                    val response = get()
+
+                    response.contents.shouldHaveSize(15)
+                    response.hasNext shouldBe true
+                    response.nextCursor.shouldNotBeNull()
                 }
             }
 
@@ -352,6 +410,56 @@ class GetFoldersServiceTest :
                             loginId = user.id!!,
                             query = null,
                             order = "latest",
+                            scrollRequest = ScrollRequest(cursor = cursor, size = 10),
+                        )
+                    }
+
+                Then("예외를 반환한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.COMMON_BAD_REQUEST.message) {
+                        get()
+                    }
+                }
+            }
+
+            When("laxico cursor에 name이 없으면") {
+                val get =
+                    suspend {
+                        val cursor =
+                            Base64CursorCodec.encode(
+                                FolderSearchCursor(
+                                    order = FolderSearchOrder.LAXICO,
+                                    value = FolderSearchCursorValue(id = RandomFixture.randomId()),
+                                ),
+                            )
+                        getFoldersService.getFolders(
+                            loginId = user.id!!,
+                            query = null,
+                            order = "laxico",
+                            scrollRequest = ScrollRequest(cursor = cursor, size = 10),
+                        )
+                    }
+
+                Then("예외를 반환한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.COMMON_BAD_REQUEST.message) {
+                        get()
+                    }
+                }
+            }
+
+            When("similar cursor에 score가 없으면") {
+                val get =
+                    suspend {
+                        val cursor =
+                            Base64CursorCodec.encode(
+                                FolderSearchCursor(
+                                    order = FolderSearchOrder.SIMILAR,
+                                    value = FolderSearchCursorValue(id = RandomFixture.randomId(), name = "folder"),
+                                ),
+                            )
+                        getFoldersService.getFolders(
+                            loginId = user.id!!,
+                            query = "folder",
+                            order = "similar",
                             scrollRequest = ScrollRequest(cursor = cursor, size = 10),
                         )
                     }
