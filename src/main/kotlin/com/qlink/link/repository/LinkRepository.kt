@@ -21,5 +21,9 @@ interface LinkRepository {
 
     suspend fun update(link: Link): Link
 
+    suspend fun detachFolder(folderId: Long)
+
+    suspend fun deleteAllByFolderId(folderId: Long)
+
     suspend fun deleteById(linkId: Long)
 }

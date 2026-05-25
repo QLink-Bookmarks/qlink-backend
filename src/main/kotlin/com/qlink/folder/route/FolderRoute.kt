@@ -5,7 +5,9 @@ import com.qlink.common.response.respondSuccess
 import com.qlink.folder.dto.CreateFolderRequest
 import com.qlink.folder.dto.UpdateFolderRequest
 import com.qlink.folder.service.CreateFolderService
+import com.qlink.folder.service.DeleteFolderService
 import com.qlink.folder.service.UpdateFolderService
+import io.github.smiley4.ktoropenapi.resources.delete
 import io.github.smiley4.ktoropenapi.resources.put
 import io.github.smiley4.ktoropenapi.resources.post
 import io.ktor.http.HttpStatusCode
@@ -17,6 +19,7 @@ import org.koin.ktor.ext.inject
 
 fun Route.folderRoutes() {
     val createFolderService by inject<CreateFolderService>()
+    val deleteFolderService by inject<DeleteFolderService>()
     val updateFolderService by inject<UpdateFolderService>()
 
     authenticate {
@@ -34,6 +37,13 @@ fun Route.folderRoutes() {
             val response = updateFolderService.updateFolder(principal.userId, resource.id, request)
 
             call.respondSuccess(HttpStatusCode.OK, response)
+        }
+
+        delete<FolderResources.ById>(deleteFolderDocs()) { resource ->
+            val principal = call.principal<JwtPrincipal>()!!
+            deleteFolderService.deleteFolder(principal.userId, resource.id, resource.onDelete)
+
+            call.respondSuccess(HttpStatusCode.OK)
         }
     }
 }
