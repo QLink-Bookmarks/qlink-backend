@@ -2,11 +2,13 @@ package com.qlink.link.route
 
 import com.qlink.auth.domain.JwtPrincipal
 import com.qlink.common.response.respondSuccess
+import com.qlink.common.scroll.ScrollRequest
 import com.qlink.link.dto.CreateLinkRequest
 import com.qlink.link.dto.UpdateLinkRequest
 import com.qlink.link.service.CreateLinkService
 import com.qlink.link.service.DeleteLinkService
 import com.qlink.link.service.GetLinkDetailService
+import com.qlink.link.service.GetLinksService
 import com.qlink.link.service.UpdateLinkService
 import io.github.smiley4.ktoropenapi.resources.delete
 import io.github.smiley4.ktoropenapi.resources.get
@@ -22,6 +24,7 @@ import org.koin.ktor.ext.inject
 fun Route.linkRoutes() {
     val createLinkService by inject<CreateLinkService>()
     val getLinkDetailService by inject<GetLinkDetailService>()
+    val getLinksService by inject<GetLinksService>()
     val updateLinkService by inject<UpdateLinkService>()
     val deleteLinkService by inject<DeleteLinkService>()
 
@@ -32,6 +35,26 @@ fun Route.linkRoutes() {
             val response = createLinkService.createLink(principal.userId, request)
 
             call.respondSuccess(HttpStatusCode.Created, response)
+        }
+    }
+
+    authenticate {
+        get<LinkResources>(getLinksDocs()) { resource ->
+            val principal = call.principal<JwtPrincipal>()!!
+            val response =
+                getLinksService.getLinks(
+                    loginId = principal.userId,
+                    query = resource.query,
+                    folderId = resource.folderId,
+                    order = resource.order,
+                    scrollRequest =
+                        ScrollRequest(
+                            cursor = resource.cursor,
+                            size = resource.size,
+                        ),
+                )
+
+            call.respondSuccess(HttpStatusCode.OK, response)
         }
     }
 

@@ -24,7 +24,30 @@ data class GetLinkDetailResponse(
     val createdAt: Instant,
     val folderId: Long?,
     val folderName: String?,
+    val folderEmoji: String?,
     val todos: List<LinkDetailTodoQuery>,
+)
+
+@Serializable
+data class GetLinksContentResponse(
+    val id: Long,
+    val folderId: Long?,
+    val folderName: String?,
+    val folderEmoji: String?,
+    val url: String,
+    val title: String,
+    val tags: List<String>,
+    val createdAt: Instant,
+    val todos: List<LinkSearchTodoResponse>,
+    val countMoreTodos: Int,
+)
+
+@Serializable
+data class LinkSearchTodoResponse(
+    val id: Long,
+    val title: String,
+    val completedAt: Instant?,
+    val reminderAt: Instant?,
 )
 
 @Serializable

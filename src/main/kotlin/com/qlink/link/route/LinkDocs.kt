@@ -6,9 +6,11 @@ import com.qlink.common.error.ErrorCode
 import com.qlink.common.response.ApiResponse
 import com.qlink.common.response.EmptySuccessResponse
 import com.qlink.common.response.ErrorDetail
+import com.qlink.common.scroll.ScrollResponse
 import com.qlink.link.dto.CreateLinkRequest
 import com.qlink.link.dto.CreateLinkResponse
 import com.qlink.link.dto.GetLinkDetailResponse
+import com.qlink.link.dto.GetLinksContentResponse
 import com.qlink.link.dto.UpdateLinkRequest
 import com.qlink.link.dto.UpdateLinkResponse
 import io.github.smiley4.ktoropenapi.config.RouteConfig
@@ -74,6 +76,30 @@ internal fun getLinkDetailDocs(): RouteConfig.() -> Unit =
                 description = "링크 상세 조회 대상 리소스 조회 실패"
                 body<ApiResponse<ErrorDetail>> {
                     examples(ErrorCode.LINK_NOT_FOUND)
+                }
+            }
+        }
+    }
+
+internal fun getLinksDocs(): RouteConfig.() -> Unit =
+    {
+        summary = "링크 검색 API"
+        response {
+            code(HttpStatusCode.OK) {
+                description = "링크 검색 성공"
+                body<ApiResponse<ScrollResponse<GetLinksContentResponse>>>()
+            }
+            code(HttpStatusCode.BadRequest) {
+                description = "링크 검색 요청이 올바르지 않음"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.COMMON_BAD_REQUEST)
+                }
+            }
+            authErrorResponse()
+            code(HttpStatusCode.NotFound) {
+                description = "링크 검색에 필요한 리소스 조회 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.LINK_OWNER_NOT_FOUND)
                 }
             }
         }

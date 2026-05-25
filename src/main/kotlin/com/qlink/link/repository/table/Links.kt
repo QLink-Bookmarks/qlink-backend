@@ -25,6 +25,7 @@ object Links : Table("links") {
     val summary = text("summary").nullable()
     val memo = text("memo").nullable()
     val tags = array<String>("tags", TextColumnType()).default(emptyList())
+    val searchText = text("search_text").default("")
     val thumbnailUrl = text("thumbnail_url").nullable()
     val sourceType = enumerationByName<SourceType>("source_type", 30)
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
@@ -63,6 +64,7 @@ fun UpdateBuilder<*>.fromDomain(link: Link) {
     this[Links.summary] = link.summary
     this[Links.memo] = link.memo
     this[Links.tags] = link.tags
+    this[Links.searchText] = link.searchText()
     this[Links.thumbnailUrl] = link.thumbnailUrl
     this[Links.sourceType] = link.sourceType
 }
@@ -70,3 +72,12 @@ fun UpdateBuilder<*>.fromDomain(link: Link) {
 fun UpdateBuilder<*>.refreshUpdatedAt() {
     this[Links.updatedAt] = Clock.System.now().toJavaInstant()
 }
+
+private fun Link.searchText(): String =
+    listOf(
+        title,
+        url,
+        tags.joinToString(" "),
+        summary.orEmpty(),
+        memo.orEmpty(),
+    ).joinToString(" ")
