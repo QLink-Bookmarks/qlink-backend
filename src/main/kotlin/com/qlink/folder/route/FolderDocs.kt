@@ -6,12 +6,38 @@ import com.qlink.common.error.ErrorCode
 import com.qlink.common.response.ApiResponse
 import com.qlink.common.response.EmptySuccessResponse
 import com.qlink.common.response.ErrorDetail
+import com.qlink.common.scroll.ScrollResponse
 import com.qlink.folder.dto.CreateFolderRequest
 import com.qlink.folder.dto.CreateFolderResponse
+import com.qlink.folder.dto.GetFoldersContentResponse
 import com.qlink.folder.dto.UpdateFolderRequest
 import com.qlink.folder.dto.UpdateFolderResponse
 import io.github.smiley4.ktoropenapi.config.RouteConfig
 import io.ktor.http.HttpStatusCode
+
+internal fun getFoldersDocs(): RouteConfig.() -> Unit =
+    {
+        summary = "폴더 목록 조회 API"
+        response {
+            code(HttpStatusCode.OK) {
+                description = "폴더 목록 조회 성공"
+                body<ApiResponse<ScrollResponse<GetFoldersContentResponse>>>()
+            }
+            code(HttpStatusCode.BadRequest) {
+                description = "폴더 목록 조회 요청이 올바르지 않음"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.COMMON_BAD_REQUEST)
+                }
+            }
+            authErrorResponse()
+            code(HttpStatusCode.NotFound) {
+                description = "폴더 목록 조회에 필요한 리소스 조회 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.FOLDER_OWNER_NOT_FOUND)
+                }
+            }
+        }
+    }
 
 internal fun createFolderDocs(): RouteConfig.() -> Unit =
     {
@@ -97,6 +123,7 @@ internal fun updateFolderDocs(): RouteConfig.() -> Unit =
 internal fun deleteFolderDocs(): RouteConfig.() -> Unit =
     {
         summary = "폴더 삭제 API"
+        description = "onDelete는 대소문자를 구분하지 않고 `cascade` 또는 `null`을 받을 수 있고, 생략하면 `null`로 처리돼요."
         response {
             code(HttpStatusCode.OK) {
                 description = "폴더 삭제 성공"
