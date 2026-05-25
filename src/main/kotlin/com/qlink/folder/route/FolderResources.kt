@@ -8,5 +8,6 @@ class FolderResources {
     class ById(
         val parent: FolderResources = FolderResources(),
         val id: Long,
+        val onDelete: String? = null,
     )
 }

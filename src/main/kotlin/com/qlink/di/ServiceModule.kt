@@ -1,6 +1,7 @@
 package com.qlink.di
 
 import com.qlink.folder.service.CreateFolderService
+import com.qlink.folder.service.DeleteFolderService
 import com.qlink.folder.service.UpdateFolderService
 import com.qlink.link.service.CreateLinkService
 import com.qlink.link.service.DeleteLinkService
@@ -27,6 +28,15 @@ fun serviceModule() =
             UpdateFolderService(
                 tx = get(),
                 folderRepository = get(),
+                userRepository = get(),
+            )
+        }
+
+        single {
+            DeleteFolderService(
+                tx = get(),
+                folderRepository = get(),
+                linkRepository = get(),
                 userRepository = get(),
             )
         }

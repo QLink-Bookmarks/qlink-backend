@@ -19,6 +19,7 @@ import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
+import org.jetbrains.exposed.v1.jdbc.update
 import org.jetbrains.exposed.v1.jdbc.updateReturning
 import java.sql.ResultSet
 import kotlin.time.toKotlinInstant
@@ -133,6 +134,17 @@ class DbLinkRepository : LinkRepository {
                 it.refreshUpdatedAt()
             }.single()
             .toLinkDomain()
+
+    override suspend fun detachFolder(folderId: Long) {
+        Links.update(where = { Links.folderId eq folderId }) {
+            it[Links.folderId] = null
+            it.refreshUpdatedAt()
+        }
+    }
+
+    override suspend fun deleteAllByFolderId(folderId: Long) {
+        Links.deleteWhere { Links.folderId eq folderId }
+    }
 
     override suspend fun deleteById(linkId: Long) {
         Links.deleteWhere { id eq linkId }

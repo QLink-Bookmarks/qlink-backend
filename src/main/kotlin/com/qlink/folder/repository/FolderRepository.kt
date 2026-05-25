@@ -19,4 +19,6 @@ interface FolderRepository {
     suspend fun insert(folder: Folder): Folder
 
     suspend fun update(folder: Folder): Folder
+
+    suspend fun deleteById(folderId: Long)
 }
