@@ -8,6 +8,7 @@ import com.qlink.common.scroll.DEFAULT_SCROLL_SIZE
 import com.qlink.common.scroll.ScrollRequest
 import com.qlink.common.scroll.ScrollResponse
 import com.qlink.common.transaction.TransactionRunner
+import com.qlink.link.dto.DEFAULT_LINK_SEARCH_ORDER
 import com.qlink.link.dto.GetLinksContentResponse
 import com.qlink.link.dto.LinkSearchCursor
 import com.qlink.link.dto.LinkSearchCursorValue
@@ -36,7 +37,7 @@ class GetLinksService(
             userRepository.emptyById(loginId).requireFalse(ErrorCode.LINK_OWNER_NOT_FOUND)
 
             val normalizedOrder =
-                LinkSearchOrder.from(order.ifBlank { DEFAULT_ORDER }) ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+                LinkSearchOrder.from(order.ifBlank { DEFAULT_LINK_SEARCH_ORDER }) ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
             val cursor = scrollRequest.cursor?.let { decodeCursor(it, normalizedOrder) }
             val size = scrollRequest.size.takeIf { it > 0 } ?: DEFAULT_SCROLL_SIZE
             val queries =
@@ -128,8 +129,4 @@ class GetLinksService(
             completedAt = completedAt,
             reminderAt = reminderAt,
         )
-
-    companion object {
-        private const val DEFAULT_ORDER = "latest"
-    }
 }

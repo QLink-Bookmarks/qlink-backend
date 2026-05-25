@@ -1,4 +1,4 @@
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS pg_bigm WITH SCHEMA public;
 
 ALTER TABLE links
 ADD COLUMN search_text TEXT NOT NULL DEFAULT '';
@@ -13,4 +13,4 @@ SET search_text =
 
 CREATE INDEX links_search_text_idx
 ON links
-USING GIN (search_text gin_trgm_ops);
+USING GIN (search_text public.gin_bigm_ops);

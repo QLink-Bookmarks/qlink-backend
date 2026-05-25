@@ -5,6 +5,8 @@ package com.qlink.link.dto
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
 
+const val DEFAULT_LINK_SEARCH_ORDER = "latest"
+
 data class SearchLinksQuery(
     val id: Long,
     val folderId: Long?,
