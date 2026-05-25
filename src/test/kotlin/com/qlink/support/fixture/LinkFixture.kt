@@ -1,9 +1,13 @@
 package com.qlink.support.fixture
 
+import com.qlink.common.serialization.PatchField
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.SourceType
+import com.qlink.link.dto.PatchLinkRequest
+import com.qlink.link.dto.PatchLinkTodoRequest
 import com.qlink.link.dto.UpdateLinkRequest
 import kotlin.random.Random
+import kotlin.time.Instant
 
 object LinkFixture {
     private fun randomDistinctTags(): List<String> = RandomFixture.randomSentenceList().distinct()
@@ -42,5 +46,29 @@ object LinkFixture {
             tags = randomDistinctTags(),
             thumbnailUrl = RandomFixture.randomUrl(),
             sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
+        )
+
+    fun createPatchLinkRequest(
+        folderId: PatchField<Long?> = PatchField.Absent,
+        memo: PatchField<String?> = PatchField.Absent,
+        tags: PatchField<List<String>> = PatchField.Absent,
+        todos: PatchField<List<PatchLinkTodoRequest>> = PatchField.Absent,
+    ): PatchLinkRequest =
+        PatchLinkRequest(
+            folderId = folderId,
+            memo = memo,
+            tags = tags,
+            todos = todos,
+        )
+
+    fun createPatchLinkTodoRequest(
+        id: Long? = null,
+        title: String = RandomFixture.randomSentenceWithMax(50),
+        reminderAt: Instant? = null,
+    ): PatchLinkTodoRequest =
+        PatchLinkTodoRequest(
+            id = id,
+            title = title,
+            reminderAt = reminderAt,
         )
 }

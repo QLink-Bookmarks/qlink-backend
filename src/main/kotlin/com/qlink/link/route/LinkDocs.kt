@@ -11,6 +11,8 @@ import com.qlink.link.dto.CreateLinkRequest
 import com.qlink.link.dto.CreateLinkResponse
 import com.qlink.link.dto.GetLinkDetailResponse
 import com.qlink.link.dto.GetLinksContentResponse
+import com.qlink.link.dto.PatchLinkRequestBody
+import com.qlink.link.dto.PatchLinkResponse
 import com.qlink.link.dto.UpdateLinkRequest
 import com.qlink.link.dto.UpdateLinkResponse
 import io.github.smiley4.ktoropenapi.config.RouteConfig
@@ -144,6 +146,52 @@ internal fun updateLinkDocs(): RouteConfig.() -> Unit =
                         ErrorCode.LINK_OWNER_NOT_FOUND,
                         ErrorCode.LINK_NOT_FOUND,
                         ErrorCode.LINK_FOLDER_NOT_FOUND,
+                    )
+                }
+            }
+        }
+    }
+
+internal fun patchLinkDocs(): RouteConfig.() -> Unit =
+    {
+        summary = "링크 부분 수정 API"
+        request { body<PatchLinkRequestBody>() }
+        response {
+            code(HttpStatusCode.OK) {
+                description = "링크 부분 수정 성공"
+                body<ApiResponse<PatchLinkResponse>>()
+            }
+            code(HttpStatusCode.BadRequest) {
+                description = "링크 부분 수정 요청 유효성 검증 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(
+                        ErrorCode.COMMON_BAD_REQUEST,
+                        ErrorCode.TODO_TITLE_BLANK,
+                        ErrorCode.TODO_TITLE_OVER_MAX,
+                        ErrorCode.TODO_DIFFERENT_LINK,
+                        ErrorCode.TODO_DUPLICATE_ID,
+                    )
+                }
+            }
+            authErrorResponse()
+            code(HttpStatusCode.Forbidden) {
+                description = "링크 부분 수정 권한 검증 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(
+                        ErrorCode.LINK_DIFFERENT_OWNER,
+                        ErrorCode.FOLDER_DIFFERENT_OWNER,
+                        ErrorCode.TODO_DIFFERENT_OWNER,
+                    )
+                }
+            }
+            code(HttpStatusCode.NotFound) {
+                description = "링크 부분 수정에 필요한 리소스 조회 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(
+                        ErrorCode.LINK_OWNER_NOT_FOUND,
+                        ErrorCode.LINK_NOT_FOUND,
+                        ErrorCode.LINK_FOLDER_NOT_FOUND,
+                        ErrorCode.TODO_NOT_FOUND,
                     )
                 }
             }
