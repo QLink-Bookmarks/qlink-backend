@@ -4,6 +4,7 @@ import com.qlink.common.docs.authErrorResponse
 import com.qlink.common.docs.examples
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.response.ApiResponse
+import com.qlink.common.response.EmptySuccessResponse
 import com.qlink.common.response.ErrorDetail
 import com.qlink.folder.dto.CreateFolderRequest
 import com.qlink.folder.dto.CreateFolderResponse
@@ -88,6 +89,36 @@ internal fun updateFolderDocs(): RouteConfig.() -> Unit =
                 description = "같은 이름의 폴더가 이미 존재함"
                 body<ApiResponse<ErrorDetail>> {
                     examples(ErrorCode.FOLDER_DUPLICATE_NAME)
+                }
+            }
+        }
+    }
+
+internal fun deleteFolderDocs(): RouteConfig.() -> Unit =
+    {
+        summary = "폴더 삭제 API"
+        response {
+            code(HttpStatusCode.OK) {
+                description = "폴더 삭제 성공"
+                body<EmptySuccessResponse>()
+            }
+            code(HttpStatusCode.BadRequest) {
+                description = "폴더 삭제 요청이 올바르지 않음"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.COMMON_BAD_REQUEST)
+                }
+            }
+            authErrorResponse()
+            code(HttpStatusCode.Forbidden) {
+                description = "폴더 삭제 권한 검증 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.FOLDER_DIFFERENT_OWNER)
+                }
+            }
+            code(HttpStatusCode.NotFound) {
+                description = "폴더 삭제에 필요한 리소스 조회 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.FOLDER_OWNER_NOT_FOUND)
                 }
             }
         }

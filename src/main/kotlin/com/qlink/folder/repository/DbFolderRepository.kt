@@ -8,6 +8,7 @@ import com.qlink.folder.repository.table.toFolderDomain
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.neq
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -54,4 +55,8 @@ class DbFolderRepository : FolderRepository {
                 it.refreshUpdatedAt()
             }.single()
             .toFolderDomain()
+
+    override suspend fun deleteById(folderId: Long) {
+        Folders.deleteWhere { id eq folderId }
+    }
 }
