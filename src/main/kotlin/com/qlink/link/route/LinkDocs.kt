@@ -35,6 +35,8 @@ internal fun createLinkDocs(): RouteConfig.() -> Unit =
                         ErrorCode.LINK_URL_WRONG_HOST,
                         ErrorCode.LINK_TITLE_BLANK,
                         ErrorCode.LINK_TITLE_OVER_MAX,
+                        ErrorCode.TODO_TITLE_BLANK,
+                        ErrorCode.TODO_TITLE_OVER_MAX,
                     )
                 }
             }

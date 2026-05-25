@@ -54,6 +54,7 @@ fun serviceModule() =
             CreateLinkService(
                 tx = get(),
                 linkRepository = get(),
+                todoRepository = get(),
                 userRepository = get(),
                 folderRepository = get(),
             )

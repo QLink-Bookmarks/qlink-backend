@@ -6,6 +6,8 @@ import com.qlink.folder.domain.Folder
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.domain.SourceType
 import com.qlink.link.dto.CreateLinkRequest
+import com.qlink.link.dto.CreateLinkTodoRequest
+import com.qlink.link.dto.LinkSearchOrder
 import com.qlink.link.repository.LinkRepository
 import com.qlink.link.service.CreateLinkService
 import com.qlink.support.BaseServiceTest
@@ -13,12 +15,15 @@ import com.qlink.support.fixture.FolderFixture
 import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
+import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.domain.User
 import com.qlink.user.repository.UserRepository
 import io.kotest.assertions.throwables.shouldThrowWithMessage
+import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import kotlin.random.Random
+import kotlin.time.toKotlinInstant
 
 class CreateLinkServiceTest :
     BaseServiceTest({
@@ -26,6 +31,7 @@ class CreateLinkServiceTest :
         val userRepository = koinGet<UserRepository>()
         val linkRepository = koinGet<LinkRepository>()
         val folderRepository = koinGet<FolderRepository>()
+        val todoRepository = koinGet<TodoRepository>()
 
         Given("링크 생성 서비스 테스트") {
             lateinit var user: User
@@ -62,6 +68,41 @@ class CreateLinkServiceTest :
                     actual.sourceType shouldBe request.sourceType
                     actual.thumbnailUrl shouldBe request.thumbnailUrl
                     actual.tags shouldBe expectedTags
+                }
+            }
+
+            When("todos를 포함한 링크 생성을") {
+                val todos =
+                    listOf(
+                        CreateLinkTodoRequest(
+                            title = RandomFixture.randomSentenceWithMax(50),
+                            reminderAt = RandomFixture.randomDateTime().toInstant().toKotlinInstant(),
+                        ),
+                        CreateLinkTodoRequest(
+                            title = RandomFixture.randomSentenceWithMax(50),
+                            reminderAt = null,
+                        ),
+                    )
+                val request =
+                    CreateLinkRequest(
+                        url = RandomFixture.randomUrl(),
+                        title = RandomFixture.randomSentenceWithMax(300),
+                        summary = RandomFixture.randomSentenceWithMax(1_000),
+                        memo = RandomFixture.randomSentenceWithMax(1_000),
+                        sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
+                        thumbnailUrl = RandomFixture.randomUrl(),
+                        tags = RandomFixture.randomSentenceList(),
+                        todos = todos,
+                    )
+                val expected = createLinkService.createLink(user.id!!, request)
+
+                Then("링크와 todos를 함께 저장한다") {
+                    val actualLink = linkRepository.findById(expected.id)
+                    val actualTodos = todoRepository.findAllByLinkIdForLinkDetail(expected.id)
+
+                    actualLink shouldNotBe null
+                    actualTodos.map { it.title } shouldContainExactly todos.map { it.title }
+                    actualTodos.map { it.reminderAt } shouldContainExactly todos.map { it.reminderAt }
                 }
             }
 
@@ -111,6 +152,47 @@ class CreateLinkServiceTest :
                     shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_FOLDER_NOT_FOUND.message) {
                         create()
                     }
+                }
+            }
+
+            When("todo가 유효하지 않으면") {
+                val request =
+                    CreateLinkRequest(
+                        url = RandomFixture.randomUrl(),
+                        title = RandomFixture.randomSentenceWithMax(300),
+                        summary = RandomFixture.randomSentenceWithMax(1_000),
+                        memo = RandomFixture.randomSentenceWithMax(1_000),
+                        sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
+                        thumbnailUrl = RandomFixture.randomUrl(),
+                        tags = RandomFixture.randomSentenceList(),
+                        todos =
+                            listOf(
+                                CreateLinkTodoRequest(
+                                    title = " ",
+                                    reminderAt = RandomFixture.randomDateTime().toInstant().toKotlinInstant(),
+                                ),
+                            ),
+                    )
+                val create =
+                    suspend {
+                        createLinkService.createLink(user.id!!, request)
+                    }
+
+                Then("링크와 todos 모두 저장되지 않는다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.TODO_TITLE_BLANK.message) {
+                        create()
+                    }
+
+                    linkRepository
+                        .search(
+                            ownerId = user.id!!,
+                            query = request.url,
+                            folderId = null,
+                            order = LinkSearchOrder.LATEST,
+                            cursor = null,
+                            size = 10,
+                        ).find { it.url == request.url }
+                        .shouldBe(null)
                 }
             }
         }

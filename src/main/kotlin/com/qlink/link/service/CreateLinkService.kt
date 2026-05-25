@@ -9,11 +9,14 @@ import com.qlink.link.domain.Link
 import com.qlink.link.dto.CreateLinkRequest
 import com.qlink.link.dto.CreateLinkResponse
 import com.qlink.link.repository.LinkRepository
+import com.qlink.todo.domain.Todo
+import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.repository.UserRepository
 
 class CreateLinkService(
     private val tx: TransactionRunner,
     private val linkRepository: LinkRepository,
+    private val todoRepository: TodoRepository,
     private val userRepository: UserRepository,
     private val folderRepository: FolderRepository,
 ) {
@@ -26,6 +29,14 @@ class CreateLinkService(
             request.folderId?.let {
                 folderRepository.findById(it)?.also { it.validateOwner(loginId) }
                     ?: throw BusinessException(ErrorCode.LINK_FOLDER_NOT_FOUND)
+            }
+            request.todos.forEach { todoRequest ->
+                Todo(
+                    linkId = -1L,
+                    ownerId = loginId,
+                    title = todoRequest.title,
+                    reminderAt = todoRequest.reminderAt,
+                )
             }
 
             val link =
@@ -41,6 +52,19 @@ class CreateLinkService(
                     sourceType = request.sourceType,
                 )
 
-            CreateLinkResponse(linkRepository.insert(link).id!!)
+            val createdLink = linkRepository.insert(link)
+
+            request.todos.forEach { todoRequest ->
+                todoRepository.insert(
+                    Todo(
+                        linkId = createdLink.id!!,
+                        ownerId = loginId,
+                        title = todoRequest.title,
+                        reminderAt = todoRequest.reminderAt,
+                    ),
+                )
+            }
+
+            CreateLinkResponse(createdLink.id!!)
         }
 }
