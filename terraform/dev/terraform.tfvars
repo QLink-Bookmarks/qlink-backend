@@ -75,9 +75,9 @@ ecs_service_tag_name            = "qlink-ecs-service-dev"
 
 db_subnet_group_name                = "qlink-db-subnet-group"
 db_subnet_group_tag_name            = "qlink DB subnet group"
-rds_identifier                      = "qlink-rds-dev"
+rds_identifier                      = "qlink-rds-dev-pg18"
 rds_engine                          = "postgres"
-rds_engine_version                  = "16"
+rds_engine_version                  = "18"
 rds_instance_class                  = "db.t4g.micro"
 rds_allocated_storage               = 20
 rds_storage_type                    = "gp3"
@@ -88,4 +88,4 @@ rds_publicly_accessible             = false
 rds_multi_az                        = false
 rds_enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
 rds_skip_final_snapshot             = true
-rds_instance_tag_name               = "qlink-rds-dev"
+rds_instance_tag_name               = "qlink-rds-dev-pg18"

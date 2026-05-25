@@ -7,7 +7,7 @@ resource "aws_db_subnet_group" "qlink_db_subnet_group" {
   }
 }
 
-resource "aws_db_instance" "qlink_rds" {
+resource "aws_db_instance" "qlink_rds_pg18" {
   identifier     = var.identifier
   engine         = var.engine
   engine_version = var.engine_version
