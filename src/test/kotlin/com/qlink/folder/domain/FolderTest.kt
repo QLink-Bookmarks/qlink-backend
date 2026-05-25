@@ -143,4 +143,83 @@ class FolderTest :
                 }
             }
         }
+
+        Given("폴더 수정 테스트") {
+            val folder = FolderFixture.createValidUnsharedFolder(RandomFixture.randomId())
+
+            When("유효한 값으로 수정하면") {
+                val update = {
+                    folder.update(
+                        name = RandomFixture.randomSentenceWithMax(100),
+                        emoji = RandomFixture.randomEmoji(),
+                    )
+                }
+
+                Then("성공한다") {
+                    shouldNotThrowAny {
+                        update()
+                    }
+                }
+            }
+
+            When("이름이 비어 있으면") {
+                val update = {
+                    folder.update(
+                        name = " ",
+                        emoji = RandomFixture.randomEmoji(),
+                    )
+                }
+
+                Then("예외가 발생한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.FOLDER_NAME_BLANK.message) {
+                        update()
+                    }
+                }
+            }
+
+            When("이름이 최대 길이를 초과하면") {
+                val update = {
+                    folder.update(
+                        name = RandomFixture.randomFixedSentence(101),
+                        emoji = RandomFixture.randomEmoji(),
+                    )
+                }
+
+                Then("예외가 발생한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.FOLDER_NAME_OVER_MAX.message) {
+                        update()
+                    }
+                }
+            }
+
+            When("이모지 길이가 최대 길이를 초과하면") {
+                val update = {
+                    folder.update(
+                        name = RandomFixture.randomSentenceWithMax(100),
+                        emoji = RandomFixture.randomFixedSentence(21),
+                    )
+                }
+
+                Then("예외가 발생한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.FOLDER_EMOJI_OVER_MAX.message) {
+                        update()
+                    }
+                }
+            }
+
+            When("이모지 형식이 잘못되면") {
+                val update = {
+                    folder.update(
+                        name = RandomFixture.randomSentenceWithMax(100),
+                        emoji = "folder",
+                    )
+                }
+
+                Then("예외가 발생한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.FOLDER_EMOJI_INVALID.message) {
+                        update()
+                    }
+                }
+            }
+        }
     })

@@ -10,5 +10,13 @@ interface FolderRepository {
         name: String,
     ): Boolean
 
+    suspend fun existsByOwnerIdAndNameAndIdNot(
+        ownerId: Long,
+        name: String,
+        folderId: Long,
+    ): Boolean
+
     suspend fun insert(folder: Folder): Folder
+
+    suspend fun update(folder: Folder): Folder
 }

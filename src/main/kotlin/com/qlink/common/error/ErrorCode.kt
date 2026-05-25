@@ -47,5 +47,6 @@ enum class ErrorCode(
     FOLDER_EMOJI_INVALID("FOLDER_400_0004", 400, "폴더 이모지 형식이 올바르지 않아요"),
     FOLDER_DIFFERENT_OWNER("FOLDER_403_0001", 403, "폴더에 대한 권한이 없어요"),
     FOLDER_OWNER_NOT_FOUND("FOLDER_404_0001", 404, "로그인 사용자를 찾을 수 없어요"),
+    FOLDER_NOT_FOUND("FOLDER_404_0002", 404, "폴더를 찾을 수 없어요"),
     FOLDER_DUPLICATE_NAME("FOLDER_409_0001", 409, "같은 이름의 폴더가 이미 있어요"),
 }

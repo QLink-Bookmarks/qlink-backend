@@ -33,6 +33,20 @@ class Folder(
         }
     }
 
+    fun update(
+        name: String,
+        emoji: String?,
+    ): Folder =
+        Folder(
+            id = id,
+            ownerId = ownerId,
+            name = name,
+            emoji = emoji,
+            sharedAt = sharedAt,
+            createdAt = createdAt,
+            updatedAt = updatedAt,
+        )
+
     companion object {
         fun create(
             ownerId: Long,
