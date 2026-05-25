@@ -9,6 +9,7 @@ import com.qlink.folder.dto.FolderSearchCursor
 import com.qlink.folder.dto.FolderSearchCursorValue
 import com.qlink.folder.dto.FolderSearchOrder
 import com.qlink.folder.repository.FolderRepository
+import com.qlink.foldermember.repository.table.FolderMembers
 import com.qlink.link.repository.LinkRepository
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.FolderFixture
@@ -21,6 +22,7 @@ import com.qlink.user.repository.UserRepository
 import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
+import org.jetbrains.exposed.v1.jdbc.insert
 import kotlin.time.toKotlinInstant
 
 class GetFoldersServiceTest :
@@ -28,6 +30,7 @@ class GetFoldersServiceTest :
         val getFoldersService = koinGet<GetFoldersService>()
         val folderRepository = koinGet<FolderRepository>()
         val linkRepository = koinGet<LinkRepository>()
+        val tx = koinGet<com.qlink.common.transaction.TransactionRunner>()
         val userRepository = koinGet<UserRepository>()
 
         Given("폴더 목록 조회 서비스 테스트") {
@@ -43,6 +46,8 @@ class GetFoldersServiceTest :
                 lateinit var sharedFolder: Folder
 
                 beforeTest {
+                    val memberOne = userRepository.insert(UserFixture.createRandomValidUser())
+                    val memberTwo = userRepository.insert(UserFixture.createRandomValidUser())
                     sharedFolder =
                         folderRepository.insert(
                             FolderFixture.createFolderWith(
@@ -52,6 +57,18 @@ class GetFoldersServiceTest :
                             ),
                         )
                     folderRepository.insert(FolderFixture.createFolderWith(ownerId = otherUser.id!!, name = "다른 사람 폴더"))
+                    tx.required {
+                        FolderMembers.insert {
+                            it[folderId] = sharedFolder.id!!
+                            it[userId] = memberOne.id!!
+                            it[role] = "member"
+                        }
+                        FolderMembers.insert {
+                            it[folderId] = sharedFolder.id!!
+                            it[userId] = memberTwo.id!!
+                            it[role] = "member"
+                        }
+                    }
                     linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = user.id!!, folderId = sharedFolder.id))
                     linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = user.id!!, folderId = sharedFolder.id))
                 }
@@ -75,7 +92,7 @@ class GetFoldersServiceTest :
                     response.contents.first().name shouldBe sharedFolder.name
                     response.contents.first().emoji shouldBe sharedFolder.emoji
                     response.contents.first().isShared shouldBe true
-                    response.contents.first().shareCounts shouldBe 1
+                    response.contents.first().shareCounts shouldBe 3
                     response.contents.first().linkCounts shouldBe 2
                 }
             }
