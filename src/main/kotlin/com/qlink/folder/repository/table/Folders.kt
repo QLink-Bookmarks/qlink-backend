@@ -8,6 +8,7 @@ import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import org.jetbrains.exposed.v1.javatime.CurrentTimestamp
 import org.jetbrains.exposed.v1.javatime.timestamp
+import kotlin.time.Clock
 import kotlin.time.toJavaInstant
 import kotlin.time.toKotlinInstant
 
@@ -43,4 +44,8 @@ fun UpdateBuilder<*>.fromDomain(folder: Folder) {
     this[Folders.name] = folder.name
     this[Folders.emoji] = folder.emoji
     this[Folders.sharedAt] = folder.sharedAt?.toJavaInstant()
+}
+
+fun UpdateBuilder<*>.refreshUpdatedAt() {
+    this[Folders.updatedAt] = Clock.System.now().toJavaInstant()
 }

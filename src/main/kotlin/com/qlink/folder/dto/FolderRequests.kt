@@ -10,3 +10,9 @@ data class CreateFolderRequest(
     val emoji: String? = null,
     val isShared: Boolean? = null,
 )
+
+@Serializable
+data class UpdateFolderRequest(
+    val name: String,
+    val emoji: String? = null,
+)
