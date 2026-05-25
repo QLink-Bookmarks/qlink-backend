@@ -421,6 +421,56 @@ class GetFoldersServiceTest :
                 }
             }
 
+            When("latest cursor에 id가 없으면") {
+                val get =
+                    suspend {
+                        val cursor =
+                            Base64CursorCodec.encode(
+                                FolderSearchCursor(
+                                    order = FolderSearchOrder.LATEST,
+                                    value = FolderSearchCursorValue(name = "folder"),
+                                ),
+                            )
+                        getFoldersService.getFolders(
+                            loginId = user.id!!,
+                            query = null,
+                            order = "latest",
+                            scrollRequest = ScrollRequest(cursor = cursor, size = 10),
+                        )
+                    }
+
+                Then("예외를 반환한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.COMMON_BAD_REQUEST.message) {
+                        get()
+                    }
+                }
+            }
+
+            When("earliest cursor에 id가 없으면") {
+                val get =
+                    suspend {
+                        val cursor =
+                            Base64CursorCodec.encode(
+                                FolderSearchCursor(
+                                    order = FolderSearchOrder.EARLIEST,
+                                    value = FolderSearchCursorValue(name = "folder"),
+                                ),
+                            )
+                        getFoldersService.getFolders(
+                            loginId = user.id!!,
+                            query = null,
+                            order = "earliest",
+                            scrollRequest = ScrollRequest(cursor = cursor, size = 10),
+                        )
+                    }
+
+                Then("예외를 반환한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.COMMON_BAD_REQUEST.message) {
+                        get()
+                    }
+                }
+            }
+
             When("laxico cursor에 name이 없으면") {
                 val get =
                     suspend {
@@ -446,6 +496,31 @@ class GetFoldersServiceTest :
                 }
             }
 
+            When("laxico cursor에 id가 없으면") {
+                val get =
+                    suspend {
+                        val cursor =
+                            Base64CursorCodec.encode(
+                                FolderSearchCursor(
+                                    order = FolderSearchOrder.LAXICO,
+                                    value = FolderSearchCursorValue(name = "folder"),
+                                ),
+                            )
+                        getFoldersService.getFolders(
+                            loginId = user.id!!,
+                            query = null,
+                            order = "laxico",
+                            scrollRequest = ScrollRequest(cursor = cursor, size = 10),
+                        )
+                    }
+
+                Then("예외를 반환한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.COMMON_BAD_REQUEST.message) {
+                        get()
+                    }
+                }
+            }
+
             When("similar cursor에 score가 없으면") {
                 val get =
                     suspend {
@@ -454,6 +529,31 @@ class GetFoldersServiceTest :
                                 FolderSearchCursor(
                                     order = FolderSearchOrder.SIMILAR,
                                     value = FolderSearchCursorValue(id = RandomFixture.randomId(), name = "folder"),
+                                ),
+                            )
+                        getFoldersService.getFolders(
+                            loginId = user.id!!,
+                            query = "folder",
+                            order = "similar",
+                            scrollRequest = ScrollRequest(cursor = cursor, size = 10),
+                        )
+                    }
+
+                Then("예외를 반환한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.COMMON_BAD_REQUEST.message) {
+                        get()
+                    }
+                }
+            }
+
+            When("similar cursor에 id가 없으면") {
+                val get =
+                    suspend {
+                        val cursor =
+                            Base64CursorCodec.encode(
+                                FolderSearchCursor(
+                                    order = FolderSearchOrder.SIMILAR,
+                                    value = FolderSearchCursorValue(name = "folder", score = 0.9),
                                 ),
                             )
                         getFoldersService.getFolders(
