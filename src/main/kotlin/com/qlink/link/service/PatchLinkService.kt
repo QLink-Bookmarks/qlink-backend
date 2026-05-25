@@ -3,7 +3,6 @@ package com.qlink.link.service
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireFalse
-import com.qlink.common.serialization.PatchField
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.domain.Link
@@ -30,8 +29,9 @@ class PatchLinkService(
         tx.required {
             userRepository.emptyById(loginId).requireFalse(ErrorCode.LINK_OWNER_NOT_FOUND)
 
-            val link = linkRepository.findById(linkId) ?: throw BusinessException(ErrorCode.LINK_NOT_FOUND)
-            link.validateOwner(loginId)
+            val link =
+                linkRepository.findById(linkId)?.also { it.validateOwner(loginId) }
+                    ?: throw BusinessException(ErrorCode.LINK_NOT_FOUND)
 
             val targetFolderId = request.resolveFolderId(link, loginId)
             val targetMemo = request.resolveMemo(link)
@@ -74,38 +74,34 @@ class PatchLinkService(
     private suspend fun PatchLinkRequest.resolveFolderId(
         link: Link,
         loginId: Long,
-    ): Long? =
-        when (val folderId = folderId) {
-            PatchField.Absent -> link.folderId
-            is PatchField.Present -> {
-                folderId.value?.let {
-                    folderRepository.findById(it)?.also { folder -> folder.validateOwner(loginId) }
-                        ?: throw BusinessException(ErrorCode.LINK_FOLDER_NOT_FOUND)
-                }
-                folderId.value
-            }
+    ): Long? {
+        val folderId = folderId ?: return link.folderId
+
+        if (folderId == 0L) {
+            return null
         }
 
+        folderRepository.findById(folderId)?.also { it.validateOwner(loginId) }
+            ?: throw BusinessException(ErrorCode.LINK_FOLDER_NOT_FOUND)
+
+        return folderId
+    }
+
     private fun PatchLinkRequest.resolveMemo(link: Link): String? =
-        when (val memo = memo) {
-            PatchField.Absent -> link.memo
-            is PatchField.Present -> memo.value
+        when (memo) {
+            null -> link.memo
+            "" -> null
+            else -> memo
         }
 
     private fun PatchLinkRequest.resolveTags(link: Link): List<String> =
-        when (val tags = tags) {
-            PatchField.Absent -> link.tags
-            is PatchField.Present -> tags.value
-        }
+        tags ?: link.tags
 
     private suspend fun PatchLinkRequest.resolveTodoChangeSet(
         linkId: Long,
         loginId: Long,
     ): TodoChangeSet? =
-        when (val todos = todos) {
-            PatchField.Absent -> null
-            is PatchField.Present -> buildTodoChangeSet(linkId, loginId, todos.value)
-        }
+        todos?.let { buildTodoChangeSet(linkId, loginId, it) }
 
     private suspend fun buildTodoChangeSet(
         linkId: Long,
@@ -120,15 +116,23 @@ class PatchLinkService(
             throw BusinessException(ErrorCode.TODO_DUPLICATE_ID)
         }
 
-        val validatedTodosById =
-            requestedIds.associateWith { todoId ->
-                existingTodosById[todoId]
-                    ?: when {
-                        todoRepository.findByIdAndOwnerId(todoId, loginId) != null -> throw BusinessException(ErrorCode.TODO_DIFFERENT_LINK)
-                        todoRepository.findById(todoId) != null -> throw BusinessException(ErrorCode.TODO_DIFFERENT_OWNER)
-                        else -> throw BusinessException(ErrorCode.TODO_NOT_FOUND)
-                    }
+        val requestedTodos = todoRepository.findAllByIds(requestedIds)
+        val requestedTodosById = requestedTodos.associateBy { it.id!! }
+        val missingTodoIds = requestedIds - requestedTodosById.keys
+
+        if (missingTodoIds.isNotEmpty()) {
+            throw BusinessException(ErrorCode.TODO_NOT_FOUND)
+        }
+
+        requestedTodos.forEach { todo ->
+            todo.validateOwner(loginId)
+            if (todo.isDifferentLink(linkId)) {
+                throw BusinessException(ErrorCode.TODO_DIFFERENT_LINK)
             }
+        }
+
+        val validatedTodosById =
+            requestedIds.associateWith { todoId -> requestedTodosById.getValue(todoId) }
 
         val todosToUpdate =
             todos

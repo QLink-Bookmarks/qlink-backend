@@ -22,7 +22,6 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.routing.Route
-import kotlinx.serialization.json.JsonObject
 import org.koin.ktor.ext.inject
 
 fun Route.linkRoutes() {
@@ -85,7 +84,7 @@ fun Route.linkRoutes() {
     authenticate {
         patch<LinkResources.ById>(patchLinkDocs()) { resource ->
             val principal = call.principal<JwtPrincipal>()!!
-            val request = PatchLinkRequest.fromJsonObject(call.receive<JsonObject>())
+            val request = call.receive<PatchLinkRequest>()
             val response = patchLinkService.patchLink(principal.userId, resource.id, request)
 
             call.respondSuccess(HttpStatusCode.OK, response)

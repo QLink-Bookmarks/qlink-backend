@@ -2,7 +2,6 @@ package com.qlink.link.service
 
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
-import com.qlink.common.serialization.PatchField
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.folder.domain.Folder
 import com.qlink.folder.repository.FolderRepository
@@ -102,7 +101,7 @@ class PatchLinkServiceTest :
                 val newMemo = RandomFixture.randomSentenceWithMax(1000)
                 val request =
                     LinkFixture.createPatchLinkRequest(
-                        memo = PatchField.Present(newMemo),
+                        memo = newMemo,
                     )
 
                 Then("다른 필드는 유지한다") {
@@ -121,11 +120,31 @@ class PatchLinkServiceTest :
                 }
             }
 
-            When("memo와 folderId를 null로 보내면") {
+            When("null 요청만 보내면") {
+                val request = LinkFixture.createPatchLinkRequest()
+
+                Then("아무 필드도 변경하지 않는다") {
+                    val response = patchLinkService.patchLink(user.id!!, link.id!!, request)
+                    val actual = linkRepository.findById(link.id!!)
+                    val actualTodos = todoRepository.findAllByLinkId(link.id!!)
+
+                    response.folderId shouldBe link.folderId
+                    response.memo shouldBe link.memo
+                    response.tags shouldBe link.tags
+                    response.todos.map { it.id } shouldContainExactly actualTodos.map { it.id!! }
+
+                    actual shouldNotBe null
+                    actual!!.folderId shouldBe link.folderId
+                    actual.memo shouldBe link.memo
+                    actual.tags shouldBe link.tags
+                }
+            }
+
+            When("memo를 빈 문자열로 보내고 folderId를 0으로 보내면") {
                 val request =
                     LinkFixture.createPatchLinkRequest(
-                        folderId = PatchField.Present(null),
-                        memo = PatchField.Present(null),
+                        folderId = 0L,
+                        memo = "",
                     )
 
                 Then("둘 다 비운다") {
@@ -144,7 +163,7 @@ class PatchLinkServiceTest :
             When("tags를 빈 리스트로 보내면") {
                 val request =
                     LinkFixture.createPatchLinkRequest(
-                        tags = PatchField.Present(emptyList()),
+                        tags = emptyList(),
                     )
 
                 Then("태그를 모두 삭제한다") {
@@ -160,7 +179,7 @@ class PatchLinkServiceTest :
             When("todos를 보내지 않으면") {
                 val request =
                     LinkFixture.createPatchLinkRequest(
-                        tags = PatchField.Present(listOf("patched")),
+                        tags = listOf("patched"),
                     )
 
                 Then("기존 todos를 유지한다") {
@@ -178,17 +197,15 @@ class PatchLinkServiceTest :
                     val request =
                         LinkFixture.createPatchLinkRequest(
                             todos =
-                                PatchField.Present(
-                                    listOf(
-                                        LinkFixture.createPatchLinkTodoRequest(
-                                            id = secondTodo.id,
-                                            title = "patched-second",
-                                            reminderAt = updatedReminderAt,
-                                        ),
-                                        LinkFixture.createPatchLinkTodoRequest(
-                                            title = "new-todo",
-                                            reminderAt = null,
-                                        ),
+                                listOf(
+                                    LinkFixture.createPatchLinkTodoRequest(
+                                        id = secondTodo.id,
+                                        title = "patched-second",
+                                        reminderAt = updatedReminderAt,
+                                    ),
+                                    LinkFixture.createPatchLinkTodoRequest(
+                                        title = "new-todo",
+                                        reminderAt = null,
                                     ),
                                 ),
                         )
@@ -207,7 +224,7 @@ class PatchLinkServiceTest :
             When("todos를 빈 리스트로 보내면") {
                 val request =
                     LinkFixture.createPatchLinkRequest(
-                        todos = PatchField.Present(emptyList()),
+                        todos = emptyList(),
                     )
 
                 Then("기존 todos를 모두 삭제한다") {
@@ -224,11 +241,9 @@ class PatchLinkServiceTest :
                         val request =
                             LinkFixture.createPatchLinkRequest(
                                 todos =
-                                    PatchField.Present(
-                                        listOf(
-                                            LinkFixture.createPatchLinkTodoRequest(id = firstTodo.id, title = "first"),
-                                            LinkFixture.createPatchLinkTodoRequest(id = firstTodo.id, title = "second"),
-                                        ),
+                                    listOf(
+                                        LinkFixture.createPatchLinkTodoRequest(id = firstTodo.id, title = "first"),
+                                        LinkFixture.createPatchLinkTodoRequest(id = firstTodo.id, title = "second"),
                                     ),
                             )
                         patchLinkService.patchLink(user.id!!, link.id!!, request)
@@ -245,12 +260,10 @@ class PatchLinkServiceTest :
                 val request =
                     LinkFixture.createPatchLinkRequest(
                         todos =
-                            PatchField.Present(
-                                listOf(
-                                    LinkFixture.createPatchLinkTodoRequest(
-                                        id = RandomFixture.randomId(),
-                                        title = "missing",
-                                    ),
+                            listOf(
+                                LinkFixture.createPatchLinkTodoRequest(
+                                    id = RandomFixture.randomId(),
+                                    title = "missing",
                                 ),
                             ),
                     )
@@ -272,12 +285,10 @@ class PatchLinkServiceTest :
                         val request =
                             LinkFixture.createPatchLinkRequest(
                                 todos =
-                                    PatchField.Present(
-                                        listOf(
-                                            LinkFixture.createPatchLinkTodoRequest(
-                                                id = otherUserTodo.id,
-                                                title = "invalid",
-                                            ),
+                                    listOf(
+                                        LinkFixture.createPatchLinkTodoRequest(
+                                            id = otherUserTodo.id,
+                                            title = "invalid",
                                         ),
                                     ),
                             )
@@ -297,12 +308,10 @@ class PatchLinkServiceTest :
                         val request =
                             LinkFixture.createPatchLinkRequest(
                                 todos =
-                                    PatchField.Present(
-                                        listOf(
-                                            LinkFixture.createPatchLinkTodoRequest(
-                                                id = otherLinkTodo.id,
-                                                title = "invalid",
-                                            ),
+                                    listOf(
+                                        LinkFixture.createPatchLinkTodoRequest(
+                                            id = otherLinkTodo.id,
+                                            title = "invalid",
                                         ),
                                     ),
                             )
@@ -321,14 +330,12 @@ class PatchLinkServiceTest :
                     suspend {
                         val request =
                             LinkFixture.createPatchLinkRequest(
-                                memo = PatchField.Present("patched-memo"),
+                                memo = "patched-memo",
                                 todos =
-                                    PatchField.Present(
-                                        listOf(
-                                            LinkFixture.createPatchLinkTodoRequest(
-                                                id = secondTodo.id,
-                                                title = " ",
-                                            ),
+                                    listOf(
+                                        LinkFixture.createPatchLinkTodoRequest(
+                                            id = secondTodo.id,
+                                            title = " ",
                                         ),
                                     ),
                             )
@@ -354,7 +361,7 @@ class PatchLinkServiceTest :
                     suspend {
                         val request =
                             LinkFixture.createPatchLinkRequest(
-                                folderId = PatchField.Present(otherFolder.id),
+                                folderId = otherFolder.id,
                             )
                         patchLinkService.patchLink(user.id!!, link.id!!, request)
                     }
@@ -369,7 +376,7 @@ class PatchLinkServiceTest :
             When("본인 링크가 아니면") {
                 val request =
                     LinkFixture.createPatchLinkRequest(
-                        memo = PatchField.Present("patched"),
+                        memo = "patched",
                     )
                 val patch =
                     suspend {

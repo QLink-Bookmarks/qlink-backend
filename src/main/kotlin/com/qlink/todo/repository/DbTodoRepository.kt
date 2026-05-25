@@ -10,8 +10,8 @@ import com.qlink.todo.repository.table.refreshUpdatedAt
 import com.qlink.todo.repository.table.toTodoDomain
 import org.jetbrains.exposed.v1.core.LongColumnType
 import org.jetbrains.exposed.v1.core.SortOrder
-import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.select
@@ -34,16 +34,16 @@ class DbTodoRepository : TodoRepository {
             .singleOrNull()
             ?.toTodoDomain()
 
-    override suspend fun findByIdAndOwnerId(
-        todoId: Long,
-        ownerId: Long,
-    ): Todo? =
-        Todos
+    override suspend fun findAllByIds(todoIds: List<Long>): List<Todo> {
+        if (todoIds.isEmpty()) {
+            return emptyList()
+        }
+
+        return Todos
             .selectAll()
-            .where {
-                (Todos.id eq todoId) and (Todos.ownerId eq ownerId)
-            }.singleOrNull()
-            ?.toTodoDomain()
+            .where { Todos.id inList todoIds }
+            .map { it.toTodoDomain() }
+    }
 
     override suspend fun findAllByLinkId(linkId: Long): List<Todo> =
         Todos

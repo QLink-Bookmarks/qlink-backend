@@ -1,6 +1,5 @@
 package com.qlink.support.fixture
 
-import com.qlink.common.serialization.PatchField
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.SourceType
 import com.qlink.link.dto.PatchLinkRequest
@@ -49,10 +48,10 @@ object LinkFixture {
         )
 
     fun createPatchLinkRequest(
-        folderId: PatchField<Long?> = PatchField.Absent,
-        memo: PatchField<String?> = PatchField.Absent,
-        tags: PatchField<List<String>> = PatchField.Absent,
-        todos: PatchField<List<PatchLinkTodoRequest>> = PatchField.Absent,
+        folderId: Long? = null,
+        memo: String? = null,
+        tags: List<String>? = null,
+        todos: List<PatchLinkTodoRequest>? = null,
     ): PatchLinkRequest =
         PatchLinkRequest(
             folderId = folderId,

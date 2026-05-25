@@ -9,10 +9,7 @@ interface TodoRepository {
 
     suspend fun findById(todoId: Long): Todo?
 
-    suspend fun findByIdAndOwnerId(
-        todoId: Long,
-        ownerId: Long,
-    ): Todo?
+    suspend fun findAllByIds(todoIds: List<Long>): List<Todo>
 
     suspend fun findAllByLinkId(linkId: Long): List<Todo>
 

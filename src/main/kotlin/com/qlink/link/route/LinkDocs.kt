@@ -11,7 +11,7 @@ import com.qlink.link.dto.CreateLinkRequest
 import com.qlink.link.dto.CreateLinkResponse
 import com.qlink.link.dto.GetLinkDetailResponse
 import com.qlink.link.dto.GetLinksContentResponse
-import com.qlink.link.dto.PatchLinkRequestBody
+import com.qlink.link.dto.PatchLinkRequest
 import com.qlink.link.dto.PatchLinkResponse
 import com.qlink.link.dto.UpdateLinkRequest
 import com.qlink.link.dto.UpdateLinkResponse
@@ -155,7 +155,7 @@ internal fun updateLinkDocs(): RouteConfig.() -> Unit =
 internal fun patchLinkDocs(): RouteConfig.() -> Unit =
     {
         summary = "링크 부분 수정 API"
-        request { body<PatchLinkRequestBody>() }
+        request { body<PatchLinkRequest>() }
         response {
             code(HttpStatusCode.OK) {
                 description = "링크 부분 수정 성공"
