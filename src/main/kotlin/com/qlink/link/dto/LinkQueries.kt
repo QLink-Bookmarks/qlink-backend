@@ -2,6 +2,8 @@
 
 package com.qlink.link.dto
 
+import com.qlink.common.search.SearchCursor
+import com.qlink.common.search.SearchOrder
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
 
@@ -24,24 +26,9 @@ data class SearchLinksQuery(
     val memoScore: Double,
 )
 
-@Serializable
-enum class LinkSearchOrder {
-    LATEST,
-    EARLIEST,
-    LAXICO,
-    SIMILAR,
-    ;
+typealias LinkSearchOrder = SearchOrder
 
-    companion object {
-        fun from(value: String): LinkSearchOrder? = entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
-    }
-}
-
-@Serializable
-data class LinkSearchCursor(
-    val order: LinkSearchOrder,
-    val value: LinkSearchCursorValue,
-)
+typealias LinkSearchCursor = SearchCursor<LinkSearchCursorValue>
 
 @Serializable
 data class LinkSearchCursorValue(

@@ -1,31 +1,51 @@
 package com.qlink.link.repository
 
+import com.qlink.common.search.arrayToString
+import com.qlink.common.search.bigmSimilarity
+import com.qlink.common.search.coalesceText
+import com.qlink.common.search.doubleLiteral
+import com.qlink.common.search.longLiteral
+import com.qlink.common.search.lowerText
+import com.qlink.folder.repository.table.Folders
 import com.qlink.link.domain.Link
 import com.qlink.link.dto.LinkSearchCursor
+import com.qlink.link.dto.LinkSearchCursorValue
 import com.qlink.link.dto.LinkSearchOrder
 import com.qlink.link.dto.SearchLinksQuery
 import com.qlink.link.repository.table.Links
 import com.qlink.link.repository.table.fromDomain
 import com.qlink.link.repository.table.refreshUpdatedAt
 import com.qlink.link.repository.table.toLinkDomain
-import org.jetbrains.exposed.v1.core.DoubleColumnType
-import org.jetbrains.exposed.v1.core.IColumnType
-import org.jetbrains.exposed.v1.core.IntegerColumnType
-import org.jetbrains.exposed.v1.core.LongColumnType
-import org.jetbrains.exposed.v1.core.TextColumnType
+import org.jetbrains.exposed.v1.core.Expression
+import org.jetbrains.exposed.v1.core.ExpressionWithColumnType
+import org.jetbrains.exposed.v1.core.JoinType
+import org.jetbrains.exposed.v1.core.Op
+import org.jetbrains.exposed.v1.core.ResultRow
+import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.alias
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.core.statements.StatementType
+import org.jetbrains.exposed.v1.core.greater
+import org.jetbrains.exposed.v1.core.less
+import org.jetbrains.exposed.v1.core.like
+import org.jetbrains.exposed.v1.core.or
+import org.jetbrains.exposed.v1.core.plus
+import org.jetbrains.exposed.v1.core.times
+import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insertReturning
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
-import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import org.jetbrains.exposed.v1.jdbc.update
 import org.jetbrains.exposed.v1.jdbc.updateReturning
-import java.sql.ResultSet
 import kotlin.time.toKotlinInstant
 
 class DbLinkRepository : LinkRepository {
-    override suspend fun insert(link: Link): Link = Links.insertReturning { it.fromDomain(link) }.single().toLinkDomain()
+    override suspend fun insert(link: Link): Link =
+        Links
+            .insertReturning { it.fromDomain(link) }
+            .single()
+            .toLinkDomain()
 
     override suspend fun findById(linkId: Long): Link? =
         Links
@@ -43,88 +63,103 @@ class DbLinkRepository : LinkRepository {
         size: Int,
     ): List<SearchLinksQuery> {
         val normalizedQuery = query?.trim()?.takeIf { it.isNotEmpty() }
-        val cursorValue = cursor?.value
-        val scoreSql = scoreSql(keywordProvided = normalizedQuery != null)
-        val baseFilterSql = mutableListOf("l.owner_id = ?")
-        val scoreArgs = mutableListOf<Pair<IColumnType<*>, Any?>>()
-        val baseArgs = mutableListOf<Pair<IColumnType<*>, Any?>>(LongColumnType() to ownerId)
-        val cursorArgs = mutableListOf<Pair<IColumnType<*>, Any?>>()
-
-        if (normalizedQuery != null) {
-            repeat(5) {
-                scoreArgs += TextColumnType() to normalizedQuery
-            }
-        }
-
-        if (folderId != null) {
-            baseFilterSql += "l.folder_id = ?"
-            baseArgs += LongColumnType() to folderId
-        }
-
-        if (normalizedQuery != null) {
-            baseFilterSql += "l.search_text ILIKE '%' || ? || '%'"
-            baseArgs += TextColumnType() to normalizedQuery
-        }
-
-        val sql =
-            """
-            WITH base AS (
-                SELECT
-                    l.id,
-                    l.folder_id,
-                    f.name AS folder_name,
-                    f.emoji AS folder_emoji,
-                    l.url,
-                    l.title,
-                    l.tags,
-                    l.created_at,
-                    ${scoreSql.title} AS title_score,
-                    ${scoreSql.url} AS url_score,
-                    ${scoreSql.tags} AS tags_score,
-                    ${scoreSql.summary} AS summary_score,
-                    ${scoreSql.memo} AS memo_score
-                FROM links l
-                LEFT JOIN folders f ON f.id = l.folder_id
-                WHERE ${baseFilterSql.joinToString(" AND ")}
-            ),
-            scored AS (
-                SELECT
-                    id,
-                    folder_id,
-                    folder_name,
-                    folder_emoji,
-                    url,
-                    title,
-                    tags,
-                    created_at,
-                    ((title_score * 5.0) + (url_score * 3.0) + (tags_score * 2.0) + (summary_score * 1.0) + (memo_score * 0.5)) AS score,
-                    title_score,
-                    url_score,
-                    tags_score,
-                    summary_score,
-                    memo_score
-                FROM base
+        val loweredQuery = normalizedQuery?.lowercase()
+        val joined =
+            Links.join(
+                otherTable = Folders,
+                joinType = JoinType.LEFT,
+                additionalConstraint = { Links.folderId eq Folders.id },
             )
-            SELECT *
-            FROM scored
-            WHERE ${cursorFilterSql(order, cursorValue, cursorArgs)}
-            ORDER BY ${orderBySql(order)}
-            LIMIT ?
-            """.trimIndent()
 
-        val args =
-            buildList {
-                addAll(scoreArgs)
-                addAll(baseArgs)
-                addAll(cursorArgs)
-                add(IntegerColumnType() to (size + 1))
+        val folderName = Folders.name.alias("folder_name")
+        val folderEmoji = Folders.emoji.alias("folder_emoji")
+        val titleScoreBase =
+            scoreExpression(normalizedQuery) { keyword ->
+                bigmSimilarity(Links.title, keyword)
             }
+        val urlScoreBase =
+            scoreExpression(normalizedQuery) { keyword ->
+                bigmSimilarity(Links.url, keyword)
+            }
+        val tagsScoreBase =
+            scoreExpression(normalizedQuery) { keyword ->
+                bigmSimilarity(arrayToString(Links.tags, " "), keyword)
+            }
+        val summaryScoreBase =
+            scoreExpression(normalizedQuery) { keyword ->
+                bigmSimilarity(coalesceText(Links.summary), keyword)
+            }
+        val memoScoreBase =
+            scoreExpression(normalizedQuery) { keyword ->
+                bigmSimilarity(coalesceText(Links.memo), keyword)
+            }
+        val titleScore = titleScoreBase.alias("title_score")
+        val urlScore = urlScoreBase.alias("url_score")
+        val tagsScore = tagsScoreBase.alias("tags_score")
+        val summaryScore = summaryScoreBase.alias("summary_score")
+        val memoScore = memoScoreBase.alias("memo_score")
+        val scoreBase =
+            titleScoreBase.times(doubleLiteral(5.0)) +
+                urlScoreBase.times(doubleLiteral(3.0)) +
+                tagsScoreBase.times(doubleLiteral(2.0)) +
+                summaryScoreBase.times(doubleLiteral(1.0)) +
+                memoScoreBase.times(doubleLiteral(0.5))
+        val score = scoreBase.alias("score")
 
-        return TransactionManager
-            .current()
-            .exec(sql, args, explicitStatementType = StatementType.SELECT) { resultSet ->
-                generateSequence { if (resultSet.next()) resultSet.toSearchLinksQuery() else null }.toList()
-            }.orEmpty()
+        val searchQuery =
+            joined
+                .select(
+                    Links.id,
+                    Links.folderId,
+                    folderName,
+                    folderEmoji,
+                    Links.url,
+                    Links.title,
+                    Links.tags,
+                    Links.createdAt,
+                    score,
+                    titleScore,
+                    urlScore,
+                    tagsScore,
+                    summaryScore,
+                    memoScore,
+                ).where { Links.ownerId eq ownerId }
+                .apply {
+                    folderId?.let { requestedFolderId ->
+                        andWhere { Links.folderId eq requestedFolderId }
+                    }
+                    loweredQuery?.let { keyword ->
+                        andWhere { lowerText(Links.searchText) like "%$keyword%" }
+                    }
+                    cursor?.value?.let { cursorValue ->
+                        andWhere {
+                            cursorFilter(
+                                order = order,
+                                cursorValue = cursorValue,
+                                score = scoreBase,
+                                titleScore = titleScoreBase,
+                                urlScore = urlScoreBase,
+                                tagsScore = tagsScoreBase,
+                                summaryScore = summaryScoreBase,
+                                memoScore = memoScoreBase,
+                            )
+                        }
+                    }
+                }.orderBy(*orderBy(order, scoreBase, titleScoreBase, urlScoreBase, tagsScoreBase, summaryScoreBase, memoScoreBase))
+                .limit(size + 1)
+
+        return searchQuery.map {
+            it.toSearchLinksQuery(
+                folderName = folderName,
+                folderEmoji = folderEmoji,
+                score = score,
+                titleScore = titleScore,
+                urlScore = urlScore,
+                tagsScore = tagsScore,
+                summaryScore = summaryScore,
+                memoScore = memoScore,
+            )
+        }
     }
 
     override suspend fun update(link: Link): Link =
@@ -150,130 +185,229 @@ class DbLinkRepository : LinkRepository {
         Links.deleteWhere { id eq linkId }
     }
 
-    private fun scoreSql(keywordProvided: Boolean): ScoreSql =
-        if (!keywordProvided) {
-            ScoreSql(
-                title = "0.0",
-                url = "0.0",
-                tags = "0.0",
-                summary = "0.0",
-                memo = "0.0",
-            )
-        } else {
-            ScoreSql(
-                title = "public.bigm_similarity(CAST(coalesce(l.title, '') AS text), CAST(? AS text))",
-                url = "public.bigm_similarity(CAST(coalesce(l.url, '') AS text), CAST(? AS text))",
-                tags = "public.bigm_similarity(CAST(array_to_string(coalesce(l.tags, '{}'), ' ') AS text), CAST(? AS text))",
-                summary = "public.bigm_similarity(CAST(coalesce(l.summary, '') AS text), CAST(? AS text))",
-                memo = "public.bigm_similarity(CAST(coalesce(l.memo, '') AS text), CAST(? AS text))",
-            )
-        }
+    private fun scoreExpression(
+        keyword: String?,
+        create: (String) -> ExpressionWithColumnType<Double>,
+    ): ExpressionWithColumnType<Double> = keyword?.let(create) ?: doubleLiteral(0.0)
 
-    private fun cursorFilterSql(
+    private fun cursorFilter(
         order: LinkSearchOrder,
-        cursorValue: com.qlink.link.dto.LinkSearchCursorValue?,
-        args: MutableList<Pair<IColumnType<*>, Any?>>,
-    ): String =
+        cursorValue: LinkSearchCursorValue,
+        score: ExpressionWithColumnType<Double>,
+        titleScore: ExpressionWithColumnType<Double>,
+        urlScore: ExpressionWithColumnType<Double>,
+        tagsScore: ExpressionWithColumnType<Double>,
+        summaryScore: ExpressionWithColumnType<Double>,
+        memoScore: ExpressionWithColumnType<Double>,
+    ): Op<Boolean> =
         when (order) {
             LinkSearchOrder.LATEST -> {
-                cursorValue?.id?.let {
-                    args += LongColumnType() to it
-                    "id < ?"
-                } ?: "1 = 1"
+                Links.id less longLiteral(cursorValue.id ?: Long.MIN_VALUE)
             }
 
             LinkSearchOrder.EARLIEST -> {
-                cursorValue?.id?.let {
-                    args += LongColumnType() to it
-                    "id > ?"
-                } ?: "1 = 1"
+                Links.id greater longLiteral(cursorValue.id ?: Long.MAX_VALUE)
             }
 
             LinkSearchOrder.LAXICO -> {
-                cursorValue?.title?.let {
-                    args += TextColumnType() to it
-                    args += TextColumnType() to it
-                    args += LongColumnType() to (cursorValue.id ?: Long.MIN_VALUE)
-                    "(title > ? OR (title = ? AND id > ?))"
-                } ?: "1 = 1"
-            }
-
-            LinkSearchOrder.SIMILAR -> {
-                cursorValue?.score?.let {
-                    similarCursorFilter(
-                        values =
-                            listOf(
-                                "score" to (DoubleColumnType() to it),
-                                "title_score" to (DoubleColumnType() to (cursorValue.titleScore ?: Double.MAX_VALUE)),
-                                "url_score" to (DoubleColumnType() to (cursorValue.urlScore ?: Double.MAX_VALUE)),
-                                "tags_score" to (DoubleColumnType() to (cursorValue.tagsScore ?: Double.MAX_VALUE)),
-                                "summary_score" to (DoubleColumnType() to (cursorValue.summaryScore ?: Double.MAX_VALUE)),
-                                "memo_score" to (DoubleColumnType() to (cursorValue.memoScore ?: Double.MAX_VALUE)),
-                                "id" to (LongColumnType() to (cursorValue.id ?: Long.MAX_VALUE)),
-                            ),
-                        args = args,
+                (Links.title greater (cursorValue.title ?: "")) or
+                    (
+                        (Links.title eq (cursorValue.title ?: "")) and
+                            (Links.id greater longLiteral(cursorValue.id ?: Long.MIN_VALUE))
                     )
-                } ?: "1 = 1"
-            }
-        }
-
-    private fun orderBySql(order: LinkSearchOrder): String =
-        when (order) {
-            LinkSearchOrder.LATEST -> {
-                "id DESC"
-            }
-
-            LinkSearchOrder.EARLIEST -> {
-                "id ASC"
-            }
-
-            LinkSearchOrder.LAXICO -> {
-                "title ASC, id ASC"
             }
 
             LinkSearchOrder.SIMILAR -> {
-                "score DESC, title_score DESC, url_score DESC, tags_score DESC, summary_score DESC, memo_score DESC, id DESC"
+                similarCursorFilter(
+                    cursorValue = cursorValue,
+                    score = score,
+                    titleScore = titleScore,
+                    urlScore = urlScore,
+                    tagsScore = tagsScore,
+                    summaryScore = summaryScore,
+                    memoScore = memoScore,
+                )
             }
         }
-
-    private fun ResultSet.toSearchLinksQuery(): SearchLinksQuery =
-        SearchLinksQuery(
-            id = getLong("id"),
-            folderId = getLong("folder_id").takeIf { !wasNull() },
-            folderName = getString("folder_name"),
-            folderEmoji = getString("folder_emoji"),
-            url = getString("url"),
-            title = getString("title"),
-            tags = ((getArray("tags")?.array as? Array<*>)?.map { it.toString() }).orEmpty(),
-            createdAt = getTimestamp("created_at").toInstant().toKotlinInstant(),
-            score = getDouble("score"),
-            titleScore = getDouble("title_score"),
-            urlScore = getDouble("url_score"),
-            tagsScore = getDouble("tags_score"),
-            summaryScore = getDouble("summary_score"),
-            memoScore = getDouble("memo_score"),
-        )
-
-    private data class ScoreSql(
-        val title: String,
-        val url: String,
-        val tags: String,
-        val summary: String,
-        val memo: String,
-    )
 
     private fun similarCursorFilter(
-        values: List<Pair<String, Pair<IColumnType<*>, Any?>>>,
-        args: MutableList<Pair<IColumnType<*>, Any?>>,
-    ): String =
-        values.indices.joinToString(" OR ", "(", ")") { index ->
-            buildList {
-                values.take(index).forEach { (column, parameter) ->
-                    add("$column = ?")
-                    args += parameter
-                }
-                add("${values[index].first} < ?")
-                args += values[index].second
-            }.joinToString(" AND ", "(", ")")
+        cursorValue: LinkSearchCursorValue,
+        score: ExpressionWithColumnType<Double>,
+        titleScore: ExpressionWithColumnType<Double>,
+        urlScore: ExpressionWithColumnType<Double>,
+        tagsScore: ExpressionWithColumnType<Double>,
+        summaryScore: ExpressionWithColumnType<Double>,
+        memoScore: ExpressionWithColumnType<Double>,
+    ): Op<Boolean> {
+        val scoreLiteral = doubleLiteral(cursorValue.score ?: Double.MIN_VALUE)
+
+        return (score less scoreLiteral) or
+            (
+                (score eq scoreLiteral) and
+                    titleScoreCursorFilter(
+                        cursorValue = cursorValue,
+                        titleScore = titleScore,
+                        urlScore = urlScore,
+                        tagsScore = tagsScore,
+                        summaryScore = summaryScore,
+                        memoScore = memoScore,
+                    )
+            )
+    }
+
+    private fun titleScoreCursorFilter(
+        cursorValue: LinkSearchCursorValue,
+        titleScore: ExpressionWithColumnType<Double>,
+        urlScore: ExpressionWithColumnType<Double>,
+        tagsScore: ExpressionWithColumnType<Double>,
+        summaryScore: ExpressionWithColumnType<Double>,
+        memoScore: ExpressionWithColumnType<Double>,
+    ): Op<Boolean> {
+        val titleScoreLiteral = doubleLiteral(cursorValue.titleScore ?: Double.MAX_VALUE)
+
+        return (titleScore less titleScoreLiteral) or
+            (
+                (titleScore eq titleScoreLiteral) and
+                    urlScoreCursorFilter(
+                        cursorValue = cursorValue,
+                        urlScore = urlScore,
+                        tagsScore = tagsScore,
+                        summaryScore = summaryScore,
+                        memoScore = memoScore,
+                    )
+            )
+    }
+
+    private fun urlScoreCursorFilter(
+        cursorValue: LinkSearchCursorValue,
+        urlScore: ExpressionWithColumnType<Double>,
+        tagsScore: ExpressionWithColumnType<Double>,
+        summaryScore: ExpressionWithColumnType<Double>,
+        memoScore: ExpressionWithColumnType<Double>,
+    ): Op<Boolean> {
+        val urlScoreLiteral = doubleLiteral(cursorValue.urlScore ?: Double.MAX_VALUE)
+
+        return (urlScore less urlScoreLiteral) or
+            (
+                (urlScore eq urlScoreLiteral) and
+                    tagsScoreCursorFilter(
+                        cursorValue = cursorValue,
+                        tagsScore = tagsScore,
+                        summaryScore = summaryScore,
+                        memoScore = memoScore,
+                    )
+            )
+    }
+
+    private fun tagsScoreCursorFilter(
+        cursorValue: LinkSearchCursorValue,
+        tagsScore: ExpressionWithColumnType<Double>,
+        summaryScore: ExpressionWithColumnType<Double>,
+        memoScore: ExpressionWithColumnType<Double>,
+    ): Op<Boolean> {
+        val tagsScoreLiteral = doubleLiteral(cursorValue.tagsScore ?: Double.MAX_VALUE)
+
+        return (tagsScore less tagsScoreLiteral) or
+            (
+                (tagsScore eq tagsScoreLiteral) and
+                    summaryScoreCursorFilter(
+                        cursorValue = cursorValue,
+                        summaryScore = summaryScore,
+                        memoScore = memoScore,
+                    )
+            )
+    }
+
+    private fun summaryScoreCursorFilter(
+        cursorValue: LinkSearchCursorValue,
+        summaryScore: ExpressionWithColumnType<Double>,
+        memoScore: ExpressionWithColumnType<Double>,
+    ): Op<Boolean> {
+        val summaryScoreLiteral = doubleLiteral(cursorValue.summaryScore ?: Double.MAX_VALUE)
+
+        return (summaryScore less summaryScoreLiteral) or
+            (
+                (summaryScore eq summaryScoreLiteral) and
+                    memoScoreCursorFilter(
+                        cursorValue = cursorValue,
+                        memoScore = memoScore,
+                    )
+            )
+    }
+
+    private fun memoScoreCursorFilter(
+        cursorValue: LinkSearchCursorValue,
+        memoScore: ExpressionWithColumnType<Double>,
+    ): Op<Boolean> {
+        val memoScoreLiteral = doubleLiteral(cursorValue.memoScore ?: Double.MAX_VALUE)
+        val idLiteral = longLiteral(cursorValue.id ?: Long.MAX_VALUE)
+
+        return (memoScore less memoScoreLiteral) or
+            (
+                (memoScore eq memoScoreLiteral) and
+                    (Links.id less idLiteral)
+            )
+    }
+
+    private fun orderBy(
+        order: LinkSearchOrder,
+        score: ExpressionWithColumnType<Double>,
+        titleScore: ExpressionWithColumnType<Double>,
+        urlScore: ExpressionWithColumnType<Double>,
+        tagsScore: ExpressionWithColumnType<Double>,
+        summaryScore: ExpressionWithColumnType<Double>,
+        memoScore: ExpressionWithColumnType<Double>,
+    ): Array<Pair<Expression<*>, SortOrder>> =
+        when (order) {
+            LinkSearchOrder.LATEST -> {
+                arrayOf(Links.id to SortOrder.DESC)
+            }
+
+            LinkSearchOrder.EARLIEST -> {
+                arrayOf(Links.id to SortOrder.ASC)
+            }
+
+            LinkSearchOrder.LAXICO -> {
+                arrayOf(Links.title to SortOrder.ASC, Links.id to SortOrder.ASC)
+            }
+
+            LinkSearchOrder.SIMILAR -> {
+                arrayOf(
+                    score to SortOrder.DESC,
+                    titleScore to SortOrder.DESC,
+                    urlScore to SortOrder.DESC,
+                    tagsScore to SortOrder.DESC,
+                    summaryScore to SortOrder.DESC,
+                    memoScore to SortOrder.DESC,
+                    Links.id to SortOrder.DESC,
+                )
+            }
         }
+
+    private fun ResultRow.toSearchLinksQuery(
+        folderName: Expression<String>,
+        folderEmoji: Expression<String?>,
+        score: Expression<Double>,
+        titleScore: Expression<Double>,
+        urlScore: Expression<Double>,
+        tagsScore: Expression<Double>,
+        summaryScore: Expression<Double>,
+        memoScore: Expression<Double>,
+    ): SearchLinksQuery =
+        SearchLinksQuery(
+            id = this[Links.id],
+            folderId = this[Links.folderId],
+            folderName = this[folderName],
+            folderEmoji = this[folderEmoji],
+            url = this[Links.url],
+            title = this[Links.title],
+            tags = this[Links.tags],
+            createdAt = this[Links.createdAt].toKotlinInstant(),
+            score = this[score],
+            titleScore = this[titleScore],
+            urlScore = this[urlScore],
+            tagsScore = this[tagsScore],
+            summaryScore = this[summaryScore],
+            memoScore = this[memoScore],
+        )
 }

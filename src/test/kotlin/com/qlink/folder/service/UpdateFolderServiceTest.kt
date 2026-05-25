@@ -144,6 +144,30 @@ class UpdateFolderServiceTest :
                     }
                 }
             }
+
+            When("같은 이름으로 자기 자신을 수정하면") {
+                val update =
+                    suspend {
+                        val request =
+                            UpdateFolderRequest(
+                                name = folder.name,
+                                emoji = RandomFixture.randomEmoji(),
+                            )
+                        val response = updateFolderService.updateFolder(user.id!!, folder.id!!, request)
+
+                        response to request
+                    }
+
+                Then("중복으로 보지 않고 성공한다") {
+                    val (response, request) = update()
+                    val actual = folderRepository.findById(folder.id!!)
+
+                    response.id shouldBe folder.id
+                    actual shouldNotBe null
+                    actual!!.name shouldBe folder.name
+                    actual.emoji shouldBe request.emoji
+                }
+            }
         }
     })
 

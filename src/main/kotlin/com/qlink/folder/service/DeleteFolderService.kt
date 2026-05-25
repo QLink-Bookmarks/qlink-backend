@@ -1,9 +1,9 @@
 package com.qlink.folder.service
 
-import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireFalse
 import com.qlink.common.transaction.TransactionRunner
+import com.qlink.folder.domain.FolderDeleteOption
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.repository.LinkRepository
 import com.qlink.user.repository.UserRepository
@@ -32,20 +32,5 @@ class DeleteFolderService(
 
             folderRepository.deleteById(folderId)
         }
-    }
-}
-
-enum class FolderDeleteOption {
-    CASCADE,
-    NULL,
-    ;
-
-    companion object {
-        fun from(value: String?): FolderDeleteOption =
-            when (value?.lowercase() ?: "null") {
-                "cascade" -> CASCADE
-                "null" -> NULL
-                else -> throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
-            }
     }
 }

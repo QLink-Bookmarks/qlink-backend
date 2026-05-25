@@ -46,7 +46,13 @@ class DeleteFolderServiceTest :
                 lateinit var link: Link
 
                 beforeTest {
-                    link = linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = user.id!!, folderId = folder.id))
+                    link =
+                        linkRepository.insert(
+                            LinkFixture.createRandomLinkOf(
+                                ownerId = user.id!!,
+                                folderId = folder.id,
+                            ),
+                        )
                 }
 
                 val delete =
@@ -71,7 +77,13 @@ class DeleteFolderServiceTest :
                 lateinit var todo: Todo
 
                 beforeTest {
-                    link = linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = user.id!!, folderId = folder.id))
+                    link =
+                        linkRepository.insert(
+                            LinkFixture.createRandomLinkOf(
+                                ownerId = user.id!!,
+                                folderId = folder.id,
+                            ),
+                        )
                     todo = todoRepository.insert(TodoFixture.createRandomTodoOf(linkId = link.id!!, ownerId = user.id!!))
                 }
 
@@ -80,7 +92,7 @@ class DeleteFolderServiceTest :
                         deleteFolderService.deleteFolder(user.id!!, folder.id!!, "CaScAdE")
                     }
 
-                Then("링크와 할 일이 함께 삭제된다") {
+                Then("링크와 할 일을 함께 삭제한다") {
                     val linkId = link.id!!
                     val todoId = todo.id!!
 
@@ -91,6 +103,36 @@ class DeleteFolderServiceTest :
                     folderRepository.findById(folder.id!!) shouldBe null
                     linkRepository.findById(linkId) shouldBe null
                     todoRepository.findById(todoId) shouldBe null
+                }
+            }
+
+            When("onDelete가 대소문자를 섞은 null이면") {
+                lateinit var link: Link
+
+                beforeTest {
+                    link =
+                        linkRepository.insert(
+                            LinkFixture.createRandomLinkOf(
+                                ownerId = user.id!!,
+                                folderId = folder.id,
+                            ),
+                        )
+                }
+
+                val delete =
+                    suspend {
+                        deleteFolderService.deleteFolder(user.id!!, folder.id!!, "NuLl")
+                    }
+
+                Then("기본값 null과 동일하게 처리한다") {
+                    val linkId = link.id!!
+
+                    shouldNotThrow<BusinessException> {
+                        delete()
+                    }
+
+                    folderRepository.findById(folder.id!!) shouldBe null
+                    linkRepository.findById(linkId)?.folderId shouldBe null
                 }
             }
 

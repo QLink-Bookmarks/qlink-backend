@@ -3,10 +3,10 @@ package com.qlink.link.service
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireFalse
-import com.qlink.common.scroll.Base64CursorCodec
 import com.qlink.common.scroll.DEFAULT_SCROLL_SIZE
 import com.qlink.common.scroll.ScrollRequest
 import com.qlink.common.scroll.ScrollResponse
+import com.qlink.common.search.SearchCursorCodec
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.link.dto.DEFAULT_LINK_SEARCH_ORDER
 import com.qlink.link.dto.GetLinksContentResponse
@@ -38,7 +38,7 @@ class GetLinksService(
 
             val normalizedOrder =
                 LinkSearchOrder.from(order.ifBlank { DEFAULT_LINK_SEARCH_ORDER }) ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
-            val cursor = scrollRequest.cursor?.let { decodeCursor(it, normalizedOrder) }
+            val cursor = scrollRequest.cursor?.let { SearchCursorCodec.decode(it, normalizedOrder, ::validateCursorValue) }
             val size = scrollRequest.size.takeIf { it > 0 } ?: DEFAULT_SCROLL_SIZE
             val queries =
                 linkRepository.search(
@@ -80,47 +80,45 @@ class GetLinksService(
             )
         }
 
-    private fun decodeCursor(
-        encodedCursor: String,
+    private fun validateCursorValue(
+        value: LinkSearchCursorValue,
         expectedOrder: LinkSearchOrder,
-    ): LinkSearchCursor {
-        val decoded = Base64CursorCodec.decode<LinkSearchCursor>(encodedCursor)
-
-        if (decoded.order != expectedOrder) {
-            throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
-        }
-
+    ) {
         when (expectedOrder) {
-            LinkSearchOrder.LATEST, LinkSearchOrder.EARLIEST -> decoded.value.id ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
-            LinkSearchOrder.LAXICO -> decoded.value.title ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
-            LinkSearchOrder.SIMILAR -> decoded.value.score ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
-        }
+            LinkSearchOrder.LATEST, LinkSearchOrder.EARLIEST -> {
+                value.id ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+            }
 
-        return decoded
+            LinkSearchOrder.LAXICO -> {
+                value.title ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+                value.id ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+            }
+
+            LinkSearchOrder.SIMILAR -> {
+                value.score ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+                value.id ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+            }
+        }
     }
 
     private fun encodeCursor(
         query: SearchLinksQuery,
         order: LinkSearchOrder,
-    ): String {
-        val cursor =
-            LinkSearchCursor(
-                order = order,
-                value =
-                    LinkSearchCursorValue(
-                        id = query.id,
-                        title = query.title,
-                        score = query.score,
-                        titleScore = query.titleScore,
-                        urlScore = query.urlScore,
-                        tagsScore = query.tagsScore,
-                        summaryScore = query.summaryScore,
-                        memoScore = query.memoScore,
-                    ),
-            )
-
-        return Base64CursorCodec.encode(cursor)
-    }
+    ): String =
+        SearchCursorCodec.encode(
+            order = order,
+            value =
+                LinkSearchCursorValue(
+                    id = query.id,
+                    title = query.title,
+                    score = query.score,
+                    titleScore = query.titleScore,
+                    urlScore = query.urlScore,
+                    tagsScore = query.tagsScore,
+                    summaryScore = query.summaryScore,
+                    memoScore = query.memoScore,
+                ),
+        )
 
     private fun LinkSearchTodoQuery.toResponse(): LinkSearchTodoResponse =
         LinkSearchTodoResponse(

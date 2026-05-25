@@ -2,14 +2,17 @@ package com.qlink.folder.route
 
 import com.qlink.auth.domain.JwtPrincipal
 import com.qlink.common.response.respondSuccess
+import com.qlink.common.scroll.ScrollRequest
 import com.qlink.folder.dto.CreateFolderRequest
 import com.qlink.folder.dto.UpdateFolderRequest
 import com.qlink.folder.service.CreateFolderService
 import com.qlink.folder.service.DeleteFolderService
+import com.qlink.folder.service.GetFoldersService
 import com.qlink.folder.service.UpdateFolderService
 import io.github.smiley4.ktoropenapi.resources.delete
-import io.github.smiley4.ktoropenapi.resources.put
+import io.github.smiley4.ktoropenapi.resources.get
 import io.github.smiley4.ktoropenapi.resources.post
+import io.github.smiley4.ktoropenapi.resources.put
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.principal
@@ -20,9 +23,27 @@ import org.koin.ktor.ext.inject
 fun Route.folderRoutes() {
     val createFolderService by inject<CreateFolderService>()
     val deleteFolderService by inject<DeleteFolderService>()
+    val getFoldersService by inject<GetFoldersService>()
     val updateFolderService by inject<UpdateFolderService>()
 
     authenticate {
+        get<FolderResources>(getFoldersDocs()) { resource ->
+            val principal = call.principal<JwtPrincipal>()!!
+            val response =
+                getFoldersService.getFolders(
+                    loginId = principal.userId,
+                    query = resource.query,
+                    order = resource.order,
+                    scrollRequest =
+                        ScrollRequest(
+                            cursor = resource.cursor,
+                            size = resource.size,
+                        ),
+                )
+
+            call.respondSuccess(HttpStatusCode.OK, response)
+        }
+
         post<FolderResources>(createFolderDocs()) {
             val principal = call.principal<JwtPrincipal>()!!
             val request = call.receive<CreateFolderRequest>()
