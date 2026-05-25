@@ -32,9 +32,9 @@ target_group_name         = "qlink-tg-dev"
 target_group_tag_name     = "qlink-tg-dev"
 listener_tag_name         = "qlink-alb-listener"
 https_listener_tag_name   = "qlink-alb-https-listener"
-acm_certificate_arn       = "arn:aws:acm:ap-northeast-2:650177546654:certificate/c22d087a-c284-4574-a89c-759cf7ddc367"
+acm_certificate_arn       = "arn:aws:acm:ap-northeast-2:650177546654:certificate/0cbfe890-95f9-4e25-af10-be412bf660e4"
 https_listener_ssl_policy = "ELBSecurityPolicy-TLS13-1-2-Res-PQ-2025-09"
-route53_hosted_zone_id    = "Z09209125CJ92OR19RX7"
+route53_hosted_zone_id    = "Z0975649ZPWG98ONPYZP"
 
 ecr_image_tag_mutability = "IMMUTABLE"
 ecr_image_scan_on_push   = false

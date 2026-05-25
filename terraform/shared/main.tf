@@ -1,5 +1,5 @@
 data "aws_acm_certificate" "qlink" {
-  domain      = var.hosted_zone_name
+  domain      = var.acm_certificate_domain
   statuses    = ["ISSUED"]
   types       = ["AMAZON_ISSUED"]
   most_recent = true

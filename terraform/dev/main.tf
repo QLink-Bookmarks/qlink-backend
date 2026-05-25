@@ -75,13 +75,7 @@ module "route53_dev" {
   hosted_zone_id = var.route53_hosted_zone_id
   alias_a_records = {
     dev_api = {
-      name                   = "dev.api.mo-doo.com"
-      dns_name               = "dualstack.${module.alb.alb_dns_name}"
-      hosted_zone_id         = module.alb.alb_zone_id
-      evaluate_target_health = true
-    }
-    www_dev_api = {
-      name                   = "www.dev.api.mo-doo.com"
+      name                   = "dev.api.qlinkapps.com"
       dns_name               = "dualstack.${module.alb.alb_dns_name}"
       hosted_zone_id         = module.alb.alb_zone_id
       evaluate_target_health = true
