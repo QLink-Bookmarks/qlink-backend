@@ -67,7 +67,7 @@ ecs_task_container_name         = "qlink-app-dev"
 ecs_task_container_port         = 8080
 ecs_task_port_name              = "ktor-webapp-port"
 ecs_task_app_protocol           = "http"
-ecs_task_healthcheck_command    = "wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1"
+ecs_task_healthcheck_command    = "wget -qO- http://localhost:8080/health >/dev/null || exit 1"
 ecs_task_definition_tag_name    = "qlink-ecs-task-dev"
 ecs_service_name                = "qlink-ecs-service-dev"
 ecs_service_desired_count       = 1
