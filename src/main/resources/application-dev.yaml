@@ -7,4 +7,4 @@ http:
     allowNonSimpleContentTypes: true
     anyHost: false
     hosts:
-      - localhost:8081
+      - dev.qlinkapps.com
