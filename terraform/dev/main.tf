@@ -32,13 +32,15 @@ module "security" {
 
   vpc_id = module.network.vpc_id
 
-  alb_sg_name              = var.alb_sg_name
-  alb_sg_description       = var.alb_sg_description
-  app_sg_name              = var.app_sg_name
-  app_sg_description       = var.app_sg_description
-  rds_sg_name              = var.rds_sg_name
-  rds_sg_description       = var.rds_sg_description
-  rds_public_ingress_cidrs = var.rds_public_ingress_cidrs
+  alb_sg_name               = var.alb_sg_name
+  alb_sg_description        = var.alb_sg_description
+  app_sg_name               = var.app_sg_name
+  app_sg_description        = var.app_sg_description
+  rds_app_sg_name           = var.rds_app_sg_name
+  rds_app_sg_description    = var.rds_app_sg_description
+  rds_public_sg_name        = var.rds_public_sg_name
+  rds_public_sg_description = var.rds_public_sg_description
+  rds_public_ingress_cidrs  = var.rds_public_ingress_cidrs
 }
 
 module "ecr" {
@@ -147,7 +149,10 @@ module "rds" {
 
   db_password = var.db_password
 
-  rds_security_group_id = module.security.rds_security_group_id
+  rds_security_group_ids = [
+    module.security.rds_app_security_group_id,
+    module.security.rds_public_security_group_id
+  ]
   subnet_ids = [
     module.network.public_subnet_a_id,
     module.network.public_subnet_c_id

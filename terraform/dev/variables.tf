@@ -82,11 +82,19 @@ variable "app_sg_description" {
   type = string
 }
 
-variable "rds_sg_name" {
+variable "rds_app_sg_name" {
   type = string
 }
 
-variable "rds_sg_description" {
+variable "rds_app_sg_description" {
+  type = string
+}
+
+variable "rds_public_sg_name" {
+  type = string
+}
+
+variable "rds_public_sg_description" {
   type = string
 }
 

@@ -26,7 +26,7 @@ resource "aws_db_instance" "qlink_rds_pg18" {
   username = var.username
   password = var.db_password
 
-  vpc_security_group_ids = [var.rds_security_group_id]
+  vpc_security_group_ids = var.rds_security_group_ids
   db_subnet_group_name   = aws_db_subnet_group.qlink_db_subnet_group.name
   copy_tags_to_snapshot  = true
 

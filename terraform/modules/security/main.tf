@@ -18,13 +18,23 @@ resource "aws_security_group" "qlink_app_group" {
   }
 }
 
-resource "aws_security_group" "qlink_rds_group" {
-  name        = var.rds_sg_name
-  description = var.rds_sg_description
+resource "aws_security_group" "qlink_rds_app_group" {
+  name        = var.rds_app_sg_name
+  description = var.rds_app_sg_description
   vpc_id      = var.vpc_id
 
   tags = {
-    Name = var.rds_sg_name
+    Name = var.rds_app_sg_name
+  }
+}
+
+resource "aws_security_group" "qlink_rds_public_group" {
+  name        = var.rds_public_sg_name
+  description = var.rds_public_sg_description
+  vpc_id      = var.vpc_id
+
+  tags = {
+    Name = var.rds_public_sg_name
   }
 }
 
@@ -84,7 +94,7 @@ resource "aws_vpc_security_group_egress_rule" "ecs_https_out" {
 
 resource "aws_vpc_security_group_egress_rule" "ecs_to_rds" {
   security_group_id            = aws_security_group.qlink_app_group.id
-  referenced_security_group_id = aws_security_group.qlink_rds_group.id
+  referenced_security_group_id = aws_security_group.qlink_rds_app_group.id
   from_port                    = 5432
   to_port                      = 5432
   ip_protocol                  = "tcp"
@@ -101,7 +111,7 @@ resource "aws_vpc_security_group_egress_rule" "ecs_to_alb_response" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "rds_from_ecs" {
-  security_group_id            = aws_security_group.qlink_rds_group.id
+  security_group_id            = aws_security_group.qlink_rds_app_group.id
   referenced_security_group_id = aws_security_group.qlink_app_group.id
   from_port                    = 5432
   to_port                      = 5432
@@ -112,7 +122,7 @@ resource "aws_vpc_security_group_ingress_rule" "rds_from_ecs" {
 resource "aws_vpc_security_group_ingress_rule" "rds_from_public" {
   for_each = toset(var.rds_public_ingress_cidrs)
 
-  security_group_id = aws_security_group.qlink_rds_group.id
+  security_group_id = aws_security_group.qlink_rds_public_group.id
   cidr_ipv4         = each.value
   from_port         = 5432
   to_port           = 5432
@@ -121,7 +131,7 @@ resource "aws_vpc_security_group_ingress_rule" "rds_from_public" {
 }
 
 resource "aws_vpc_security_group_egress_rule" "rds_to_ecs_response" {
-  security_group_id            = aws_security_group.qlink_rds_group.id
+  security_group_id            = aws_security_group.qlink_rds_app_group.id
   referenced_security_group_id = aws_security_group.qlink_app_group.id
   from_port                    = 1024
   to_port                      = 65535
