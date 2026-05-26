@@ -1,4 +1,4 @@
-resource "aws_db_subnet_group" "qlink_db_subnet_group" {
+resource "aws_db_subnet_group" "qlink_db_subnet_group_public" {
   name       = var.db_subnet_group_name
   subnet_ids = var.subnet_ids
 
@@ -11,7 +11,7 @@ resource "aws_db_subnet_group" "qlink_db_subnet_group" {
   }
 }
 
-resource "aws_db_instance" "qlink_rds_pg18" {
+resource "aws_db_instance" "qlink_rds_pg18_public" {
   identifier     = var.identifier
   engine         = var.engine
   engine_version = var.engine_version
@@ -26,8 +26,8 @@ resource "aws_db_instance" "qlink_rds_pg18" {
   username = var.username
   password = var.db_password
 
-  vpc_security_group_ids = [var.rds_security_group_id]
-  db_subnet_group_name   = aws_db_subnet_group.qlink_db_subnet_group.name
+  vpc_security_group_ids = var.rds_security_group_ids
+  db_subnet_group_name   = aws_db_subnet_group.qlink_db_subnet_group_public.name
   copy_tags_to_snapshot  = true
 
   availability_zone   = var.availability_zone
@@ -43,6 +43,7 @@ resource "aws_db_instance" "qlink_rds_pg18" {
   }
 
   lifecycle {
-    ignore_changes = [password]
+    create_before_destroy = true
+    ignore_changes        = [password]
   }
 }

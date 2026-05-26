@@ -3,8 +3,8 @@ variable "db_password" {
   sensitive = true
 }
 
-variable "rds_security_group_id" {
-  type = string
+variable "rds_security_group_ids" {
+  type = list(string)
 }
 
 variable "subnet_ids" {
