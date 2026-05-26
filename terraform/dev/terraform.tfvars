@@ -74,8 +74,8 @@ ecs_service_name                = "qlink-ecs-service-dev"
 ecs_service_desired_count       = 1
 ecs_service_tag_name            = "qlink-ecs-service-dev"
 
-db_subnet_group_name                = "qlink-db-subnet-group"
-db_subnet_group_tag_name            = "qlink DB subnet group"
+db_subnet_group_name                = "qlink-db-subnet-group-public"
+db_subnet_group_tag_name            = "qlink DB subnet group public"
 rds_identifier                      = "qlink-rds-dev-pg18"
 rds_engine                          = "postgres"
 rds_engine_version                  = "18"
