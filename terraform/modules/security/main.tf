@@ -109,6 +109,17 @@ resource "aws_vpc_security_group_ingress_rule" "rds_from_ecs" {
   description                  = "From ECS to RDS"
 }
 
+resource "aws_vpc_security_group_ingress_rule" "rds_from_public" {
+  for_each = toset(var.rds_public_ingress_cidrs)
+
+  security_group_id = aws_security_group.qlink_rds_group.id
+  cidr_ipv4         = each.value
+  from_port         = 5432
+  to_port           = 5432
+  ip_protocol       = "tcp"
+  description       = "From Public Internet to RDS"
+}
+
 resource "aws_vpc_security_group_egress_rule" "rds_to_ecs_response" {
   security_group_id            = aws_security_group.qlink_rds_group.id
   referenced_security_group_id = aws_security_group.qlink_app_group.id
