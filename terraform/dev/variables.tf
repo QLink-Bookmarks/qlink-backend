@@ -90,6 +90,14 @@ variable "rds_app_sg_description" {
   type = string
 }
 
+variable "rds_legacy_sg_name" {
+  type = string
+}
+
+variable "rds_legacy_sg_description" {
+  type = string
+}
+
 variable "rds_public_sg_name" {
   type = string
 }

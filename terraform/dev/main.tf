@@ -38,6 +38,8 @@ module "security" {
   app_sg_description        = var.app_sg_description
   rds_app_sg_name           = var.rds_app_sg_name
   rds_app_sg_description    = var.rds_app_sg_description
+  rds_legacy_sg_name        = var.rds_legacy_sg_name
+  rds_legacy_sg_description = var.rds_legacy_sg_description
   rds_public_sg_name        = var.rds_public_sg_name
   rds_public_sg_description = var.rds_public_sg_description
   rds_public_ingress_cidrs  = var.rds_public_ingress_cidrs
