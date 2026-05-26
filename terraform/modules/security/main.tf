@@ -28,6 +28,16 @@ resource "aws_security_group" "qlink_rds_app_group" {
   }
 }
 
+resource "aws_security_group" "qlink_rds_group" {
+  name        = var.rds_legacy_sg_name
+  description = var.rds_legacy_sg_description
+  vpc_id      = var.vpc_id
+
+  tags = {
+    Name = var.rds_legacy_sg_name
+  }
+}
+
 resource "aws_security_group" "qlink_rds_public_group" {
   name        = var.rds_public_sg_name
   description = var.rds_public_sg_description
