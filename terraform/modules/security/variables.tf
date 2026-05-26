@@ -25,3 +25,7 @@ variable "rds_sg_name" {
 variable "rds_sg_description" {
   type = string
 }
+
+variable "rds_public_ingress_cidrs" {
+  type = list(string)
+}

@@ -7,7 +7,7 @@ variable "rds_security_group_id" {
   type = string
 }
 
-variable "private_subnet_ids" {
+variable "subnet_ids" {
   type = list(string)
 }
 
