@@ -5,6 +5,10 @@ resource "aws_db_subnet_group" "qlink_db_subnet_group" {
   tags = {
     Name = var.db_subnet_group_tag_name
   }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_db_instance" "qlink_rds_pg18" {
