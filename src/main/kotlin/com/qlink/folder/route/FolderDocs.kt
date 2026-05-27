@@ -18,6 +18,12 @@ import io.ktor.http.HttpStatusCode
 internal fun getFoldersDocs(): RouteConfig.() -> Unit =
     {
         summary = "폴더 목록 조회 API"
+        request {
+            queryParameter<String?>("query") { description = "검색어" }
+            queryParameter<String>("order") { description = "정렬 기준 (latest / earliest / laxico / similar), 기본값: latest" }
+            queryParameter<String?>("cursor") { description = "페이지네이션 커서" }
+            queryParameter<Int>("size") { description = "페이지 크기, 기본값: 15" }
+        }
         response {
             code(HttpStatusCode.OK) {
                 description = "폴더 목록 조회 성공"
@@ -78,7 +84,10 @@ internal fun createFolderDocs(): RouteConfig.() -> Unit =
 internal fun updateFolderDocs(): RouteConfig.() -> Unit =
     {
         summary = "폴더 수정 API"
-        request { body<UpdateFolderRequest>() }
+        request {
+            pathParameter<Long>("id") { description = "폴더 ID" }
+            body<UpdateFolderRequest>()
+        }
         response {
             code(HttpStatusCode.OK) {
                 description = "폴더 수정 성공"
@@ -124,6 +133,10 @@ internal fun deleteFolderDocs(): RouteConfig.() -> Unit =
     {
         summary = "폴더 삭제 API"
         description = "onDelete는 대소문자를 구분하지 않고 `cascade` 또는 `null`을 받을 수 있고, 생략하면 `null`로 처리돼요."
+        request {
+            pathParameter<Long>("id") { description = "폴더 ID" }
+            queryParameter<String?>("onDelete") { description = "폴더 삭제 시 링크 처리 방법 (cascade: 링크도 삭제, null: 링크의 폴더 연결 해제), 기본값: null" }
+        }
         response {
             code(HttpStatusCode.OK) {
                 description = "폴더 삭제 성공"
