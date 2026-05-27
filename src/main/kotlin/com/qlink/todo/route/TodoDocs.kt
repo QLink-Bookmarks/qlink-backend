@@ -55,7 +55,10 @@ internal fun createTodoDocs(): RouteConfig.() -> Unit =
 internal fun completeTodoDocs(): RouteConfig.() -> Unit =
     {
         summary = "할 일 완료 상태 변경 API"
-        request { body<CompleteTodoRequest>() }
+        request {
+            pathParameter<Long>("id") { description = "할 일 ID" }
+            body<CompleteTodoRequest>()
+        }
         response {
             code(HttpStatusCode.OK) {
                 description = "할 일 완료 상태 변경 성공"
@@ -83,7 +86,10 @@ internal fun completeTodoDocs(): RouteConfig.() -> Unit =
 internal fun updateTodoDocs(): RouteConfig.() -> Unit =
     {
         summary = "할 일 수정 API"
-        request { body<UpdateTodoRequest>() }
+        request {
+            pathParameter<Long>("id") { description = "할 일 ID" }
+            body<UpdateTodoRequest>()
+        }
         response {
             code(HttpStatusCode.OK) {
                 description = "할 일 수정 성공"
@@ -124,6 +130,9 @@ internal fun updateTodoDocs(): RouteConfig.() -> Unit =
 internal fun deleteTodoDocs(): RouteConfig.() -> Unit =
     {
         summary = "할 일 삭제 API"
+        request {
+            pathParameter<Long>("id") { description = "할 일 ID" }
+        }
         response {
             code(HttpStatusCode.OK) {
                 description = "할 일 삭제 성공"

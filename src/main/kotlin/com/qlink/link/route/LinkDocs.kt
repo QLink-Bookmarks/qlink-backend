@@ -64,6 +64,9 @@ internal fun createLinkDocs(): RouteConfig.() -> Unit =
 internal fun getLinkDetailDocs(): RouteConfig.() -> Unit =
     {
         summary = "링크 상세 조회 API"
+        request {
+            pathParameter<Long>("id") { description = "링크 ID" }
+        }
         response {
             code(HttpStatusCode.OK) {
                 description = "링크 상세 조회 성공"
@@ -88,6 +91,13 @@ internal fun getLinkDetailDocs(): RouteConfig.() -> Unit =
 internal fun getLinksDocs(): RouteConfig.() -> Unit =
     {
         summary = "링크 검색 API"
+        request {
+            queryParameter<String?>("query") { description = "검색어" }
+            queryParameter<Long?>("folderId") { description = "폴더 ID 필터" }
+            queryParameter<String>("order") { description = "정렬 기준 (latest / earliest / laxico / similar), 기본값: latest" }
+            queryParameter<String?>("cursor") { description = "페이지네이션 커서" }
+            queryParameter<Int>("size") { description = "페이지 크기, 기본값: 15" }
+        }
         response {
             code(HttpStatusCode.OK) {
                 description = "링크 검색 성공"
@@ -112,7 +122,10 @@ internal fun getLinksDocs(): RouteConfig.() -> Unit =
 internal fun updateLinkDocs(): RouteConfig.() -> Unit =
     {
         summary = "링크 수정 API"
-        request { body<UpdateLinkRequest>() }
+        request {
+            pathParameter<Long>("id") { description = "링크 ID" }
+            body<UpdateLinkRequest>()
+        }
         response {
             code(HttpStatusCode.OK) {
                 description = "링크 수정 성공"
@@ -157,7 +170,10 @@ internal fun updateLinkDocs(): RouteConfig.() -> Unit =
 internal fun patchLinkDocs(): RouteConfig.() -> Unit =
     {
         summary = "링크 부분 수정 API"
-        request { body<PatchLinkRequest>() }
+        request {
+            pathParameter<Long>("id") { description = "링크 ID" }
+            body<PatchLinkRequest>()
+        }
         response {
             code(HttpStatusCode.OK) {
                 description = "링크 부분 수정 성공"
@@ -203,6 +219,9 @@ internal fun patchLinkDocs(): RouteConfig.() -> Unit =
 internal fun deleteLinkDocs(): RouteConfig.() -> Unit =
     {
         summary = "링크 삭제 API"
+        request {
+            pathParameter<Long>("id") { description = "링크 ID" }
+        }
         response {
             code(HttpStatusCode.OK) {
                 description = "링크 삭제 성공"
