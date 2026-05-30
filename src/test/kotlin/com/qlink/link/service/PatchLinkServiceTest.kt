@@ -73,11 +73,12 @@ class PatchLinkServiceTest :
                         )
                     secondTodo =
                         todoRepository.insert(
-                            TodoFixture.createRandomTodoOf(
-                                linkId = link.id!!,
-                                ownerId = user.id!!,
-                                title = "second-todo",
-                            ).complete(RandomFixture.randomDateTime().toInstant().toKotlinInstant()),
+                            TodoFixture
+                                .createRandomTodoOf(
+                                    linkId = link.id!!,
+                                    ownerId = user.id!!,
+                                    title = "second-todo",
+                                ).complete(RandomFixture.randomDateTime().toInstant().toKotlinInstant()),
                         )
                     otherUserTodo =
                         todoRepository.insert(

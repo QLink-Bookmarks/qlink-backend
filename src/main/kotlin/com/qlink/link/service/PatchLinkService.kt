@@ -94,14 +94,12 @@ class PatchLinkService(
             else -> memo
         }
 
-    private fun PatchLinkRequest.resolveTags(link: Link): List<String> =
-        tags ?: link.tags
+    private fun PatchLinkRequest.resolveTags(link: Link): List<String> = tags ?: link.tags
 
     private suspend fun PatchLinkRequest.resolveTodoChangeSet(
         linkId: Long,
         loginId: Long,
-    ): TodoChangeSet? =
-        todos?.let { buildTodoChangeSet(linkId, loginId, it) }
+    ): TodoChangeSet? = todos?.let { buildTodoChangeSet(linkId, loginId, it) }
 
     private suspend fun buildTodoChangeSet(
         linkId: Long,
