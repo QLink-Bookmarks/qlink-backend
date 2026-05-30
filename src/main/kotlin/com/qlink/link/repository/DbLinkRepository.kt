@@ -26,6 +26,7 @@ import org.jetbrains.exposed.v1.core.alias
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greater
+import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.core.less
 import org.jetbrains.exposed.v1.core.like
 import org.jetbrains.exposed.v1.core.or
@@ -126,7 +127,10 @@ class DbLinkRepository : LinkRepository {
                 ).where { Links.ownerId eq ownerId }
                 .apply {
                     folderId?.let { requestedFolderId ->
-                        andWhere { Links.folderId eq requestedFolderId }
+                        when (requestedFolderId) {
+                            0L -> andWhere { Links.folderId.isNull() }
+                            else -> andWhere { Links.folderId eq requestedFolderId }
+                        }
                     }
                     loweredQuery?.let { keyword ->
                         andWhere { lowerText(Links.searchText) like "%$keyword%" }
