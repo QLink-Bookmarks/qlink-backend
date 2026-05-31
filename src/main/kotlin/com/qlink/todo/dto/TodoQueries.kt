@@ -2,11 +2,37 @@
 
 package com.qlink.todo.dto
 
+import com.qlink.common.search.SearchCursor
+import com.qlink.common.search.SearchOrder
+import com.qlink.link.repository.table.Links
 import com.qlink.todo.repository.table.Todos
 import kotlinx.serialization.Serializable
+import org.jetbrains.exposed.v1.core.Expression
 import org.jetbrains.exposed.v1.core.ResultRow
 import kotlin.time.Instant
 import kotlin.time.toKotlinInstant
+
+const val DEFAULT_TODO_SEARCH_ORDER = "latest"
+const val DEFAULT_TODO_SCROLL_SIZE = 50
+
+typealias TodoSearchOrder = SearchOrder
+
+typealias TodoSearchCursor = SearchCursor<TodoSearchCursorValue>
+
+@Serializable
+data class TodoSearchCursorValue(
+    val id: Long? = null,
+)
+
+enum class TodoReminderFilter {
+    OVERDUE,
+    UPCOMING,
+    ;
+
+    companion object {
+        fun from(value: String): TodoReminderFilter? = entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
+    }
+}
 
 @Serializable
 data class LinkDetailTodoQuery(
@@ -25,6 +51,15 @@ data class LinkSearchTodoQuery(
     val totalCount: Int,
 )
 
+data class SearchTodosQuery(
+    val id: Long,
+    val title: String,
+    val reminderAt: Instant?,
+    val linkId: Long,
+    val linkUrl: String,
+    val linkTitle: String,
+)
+
 fun ResultRow.toLinkDetailTodoQuery(): LinkDetailTodoQuery =
     LinkDetailTodoQuery(
         id = this[Todos.id],
@@ -41,4 +76,14 @@ fun ResultRow.toLinkSearchTodoQuery(): LinkSearchTodoQuery =
         completedAt = this[Todos.completedAt]?.toKotlinInstant(),
         reminderAt = this[Todos.reminderAt]?.toKotlinInstant(),
         totalCount = 0,
+    )
+
+fun ResultRow.toSearchTodosQuery(linkTitle: Expression<String>): SearchTodosQuery =
+    SearchTodosQuery(
+        id = this[Todos.id],
+        title = this[Todos.title],
+        reminderAt = this[Todos.reminderAt]?.toKotlinInstant(),
+        linkId = this[Todos.linkId],
+        linkUrl = this[Links.url],
+        linkTitle = this[linkTitle],
     )

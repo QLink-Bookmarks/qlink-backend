@@ -6,14 +6,47 @@ import com.qlink.common.error.ErrorCode
 import com.qlink.common.response.ApiResponse
 import com.qlink.common.response.EmptySuccessResponse
 import com.qlink.common.response.ErrorDetail
+import com.qlink.common.scroll.ScrollResponse
 import com.qlink.todo.dto.CompleteTodoRequest
 import com.qlink.todo.dto.CompleteTodoResponse
 import com.qlink.todo.dto.CreateTodoRequest
 import com.qlink.todo.dto.CreateTodoResponse
+import com.qlink.todo.dto.GetTodosContentResponse
 import com.qlink.todo.dto.UpdateTodoRequest
 import com.qlink.todo.dto.UpdateTodoResponse
 import io.github.smiley4.ktoropenapi.config.RouteConfig
 import io.ktor.http.HttpStatusCode
+
+internal fun getTodosDocs(): RouteConfig.() -> Unit =
+    {
+        summary = "할 일 목록 조회 API"
+        request {
+            queryParameter<String>("order") { description = "정렬 기준, 기본값: latest" }
+            queryParameter<String?>("cursor") { description = "페이지네이션 커서" }
+            queryParameter<Int>("size") { description = "페이지 크기, 기본값: 50" }
+            queryParameter<Boolean?>("isCompleted") { description = "완료 여부 필터" }
+            queryParameter<String?>("reminderAt") { description = "알림 필터 (overdue / upcoming)" }
+        }
+        response {
+            code(HttpStatusCode.OK) {
+                description = "할 일 목록 조회 성공"
+                body<ApiResponse<ScrollResponse<GetTodosContentResponse>>>()
+            }
+            code(HttpStatusCode.BadRequest) {
+                description = "할 일 목록 조회 요청이 올바르지 않음"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.COMMON_BAD_REQUEST)
+                }
+            }
+            authErrorResponse()
+            code(HttpStatusCode.NotFound) {
+                description = "할 일 목록 조회에 필요한 리소스 조회 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.TODO_OWNER_NOT_FOUND)
+                }
+            }
+        }
+    }
 
 internal fun createTodoDocs(): RouteConfig.() -> Unit =
     {
