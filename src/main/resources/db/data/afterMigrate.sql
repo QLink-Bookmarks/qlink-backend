@@ -9,7 +9,7 @@ VALUES (1, '개발용 관리자', null, null, '2026-05-16T23:55:55Z', '2026-05-1
 
 -- Folders
 INSERT INTO folders (id, owner_id, name, emoji, shared_at, created_at, updated_at)
-VALUES (1, 1, '개발용 폴더', null, null, '2026-05-16T23:55:55Z', '2026-05-16T23:55:55Z');
+VALUES (1, 1, '개발용 폴더', '👨🏻‍💻', null, '2026-05-16T23:55:55Z', '2026-05-16T23:55:55Z');
 
 -- AI Providers
 INSERT INTO ai_providers (id, type, base_url, created_at, updated_at)
