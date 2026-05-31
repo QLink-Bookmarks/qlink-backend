@@ -22,6 +22,8 @@ class Link(
     tags: List<String>,
     val thumbnailUrl: String? = null,
     val sourceType: SourceType,
+    val status: LinkStatus = LinkStatus.A,
+    val workModelId: Long? = null,
     val createdAt: Instant? = null,
     val updatedAt: Instant? = null,
 ) {
@@ -63,6 +65,8 @@ class Link(
             tags = tags,
             thumbnailUrl = thumbnailUrl,
             sourceType = sourceType,
+            status = status,
+            workModelId = workModelId,
             createdAt = createdAt,
             updatedAt = updatedAt,
         )

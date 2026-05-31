@@ -131,6 +131,9 @@ dependencies {
     implementation(ktorLibs.server.requestValidation)
     implementation(ktorLibs.server.resources)
     implementation(ktorLibs.server.statusPages)
+    implementation(ktorLibs.client.core)
+    implementation(ktorLibs.client.contentNegotiation)
+    implementation(libs.ktor.client.cio)
 
     // Auth
     implementation(ktorLibs.server.auth)

@@ -30,6 +30,11 @@ enum class ErrorCode(
     LINK_OWNER_NOT_FOUND("LINK_404_0002", 404, "로그인 사용자를 찾을 수 없어요"),
     LINK_FOLDER_NOT_FOUND("LINK_404_0003", 404, "폴더를 찾을 수 없어요"),
 
+    // AI
+    AI_PROVIDER_NOT_SUPPORTED("AI_400_0001", 400, "지원하지 않는 AI 제공자에요"),
+    AI_API_KEY_MISSING("AI_500_0001", 500, "AI API 키가 설정되지 않았어요"),
+    AI_EMPTY_RESPONSE("AI_502_0001", 502, "AI 응답이 비어 있어요"),
+
     // Todo
     TODO_TITLE_BLANK("TODO_400_0001", 400, "할 일 제목이 입력되지 않았어요"),
     TODO_TITLE_OVER_MAX("TODO_400_0002", 400, "할 일 제목은 최대 50자에요"),

@@ -1,5 +1,6 @@
 package com.qlink.di
 
+import com.qlink.ai.service.UpdateLinkAiSummaryService
 import com.qlink.folder.service.CreateFolderService
 import com.qlink.folder.service.DeleteFolderService
 import com.qlink.folder.service.GetFoldersService
@@ -103,6 +104,14 @@ fun serviceModule() =
                 tx = get(),
                 linkRepository = get(),
                 userRepository = get(),
+            )
+        }
+
+        single {
+            UpdateLinkAiSummaryService(
+                tx = get(),
+                linkRepository = get(),
+                dispatcher = get(),
             )
         }
 

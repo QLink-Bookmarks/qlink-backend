@@ -11,6 +11,11 @@ class LinkResources(
     val cursor: String? = null,
     val size: Int = 15,
 ) {
+    @Resource("ai")
+    class Ai(
+        val parent: LinkResources = LinkResources(),
+    )
+
     @Resource("{id}")
     class ById(
         val parent: LinkResources = LinkResources(),

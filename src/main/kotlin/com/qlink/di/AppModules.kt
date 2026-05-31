@@ -8,5 +8,6 @@ fun appModules(config: ApplicationConfig) =
         transactionModule(),
         pluginModule(config),
         repositoryModule(),
+        aiModule(config),
         serviceModule(),
     )
