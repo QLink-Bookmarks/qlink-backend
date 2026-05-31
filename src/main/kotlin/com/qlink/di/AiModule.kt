@@ -9,12 +9,12 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.config.ApplicationConfig
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.json.Json
 import org.koin.dsl.module
+import org.slf4j.Logger
 
-fun aiModule(config: ApplicationConfig) =
+fun aiModule(log: Logger) =
     module {
         single {
             HttpClient(CIO) {
@@ -66,10 +66,12 @@ fun aiModule(config: ApplicationConfig) =
                 availableModelRepository = get(),
                 aiProviderRepository = get(),
                 dailyUsageRepository = get(),
+                folderRepository = get(),
                 linkRepository = get(),
                 todoRepository = get(),
                 aiClientRouter = get(),
                 channel = get(),
+                log = log,
             )
         }
     }

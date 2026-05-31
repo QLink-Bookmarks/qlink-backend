@@ -17,6 +17,7 @@ import com.qlink.ai.worker.AiSummaryDispatcher
 import com.qlink.ai.worker.AiSummaryWorker
 import kotlinx.coroutines.channels.Channel
 import org.koin.dsl.module
+import org.slf4j.LoggerFactory
 
 fun aiTestModule() =
     module {
@@ -46,25 +47,41 @@ fun aiTestModule() =
                 availableModelRepository = get(),
                 aiProviderRepository = get(),
                 dailyUsageRepository = get(),
+                folderRepository = get(),
                 linkRepository = get(),
                 todoRepository = get(),
                 aiClientRouter = get(),
                 channel = get(),
+                log = LoggerFactory.getLogger(AiSummaryWorker::class.java),
             )
         }
     }
 
 class FakeAiClient : AiClient {
     override val providerType: AiProviderType = AiProviderType.OPENAI
+    var linkId: Long? = null
+    var folderId: Long? = null
+    var tags: List<String> = listOf("AI 태그")
+    var usedTokens: Int = 11
 
     override suspend fun summarize(request: AiSummaryClientRequest): AiSummaryClientResponse =
         AiSummaryClientResponse(
+            linkId = linkId,
+            folderId = folderId,
             rawResponse = """{"id":1,"title":"AI 제목","summary":"AI 요약","todos":[{"title":"AI 할 일","reminderAt":null}]}""",
             title = "AI 제목",
             summary = "AI 요약",
+            tags = tags,
             todos = listOf(AiSummaryTodo(title = "AI 할 일", reminderAt = null)),
-            usedTokens = 11,
+            usedTokens = usedTokens,
         )
+
+    fun reset() {
+        linkId = null
+        folderId = null
+        tags = listOf("AI 태그")
+        usedTokens = 11
+    }
 }
 
 suspend fun insertAiContext(

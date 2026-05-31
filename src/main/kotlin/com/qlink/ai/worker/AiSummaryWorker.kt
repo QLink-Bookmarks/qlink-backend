@@ -15,6 +15,7 @@ import com.qlink.ai.repository.DailyUsageRepository
 import com.qlink.ai.repository.UserProviderRepository
 import com.qlink.ai.service.copyAiStatus
 import com.qlink.common.transaction.TransactionRunner
+import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.repository.LinkRepository
 import com.qlink.todo.domain.Todo
@@ -24,7 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
-import org.slf4j.LoggerFactory
+import org.slf4j.Logger
 import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlin.time.Clock
@@ -37,20 +38,22 @@ class AiSummaryWorker(
     private val availableModelRepository: AvailableModelRepository,
     private val aiProviderRepository: AiProviderRepository,
     private val dailyUsageRepository: DailyUsageRepository,
+    private val folderRepository: FolderRepository,
     private val linkRepository: LinkRepository,
     private val todoRepository: TodoRepository,
     private val aiClientRouter: AiClientRouter,
     private val channel: Channel<Long>,
+    private val log: Logger,
 ) {
-    private val logger = LoggerFactory.getLogger(javaClass)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     fun start() {
         scope.launch {
             for (jobId in channel) {
+                log.info("[WORKER] Job has been detected: $jobId")
                 runCatching { proceed(jobId) }
                     .onFailure {
-                        logger.warn("Failed to process AI summary. jobId={}", jobId, it)
+                        log.warn("[WORKER] Failed to process AI summary. jobId=$jobId", it)
                         markFailed(jobId)
                     }
             }
@@ -64,6 +67,7 @@ class AiSummaryWorker(
                 val userProvider = userProviderRepository.findById(job.userProviderId) ?: return@readOnly null
                 val requestModel = availableModelRepository.findById(job.requestModelId) ?: return@readOnly null
                 val provider = aiProviderRepository.findById(userProvider.providerId) ?: return@readOnly null
+                val link = linkRepository.findById(job.linkId) ?: return@readOnly null
 
                 AiSummaryContext(
                     job = job,
@@ -71,8 +75,14 @@ class AiSummaryWorker(
                     provider = provider,
                     requestModel = requestModel,
                     candidateModels = availableModelRepository.findAllByProviderId(provider.id!!),
+                    selectableFolderIds = folderRepository.findAllByOwnerId(link.ownerId).mapNotNull { it.id }.toSet(),
+                    fixedFolderId = job.prompt.extractFixedFolderId(),
                 )
             } ?: return
+
+        log.info(
+            "[WORKER] Job Context has been loaded as jobId=$jobId, userProvider=${context.userProvider.id}, provider=${context.provider.type}, requestModel=${context.requestModel.model}",
+        )
 
         runCatching { summarize(context) }
             .onSuccess { result ->
@@ -80,6 +90,8 @@ class AiSummaryWorker(
                     val latestJob = aiJobRepository.findById(context.job.id!!) ?: return@required
                     val latestLink = linkRepository.findById(latestJob.linkId) ?: return@required
                     val completedAt = Clock.System.now()
+
+                    log.info("[WORKER] Job has been successful for job=$jobId, link=${latestLink.id}")
 
                     aiJobRepository.update(
                         latestJob.complete(
@@ -92,12 +104,12 @@ class AiSummaryWorker(
                     linkRepository.update(
                         latestLink
                             .update(
-                                folderId = latestLink.folderId,
+                                folderId = context.fixedFolderId ?: result.response.folderId,
                                 url = latestLink.url,
                                 title = result.response.title,
                                 summary = result.response.summary,
                                 memo = latestLink.memo,
-                                tags = latestLink.tags,
+                                tags = result.response.tags,
                                 thumbnailUrl = latestLink.thumbnailUrl,
                                 sourceType = latestLink.sourceType,
                             ).copyAiStatus(status = LinkStatus.A, workModelId = result.model.id),
@@ -114,7 +126,7 @@ class AiSummaryWorker(
                     }
                 }
             }.onFailure {
-                logger.warn("AI summary failed. jobId={}", context.job.id, it)
+                log.warn("AI summary failed. jobId={}", context.job.id, it)
                 markFailed(context.job.id!!)
             }
     }
@@ -126,12 +138,16 @@ class AiSummaryWorker(
             } else {
                 listOf(context.requestModel)
             }
+        val availableModels =
+            tx.readOnly {
+                models.filterNot { model ->
+                    todayUsage(context.userProvider.id!!, model.id!!)?.isOverLimit(model) == true
+                }
+            }
 
         repeat(MAX_MODEL_CYCLES) { cycle ->
-            models.forEach { model ->
-                if (isLimitExceeded(context.userProvider, model)) {
-                    return@forEach
-                }
+            availableModels.forEach { model ->
+                log.info("[WORKER] Trial model=${model.model}")
 
                 val result =
                     runCatching {
@@ -147,6 +163,12 @@ class AiSummaryWorker(
                     }.getOrNull()
 
                 if (result != null) {
+                    check(result.linkId == null || result.linkId == context.job.linkId) {
+                        "AI summary response linkId does not match. expected=${context.job.linkId}, actual=${result.linkId}"
+                    }
+                    check(result.folderId == null || result.folderId in context.selectableFolderIds) {
+                        "AI summary response folderId is not selectable. folderId=${result.folderId}"
+                    }
                     return AiSummaryResult(model = model, response = result)
                 }
             }
@@ -159,11 +181,6 @@ class AiSummaryWorker(
         throw IllegalStateException("AI summary generation failed")
     }
 
-    private suspend fun isLimitExceeded(
-        userProvider: UserProvider,
-        model: AvailableModel,
-    ): Boolean = todayUsage(userProvider.id!!, model.id!!)?.isOverLimit(model) == true
-
     private suspend fun upsertDailyUsage(
         userProvider: UserProvider,
         model: AvailableModel,
@@ -174,7 +191,7 @@ class AiSummaryWorker(
             usage?.addUsage(tokens)
                 ?: DailyUsage(
                     userProviderId = userProvider.id,
-                    modelId = model.id!!,
+                    modelId = model.id,
                     usageDate = LocalDate.now(ZoneOffset.UTC),
                     requests = 1,
                     tokens = tokens,
@@ -226,6 +243,8 @@ class AiSummaryWorker(
         val provider: AiProvider,
         val requestModel: AvailableModel,
         val candidateModels: List<AvailableModel>,
+        val selectableFolderIds: Set<Long>,
+        val fixedFolderId: Long?,
     )
 
     private data class AiSummaryResult(
@@ -237,3 +256,12 @@ class AiSummaryWorker(
         const val MAX_MODEL_CYCLES = 5
     }
 }
+
+private fun String.extractFixedFolderId(): Long? =
+    lineSequence()
+        .dropWhile { it.trim() != "## Fixed Folder ID" }
+        .drop(1)
+        .firstOrNull { it.trim().startsWith("- ") }
+        ?.trim()
+        ?.removePrefix("- ")
+        ?.toLongOrNull()

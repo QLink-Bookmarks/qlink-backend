@@ -43,6 +43,13 @@ class DbFolderRepository : FolderRepository {
             .singleOrNull()
             ?.toFolderDomain()
 
+    override suspend fun findAllByOwnerId(ownerId: Long): List<Folder> =
+        Folders
+            .selectAll()
+            .where { Folders.ownerId eq ownerId }
+            .orderBy(Folders.id to SortOrder.ASC)
+            .map { it.toFolderDomain() }
+
     override suspend fun existsByOwnerIdAndName(
         ownerId: Long,
         name: String,

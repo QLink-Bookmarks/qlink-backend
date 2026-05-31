@@ -8,6 +8,8 @@ import com.qlink.folder.dto.SearchFoldersQuery
 interface FolderRepository {
     suspend fun findById(id: Long): Folder?
 
+    suspend fun findAllByOwnerId(ownerId: Long): List<Folder>
+
     suspend fun existsByOwnerIdAndName(
         ownerId: Long,
         name: String,
