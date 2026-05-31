@@ -1,6 +1,6 @@
 package com.qlink.link.route
 
-import com.qlink.ai.service.AiSummaryRequest
+import com.qlink.ai.dto.AiSummaryRequest
 import com.qlink.ai.service.UpdateLinkAiSummaryService
 import com.qlink.auth.domain.JwtPrincipal
 import com.qlink.common.response.respondSuccess
@@ -80,7 +80,7 @@ fun Route.linkRoutes() {
             val request = call.receive<AiSummaryRequest>()
             val response = updateLinkAiSummaryService.updateLinkAiSummary(principal.userId, request)
 
-            call.respondSuccess(HttpStatusCode.Accepted, response)
+            call.respondSuccess(HttpStatusCode.OK, response)
         }
     }
 

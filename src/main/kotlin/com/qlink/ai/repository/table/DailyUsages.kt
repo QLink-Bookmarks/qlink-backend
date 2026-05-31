@@ -1,7 +1,6 @@
 package com.qlink.ai.repository.table
 
 import com.qlink.ai.domain.DailyUsage
-import com.qlink.user.repository.table.Users
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
@@ -15,37 +14,40 @@ import kotlin.time.toKotlinInstant
 
 object DailyUsages : Table("daily_usages") {
     val id = long("id").autoIncrement()
-    val userId = reference("user_id", Users.id, onDelete = ReferenceOption.CASCADE)
-    val providerId = reference("provider_id", AiProviders.id, onDelete = ReferenceOption.CASCADE)
+    val userProviderId = reference("user_provider_id", UserProviders.id, onDelete = ReferenceOption.CASCADE)
+    val modelId = reference("model_id", AvailableModels.id, onDelete = ReferenceOption.CASCADE)
     val usageDate = date("usage_date")
-    val requestCount = integer("request_count").default(0)
+    val requests = integer("requests").default(0)
+    val tokens = integer("tokens").default(0)
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
     val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp)
 
     override val primaryKey = PrimaryKey(id)
 
     init {
-        index("daily_usages_provider_id_idx", false, providerId)
-        uniqueIndex("daily_usages_user_provider_date_unique", userId, providerId, usageDate)
+        index("daily_usages_model_id_idx", false, modelId)
+        uniqueIndex("daily_usages_user_provider_model_date_unique", userProviderId, modelId, usageDate)
     }
 }
 
 fun ResultRow.toDailyUsageDomain(): DailyUsage =
     DailyUsage(
         id = this[DailyUsages.id],
-        userId = this[DailyUsages.userId],
-        providerId = this[DailyUsages.providerId],
+        userProviderId = this[DailyUsages.userProviderId],
+        modelId = this[DailyUsages.modelId],
         usageDate = this[DailyUsages.usageDate],
-        requestCount = this[DailyUsages.requestCount],
+        requests = this[DailyUsages.requests],
+        tokens = this[DailyUsages.tokens],
         createdAt = this[DailyUsages.createdAt].toKotlinInstant(),
         updatedAt = this[DailyUsages.updatedAt].toKotlinInstant(),
     )
 
 fun UpdateBuilder<*>.fromDomain(dailyUsage: DailyUsage) {
-    this[DailyUsages.userId] = dailyUsage.userId
-    this[DailyUsages.providerId] = dailyUsage.providerId
+    this[DailyUsages.userProviderId] = dailyUsage.userProviderId
+    this[DailyUsages.modelId] = dailyUsage.modelId
     this[DailyUsages.usageDate] = dailyUsage.usageDate
-    this[DailyUsages.requestCount] = dailyUsage.requestCount
+    this[DailyUsages.requests] = dailyUsage.requests
+    this[DailyUsages.tokens] = dailyUsage.tokens
 }
 
 fun UpdateBuilder<*>.refreshDailyUsageUpdatedAt() {

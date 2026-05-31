@@ -30,7 +30,7 @@ object Links : Table("links") {
     val searchText = text("search_text").default("")
     val thumbnailUrl = text("thumbnail_url").nullable()
     val sourceType = enumerationByName<SourceType>("source_type", 30)
-    val status = enumerationByName<LinkStatus>("status", 1).default(LinkStatus.A)
+    val status = enumerationByName<LinkStatus>("status", 1).default(LinkStatus.C)
     val workModelId =
         reference("work_model_id", AvailableModels.id, onDelete = ReferenceOption.SET_NULL)
             .nullable()

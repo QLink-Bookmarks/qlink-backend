@@ -20,15 +20,15 @@ class DbDailyUsageRepository : DailyUsageRepository {
             .toDailyUsageDomain()
 
     override suspend fun findByUserIdAndProviderIdAndUsageDate(
-        userId: Long,
-        providerId: Long,
+        userProviderId: Long,
+        modelId: Long,
         usageDate: LocalDate,
     ): DailyUsage? =
         DailyUsages
             .selectAll()
             .where {
-                (DailyUsages.userId eq userId) and
-                    (DailyUsages.providerId eq providerId) and
+                (DailyUsages.userProviderId eq userProviderId) and
+                    (DailyUsages.modelId eq modelId) and
                     (DailyUsages.usageDate eq usageDate)
             }.singleOrNull()
             ?.toDailyUsageDomain()

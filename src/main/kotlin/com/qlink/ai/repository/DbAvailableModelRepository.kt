@@ -29,7 +29,7 @@ class DbAvailableModelRepository : AvailableModelRepository {
         AvailableModels
             .selectAll()
             .where { AvailableModels.providerId eq providerId }
-            .orderBy(AvailableModels.id to SortOrder.ASC)
+            .orderBy(AvailableModels.priority to SortOrder.ASC)
             .map { it.toAvailableModelDomain() }
 
     override suspend fun update(availableModel: AvailableModel): AvailableModel =

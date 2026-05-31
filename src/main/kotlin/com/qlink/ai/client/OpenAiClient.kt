@@ -1,5 +1,6 @@
 package com.qlink.ai.client
 
+import com.qlink.ai.domain.AiProviderType
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import io.ktor.client.HttpClient
@@ -9,78 +10,105 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 class OpenAiClient(
     private val httpClient: HttpClient,
-    private val config: AiClientConfig,
 ) : AiClient {
-    override val provider: AiProvider = AiProvider.OPENAI
+    override val providerType: AiProviderType = AiProviderType.OPENAI
 
-    override suspend fun summarize(prompt: AiSummaryPrompt): String {
-        val apiKey = config.apiKey?.takeIf { it.isNotBlank() } ?: throw BusinessException(ErrorCode.AI_API_KEY_MISSING)
+    override suspend fun summarize(request: AiSummaryClientRequest): AiSummaryClientResponse {
         val response =
             httpClient
-                .post("${config.baseUrl}/v1/chat/completions") {
-                    bearerAuth(apiKey)
+                .post(request.baseUrl) {
+                    bearerAuth(request.apiKey)
                     contentType(ContentType.Application.Json)
-                    setBody(
-                        OpenAiChatCompletionRequest(
-                            model = config.model,
-                            messages =
-                                listOf(
-                                    OpenAiMessage(
-                                        role = "system",
-                                        content = "너는 북마크 링크를 한국어로 간결하게 요약하는 도우미야.",
-                                    ),
-                                    OpenAiMessage(
-                                        role = "user",
-                                        content = prompt.toInstruction(),
-                                    ),
-                                ),
-                        ),
-                    )
-                }.body<OpenAiChatCompletionResponse>()
+                    setBody(OpenAiResponsesRequest.from(request.model, request.prompt))
+                }.body<OpenAiResponsesResponse>()
+        val text =
+            response
+                .output
+                .flatMap { it.content }
+                .firstNotNullOfOrNull { it.text?.trim()?.takeIf(String::isNotBlank) }
+                ?: throw BusinessException(ErrorCode.AI_EMPTY_RESPONSE)
 
-        return response
-            .choices
-            .firstOrNull()
-            ?.message
-            ?.content
-            ?.trim()
-            ?.takeIf(String::isNotBlank)
-            ?: throw BusinessException(ErrorCode.AI_EMPTY_RESPONSE)
+        return parseSummaryResponse(rawResponse = text)
     }
-
-    private fun AiSummaryPrompt.toInstruction(): String =
-        """
-        아래 링크 정보를 바탕으로 3문장 이내의 요약을 작성해줘.
-        제목: $title
-        URL: $url
-        메모: ${memo.orEmpty()}
-        태그: ${tags.joinToString(", ")}
-        확인되지 않은 내용은 단정하지 마.
-        """.trimIndent()
 }
 
 @Serializable
-private data class OpenAiChatCompletionRequest(
+private data class OpenAiResponsesRequest(
     val model: String,
-    val messages: List<OpenAiMessage>,
-)
+    val instructions: String,
+    val input: List<OpenAiInput>,
+    val tools: List<OpenAiTool>,
+    val text: OpenAiText,
+) {
+    companion object {
+        fun from(
+            model: String,
+            prompt: String,
+        ): OpenAiResponsesRequest =
+            OpenAiResponsesRequest(
+                model = model,
+                instructions = systemInstruction,
+                input =
+                    listOf(
+                        OpenAiInput(
+                            role = "user",
+                            content = listOf(OpenAiContent(type = "input_text", text = prompt)),
+                        ),
+                    ),
+                tools = listOf(OpenAiTool(type = "web_search")),
+                text = OpenAiText(format = OpenAiFormat()),
+            )
+    }
+}
 
 @Serializable
-private data class OpenAiMessage(
+private data class OpenAiInput(
     val role: String,
-    val content: String,
+    val content: List<OpenAiContent>,
 )
 
 @Serializable
-private data class OpenAiChatCompletionResponse(
-    val choices: List<OpenAiChoice> = emptyList(),
+private data class OpenAiContent(
+    val type: String,
+    val text: String,
 )
 
 @Serializable
-private data class OpenAiChoice(
-    val message: OpenAiMessage? = null,
+private data class OpenAiTool(
+    val type: String,
+)
+
+@Serializable
+private data class OpenAiText(
+    val format: OpenAiFormat,
+)
+
+@Serializable
+private data class OpenAiFormat(
+    val type: String = "json_schema",
+    val name: String = "qlink_bookmark_summary_result",
+    val strict: Boolean = true,
+    val schema: Map<String, String> = emptyMap(),
+)
+
+@Serializable
+private data class OpenAiResponsesResponse(
+    val output: List<OpenAiOutput> = emptyList(),
+)
+
+@Serializable
+private data class OpenAiOutput(
+    val content: List<OpenAiOutputContent> = emptyList(),
+)
+
+@Serializable
+private data class OpenAiOutputContent(
+    val type: String? = null,
+    @SerialName("text")
+    val text: String? = null,
 )

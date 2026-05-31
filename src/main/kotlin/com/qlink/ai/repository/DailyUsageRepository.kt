@@ -7,8 +7,8 @@ interface DailyUsageRepository {
     suspend fun insert(dailyUsage: DailyUsage): DailyUsage
 
     suspend fun findByUserIdAndProviderIdAndUsageDate(
-        userId: Long,
-        providerId: Long,
+        userProviderId: Long,
+        modelId: Long,
         usageDate: LocalDate,
     ): DailyUsage?
 

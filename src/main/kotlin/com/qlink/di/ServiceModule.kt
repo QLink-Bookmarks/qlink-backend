@@ -110,7 +110,12 @@ fun serviceModule() =
         single {
             UpdateLinkAiSummaryService(
                 tx = get(),
+                userRepository = get(),
+                folderRepository = get(),
                 linkRepository = get(),
+                userProviderRepository = get(),
+                availableModelRepository = get(),
+                aiJobRepository = get(),
                 dispatcher = get(),
             )
         }

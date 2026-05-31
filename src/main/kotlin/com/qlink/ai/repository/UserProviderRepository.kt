@@ -10,6 +10,8 @@ interface UserProviderRepository {
         providerId: Long,
     ): UserProvider?
 
+    suspend fun findById(userProviderId: Long): UserProvider?
+
     suspend fun findAllByUserId(userId: Long): List<UserProvider>
 
     suspend fun update(userProvider: UserProvider): UserProvider

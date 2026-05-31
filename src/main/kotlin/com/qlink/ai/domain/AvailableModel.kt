@@ -5,8 +5,10 @@ import kotlin.time.Instant
 class AvailableModel(
     val id: Long? = null,
     val providerId: Long,
-    val modelKey: String,
-    val displayName: String,
+    val model: String,
+    val priority: Int,
+    val rpdLimit: Int?,
+    val tpdLimit: Int?,
     val createdAt: Instant? = null,
     val updatedAt: Instant? = null,
 )

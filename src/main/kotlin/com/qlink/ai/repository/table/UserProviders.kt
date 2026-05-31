@@ -17,7 +17,8 @@ object UserProviders : Table("user_providers") {
     val id = long("id").autoIncrement()
     val userId = reference("user_id", Users.id, onDelete = ReferenceOption.CASCADE)
     val providerId = reference("provider_id", AiProviders.id, onDelete = ReferenceOption.CASCADE)
-    val role = enumerationByName<UserProviderRole>("role", 20)
+    val userRole = enumerationByName<UserProviderRole>("user_role", 20)
+    val apiKey = varchar("api_key", 255)
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
     val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp)
 
@@ -34,7 +35,8 @@ fun ResultRow.toUserProviderDomain(): UserProvider =
         id = this[UserProviders.id],
         userId = this[UserProviders.userId],
         providerId = this[UserProviders.providerId],
-        role = this[UserProviders.role],
+        userRole = this[UserProviders.userRole],
+        apiKey = this[UserProviders.apiKey],
         createdAt = this[UserProviders.createdAt].toKotlinInstant(),
         updatedAt = this[UserProviders.updatedAt].toKotlinInstant(),
     )
@@ -42,7 +44,8 @@ fun ResultRow.toUserProviderDomain(): UserProvider =
 fun UpdateBuilder<*>.fromDomain(userProvider: UserProvider) {
     this[UserProviders.userId] = userProvider.userId
     this[UserProviders.providerId] = userProvider.providerId
-    this[UserProviders.role] = userProvider.role
+    this[UserProviders.userRole] = userProvider.userRole
+    this[UserProviders.apiKey] = userProvider.apiKey
 }
 
 fun UpdateBuilder<*>.refreshUserProviderUpdatedAt() {

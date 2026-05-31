@@ -22,7 +22,7 @@ class Link(
     tags: List<String>,
     val thumbnailUrl: String? = null,
     val sourceType: SourceType,
-    val status: LinkStatus = LinkStatus.A,
+    val status: LinkStatus = LinkStatus.C,
     val workModelId: Long? = null,
     val createdAt: Instant? = null,
     val updatedAt: Instant? = null,

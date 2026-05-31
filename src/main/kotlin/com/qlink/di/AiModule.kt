@@ -3,10 +3,9 @@ package com.qlink.di
 import com.qlink.ai.client.AiClientConfig
 import com.qlink.ai.client.AiClientRouter
 import com.qlink.ai.client.AiClientRouterConfig
-import com.qlink.ai.client.AiProvider
 import com.qlink.ai.client.GeminiAiClient
 import com.qlink.ai.client.OpenAiClient
-import com.qlink.ai.worker.AiSummaryCommand
+import com.qlink.ai.domain.AiProviderType
 import com.qlink.ai.worker.AiSummaryDispatcher
 import com.qlink.ai.worker.AiSummaryWorker
 import com.qlink.config.optionalString
@@ -36,33 +35,19 @@ fun aiModule(config: ApplicationConfig) =
 
         single {
             AiClientRouterConfig(
-                defaultProvider = AiProvider.valueOf(config.string("ai.defaultProvider")),
+                defaultProvider = AiProviderType.valueOf(config.string("ai.defaultProvider")),
             )
         }
 
         single {
             GeminiAiClient(
                 httpClient = get(),
-                config =
-                    AiClientConfig(
-                        provider = AiProvider.GEMINI,
-                        apiKey = config.optionalString("ai.gemini.apiKey").takeIfConfigured(),
-                        model = config.string("ai.gemini.model"),
-                        baseUrl = config.string("ai.gemini.baseUrl"),
-                    ),
             )
         }
 
         single {
             OpenAiClient(
                 httpClient = get(),
-                config =
-                    AiClientConfig(
-                        provider = AiProvider.OPENAI,
-                        apiKey = config.optionalString("ai.openai.apiKey").takeIfConfigured(),
-                        model = config.string("ai.openai.model"),
-                        baseUrl = config.string("ai.openai.baseUrl"),
-                    ),
             )
         }
 
@@ -78,7 +63,7 @@ fun aiModule(config: ApplicationConfig) =
         }
 
         single {
-            Channel<AiSummaryCommand>(capacity = Channel.BUFFERED)
+            Channel<Long>(capacity = Channel.BUFFERED)
         }
 
         single {
@@ -88,14 +73,15 @@ fun aiModule(config: ApplicationConfig) =
         single {
             AiSummaryWorker(
                 tx = get(),
+                aiJobRepository = get(),
+                userProviderRepository = get(),
+                availableModelRepository = get(),
+                aiProviderRepository = get(),
+                dailyUsageRepository = get(),
                 linkRepository = get(),
+                todoRepository = get(),
                 aiClientRouter = get(),
                 channel = get(),
             )
         }
     }
-
-private fun String?.takeIfConfigured(): String? =
-    this
-        ?.takeIf { it.isNotBlank() }
-        ?.takeUnless { it.startsWith("\$") && it.endsWith(":") }

@@ -6,7 +6,8 @@ class UserProvider(
     val id: Long? = null,
     val userId: Long,
     val providerId: Long,
-    val role: UserProviderRole,
+    val userRole: UserProviderRole,
+    val apiKey: String,
     val createdAt: Instant? = null,
     val updatedAt: Instant? = null,
 )

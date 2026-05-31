@@ -14,8 +14,10 @@ import kotlin.time.toKotlinInstant
 object AvailableModels : Table("available_models") {
     val id = long("id").autoIncrement()
     val providerId = reference("provider_id", AiProviders.id, onDelete = ReferenceOption.CASCADE)
-    val modelKey = varchar("model_key", 100)
-    val displayName = varchar("display_name", 100)
+    val model = varchar("model", 100)
+    val priority = integer("priority")
+    val rpdLimit = integer("rpd_limit").nullable()
+    val tpdLimit = integer("tpd_limit").nullable()
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
     val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp)
 
@@ -23,7 +25,7 @@ object AvailableModels : Table("available_models") {
 
     init {
         index("available_models_provider_id_idx", false, providerId)
-        uniqueIndex("available_models_provider_model_unique", providerId, modelKey)
+        uniqueIndex("available_models_provider_model_unique", providerId, model)
     }
 }
 
@@ -31,16 +33,20 @@ fun ResultRow.toAvailableModelDomain(): AvailableModel =
     AvailableModel(
         id = this[AvailableModels.id],
         providerId = this[AvailableModels.providerId],
-        modelKey = this[AvailableModels.modelKey],
-        displayName = this[AvailableModels.displayName],
+        model = this[AvailableModels.model],
+        priority = this[AvailableModels.priority],
+        rpdLimit = this[AvailableModels.rpdLimit],
+        tpdLimit = this[AvailableModels.tpdLimit],
         createdAt = this[AvailableModels.createdAt].toKotlinInstant(),
         updatedAt = this[AvailableModels.updatedAt].toKotlinInstant(),
     )
 
 fun UpdateBuilder<*>.fromDomain(availableModel: AvailableModel) {
     this[AvailableModels.providerId] = availableModel.providerId
-    this[AvailableModels.modelKey] = availableModel.modelKey
-    this[AvailableModels.displayName] = availableModel.displayName
+    this[AvailableModels.model] = availableModel.model
+    this[AvailableModels.priority] = availableModel.priority
+    this[AvailableModels.rpdLimit] = availableModel.rpdLimit
+    this[AvailableModels.tpdLimit] = availableModel.tpdLimit
 }
 
 fun UpdateBuilder<*>.refreshAvailableModelUpdatedAt() {

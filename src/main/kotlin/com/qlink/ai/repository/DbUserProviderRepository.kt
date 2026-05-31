@@ -31,6 +31,13 @@ class DbUserProviderRepository : UserProviderRepository {
             }.singleOrNull()
             ?.toUserProviderDomain()
 
+    override suspend fun findById(userProviderId: Long): UserProvider? =
+        UserProviders
+            .selectAll()
+            .where { UserProviders.id eq userProviderId }
+            .singleOrNull()
+            ?.toUserProviderDomain()
+
     override suspend fun findAllByUserId(userId: Long): List<UserProvider> =
         UserProviders
             .selectAll()

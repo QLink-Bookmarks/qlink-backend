@@ -1,6 +1,7 @@
 package com.qlink.ai.repository
 
 import com.qlink.ai.domain.AiProvider
+import com.qlink.ai.domain.AiProviderType
 import com.qlink.ai.repository.table.AiProviders
 import com.qlink.ai.repository.table.fromDomain
 import com.qlink.ai.repository.table.refreshAiProviderUpdatedAt
@@ -24,10 +25,10 @@ class DbAiProviderRepository : AiProviderRepository {
             .singleOrNull()
             ?.toAiProviderDomain()
 
-    override suspend fun findByName(name: String): AiProvider? =
+    override suspend fun findByType(type: AiProviderType): AiProvider? =
         AiProviders
             .selectAll()
-            .where { AiProviders.name eq name }
+            .where { AiProviders.type eq type }
             .singleOrNull()
             ?.toAiProviderDomain()
 

@@ -1,7 +1,7 @@
 package com.qlink.link.route
 
-import com.qlink.ai.service.AiSummaryRequest
-import com.qlink.ai.service.AiSummaryResponse
+import com.qlink.ai.dto.AiSummaryRequest
+import com.qlink.ai.dto.AiSummaryResponse
 import com.qlink.common.docs.authErrorResponse
 import com.qlink.common.docs.examples
 import com.qlink.common.error.ErrorCode
