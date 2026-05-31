@@ -2,14 +2,17 @@ package com.qlink.todo.route
 
 import com.qlink.auth.domain.JwtPrincipal
 import com.qlink.common.response.respondSuccess
+import com.qlink.common.scroll.ScrollRequest
 import com.qlink.todo.dto.CompleteTodoRequest
 import com.qlink.todo.dto.CreateTodoRequest
 import com.qlink.todo.dto.UpdateTodoRequest
 import com.qlink.todo.service.CompleteTodoService
 import com.qlink.todo.service.CreateTodoService
 import com.qlink.todo.service.DeleteTodoService
+import com.qlink.todo.service.GetTodosService
 import com.qlink.todo.service.UpdateTodoService
 import io.github.smiley4.ktoropenapi.resources.delete
+import io.github.smiley4.ktoropenapi.resources.get
 import io.github.smiley4.ktoropenapi.resources.post
 import io.github.smiley4.ktoropenapi.resources.put
 import io.ktor.http.HttpStatusCode
@@ -24,8 +27,27 @@ fun Route.todoRoutes() {
     val updateTodoService by inject<UpdateTodoService>()
     val completeTodoService by inject<CompleteTodoService>()
     val deleteTodoService by inject<DeleteTodoService>()
+    val getTodosService by inject<GetTodosService>()
 
     authenticate {
+        get<TodoResources>(getTodosDocs()) { resource ->
+            val principal = call.principal<JwtPrincipal>()!!
+            val response =
+                getTodosService.getTodos(
+                    loginId = principal.userId,
+                    order = resource.order,
+                    scrollRequest =
+                        ScrollRequest(
+                            cursor = resource.cursor,
+                            size = resource.size,
+                        ),
+                    isCompleted = resource.isCompleted,
+                    reminderAt = resource.reminderAt,
+                )
+
+            call.respondSuccess(HttpStatusCode.OK, response)
+        }
+
         post<TodoResources>(createTodoDocs()) {
             val principal = call.principal<JwtPrincipal>()!!
             val request = call.receive<CreateTodoRequest>()

@@ -14,6 +14,7 @@ import com.qlink.link.service.UpdateLinkService
 import com.qlink.todo.service.CompleteTodoService
 import com.qlink.todo.service.CreateTodoService
 import com.qlink.todo.service.DeleteTodoService
+import com.qlink.todo.service.GetTodosService
 import com.qlink.todo.service.UpdateTodoService
 import org.koin.dsl.module
 
@@ -117,6 +118,14 @@ fun serviceModule() =
                 availableModelRepository = get(),
                 aiJobRepository = get(),
                 dispatcher = get(),
+            )
+        }
+
+        single {
+            GetTodosService(
+                tx = get(),
+                todoRepository = get(),
+                userRepository = get(),
             )
         }
 
