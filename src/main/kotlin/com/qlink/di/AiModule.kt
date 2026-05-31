@@ -1,15 +1,10 @@
 package com.qlink.di
 
-import com.qlink.ai.client.AiClientConfig
 import com.qlink.ai.client.AiClientRouter
-import com.qlink.ai.client.AiClientRouterConfig
 import com.qlink.ai.client.GeminiAiClient
 import com.qlink.ai.client.OpenAiClient
-import com.qlink.ai.domain.AiProviderType
 import com.qlink.ai.worker.AiSummaryDispatcher
 import com.qlink.ai.worker.AiSummaryWorker
-import com.qlink.config.optionalString
-import com.qlink.config.string
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -34,12 +29,6 @@ fun aiModule(config: ApplicationConfig) =
         }
 
         single {
-            AiClientRouterConfig(
-                defaultProvider = AiProviderType.valueOf(config.string("ai.defaultProvider")),
-            )
-        }
-
-        single {
             GeminiAiClient(
                 httpClient = get(),
             )
@@ -53,7 +42,6 @@ fun aiModule(config: ApplicationConfig) =
 
         single {
             AiClientRouter(
-                config = get(),
                 clients =
                     listOf(
                         get<GeminiAiClient>(),

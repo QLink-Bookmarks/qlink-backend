@@ -63,14 +63,3 @@ logging:
 security:
   jwt:
     secret: Y1d4cGJtc3RZbTl2YTIxaGNtdHo=
-
-ai:
-  defaultProvider: GEMINI
-  gemini:
-    apiKey: "$GEMINI_API_KEY:"
-    model: gemini-2.0-flash
-    baseUrl: https://generativelanguage.googleapis.com
-  openai:
-    apiKey: "$OPENAI_API_KEY:"
-    model: gpt-4o-mini
-    baseUrl: https://api.openai.com

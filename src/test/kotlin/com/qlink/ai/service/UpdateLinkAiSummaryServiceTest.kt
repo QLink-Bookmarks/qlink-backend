@@ -2,7 +2,6 @@ package com.qlink.ai.service
 
 import com.qlink.ai.client.AiClient
 import com.qlink.ai.client.AiClientRouter
-import com.qlink.ai.client.AiClientRouterConfig
 import com.qlink.ai.client.AiSummaryClientRequest
 import com.qlink.ai.client.AiSummaryClientResponse
 import com.qlink.ai.client.AiSummaryTodo
@@ -186,7 +185,6 @@ class UpdateLinkAiSummaryServiceTest :
                             todoRepository = todoRepository,
                             aiClientRouter =
                                 AiClientRouter(
-                                    config = AiClientRouterConfig(defaultProvider = AiProviderType.OPENAI),
                                     clients = listOf(FakeAiClient()),
                                 ),
                             channel = Channel(capacity = Channel.BUFFERED),

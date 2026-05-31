@@ -5,7 +5,6 @@ import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 
 class AiClientRouter(
-    private val config: AiClientRouterConfig,
     clients: List<AiClient>,
 ) {
     private val clientsByProvider = clients.associateBy { it.providerType }
