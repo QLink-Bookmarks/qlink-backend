@@ -5,6 +5,8 @@ import com.qlink.ai.client.GeminiAiClient
 import com.qlink.ai.client.OpenAiClient
 import com.qlink.ai.worker.AiSummaryDispatcher
 import com.qlink.ai.worker.AiSummaryWorker
+import com.qlink.config.MonitoringConfig
+import com.qlink.plugin.ExternalHttpClientLogging
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -17,6 +19,8 @@ import org.slf4j.Logger
 fun aiModule(log: Logger) =
     module {
         single {
+            val monitoringConfig = get<MonitoringConfig>()
+
             HttpClient(CIO) {
                 install(ContentNegotiation) {
                     json(
@@ -24,6 +28,10 @@ fun aiModule(log: Logger) =
                             ignoreUnknownKeys = true
                         },
                     )
+                }
+
+                install(ExternalHttpClientLogging) {
+                    httpLogging = monitoringConfig.httpLogging
                 }
             }
         }
