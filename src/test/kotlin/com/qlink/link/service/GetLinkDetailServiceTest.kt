@@ -62,7 +62,7 @@ class GetLinkDetailServiceTest :
                         ),
                         todoRepository.insert(
                             TodoFixture.createRandomTodoOf(
-                                linkId = link.id!!,
+                                linkId = link.id,
                                 ownerId = user.id!!,
                                 completedAt =
                                     RandomFixture
@@ -81,7 +81,7 @@ class GetLinkDetailServiceTest :
                 val expectedFolderId = folder.id
                 val expectedFolderName = folder.name
                 val expectedFolderEmoji = folder.emoji
-                val actual = getLinkDetailService.getLinkDetail(user.id!!, link.id!!)
+                val actual = getLinkDetailService.getLinkDetail(user.id!!, link.id)
 
                 Then("성공한다") {
                     actual.id shouldBe link.id

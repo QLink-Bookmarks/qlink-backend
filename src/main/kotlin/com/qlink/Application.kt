@@ -1,5 +1,6 @@
 package com.qlink
 
+import com.qlink.ai.worker.AiSummaryWorker
 import com.qlink.plugin.configureDocs
 import com.qlink.plugin.configureHttp
 import com.qlink.plugin.configureKoin
@@ -35,4 +36,7 @@ fun Application.module() {
     configureStatusPages()
     configureRequestValidation()
     configureRouting()
+
+    val aiSummaryWorker by inject<AiSummaryWorker>()
+    aiSummaryWorker.start()
 }

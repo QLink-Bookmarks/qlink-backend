@@ -6,6 +6,7 @@ import com.qlink.common.error.requireFalse
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.domain.Link
+import com.qlink.link.domain.LinkStatus
 import com.qlink.link.dto.CreateLinkRequest
 import com.qlink.link.dto.CreateLinkResponse
 import com.qlink.link.repository.LinkRepository
@@ -42,6 +43,7 @@ class CreateLinkService(
                     tags = request.tags,
                     thumbnailUrl = request.thumbnailUrl,
                     sourceType = request.sourceType,
+                    status = LinkStatus.C,
                 )
 
             val createdLink = linkRepository.insert(link)

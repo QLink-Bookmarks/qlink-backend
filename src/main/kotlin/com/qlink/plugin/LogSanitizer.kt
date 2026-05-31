@@ -16,6 +16,7 @@ object LogSanitizer {
             masked
                 .maskJsonValue(key)
                 .maskQueryValue(key)
+                .maskHeaderValue(key)
         }
     }
 
@@ -33,6 +34,15 @@ object LogSanitizer {
         val pattern =
             Regex(
                 pattern = """((?:^|[?&])(?i:$escapedKey)=)([^&]*)""",
+            )
+        return replace(pattern, "$1***")
+    }
+
+    private fun String.maskHeaderValue(key: String): String {
+        val escapedKey = Regex.escape(key)
+        val pattern =
+            Regex(
+                pattern = """((?i:$escapedKey)\s*[:=]\s*)([^\s,;]*)""",
             )
         return replace(pattern, "$1***")
     }

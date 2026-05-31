@@ -1,5 +1,7 @@
 package com.qlink.link.route
 
+import com.qlink.ai.dto.AiSummaryRequest
+import com.qlink.ai.service.UpdateLinkAiSummaryService
 import com.qlink.auth.domain.JwtPrincipal
 import com.qlink.common.response.respondSuccess
 import com.qlink.common.scroll.ScrollRequest
@@ -31,6 +33,7 @@ fun Route.linkRoutes() {
     val updateLinkService by inject<UpdateLinkService>()
     val patchLinkService by inject<PatchLinkService>()
     val deleteLinkService by inject<DeleteLinkService>()
+    val updateLinkAiSummaryService by inject<UpdateLinkAiSummaryService>()
 
     authenticate {
         post<LinkResources>(createLinkDocs()) {
@@ -66,6 +69,16 @@ fun Route.linkRoutes() {
         get<LinkResources.ById>(getLinkDetailDocs()) { resource ->
             val principal = call.principal<JwtPrincipal>()!!
             val response = getLinkDetailService.getLinkDetail(principal.userId, resource.id)
+
+            call.respondSuccess(HttpStatusCode.OK, response)
+        }
+    }
+
+    authenticate {
+        put<LinkResources.Ai>(updateLinkAiSummaryDocs()) {
+            val principal = call.principal<JwtPrincipal>()!!
+            val request = call.receive<AiSummaryRequest>()
+            val response = updateLinkAiSummaryService.updateLinkAiSummary(principal.userId, request)
 
             call.respondSuccess(HttpStatusCode.OK, response)
         }

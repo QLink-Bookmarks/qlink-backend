@@ -59,6 +59,8 @@ logging:
     sensitiveKeys:
       - accessToken
       - refreshToken
+      - Authorization
+      - apiKey
 
 security:
   jwt:

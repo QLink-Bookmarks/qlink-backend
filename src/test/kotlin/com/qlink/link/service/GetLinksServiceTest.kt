@@ -64,9 +64,10 @@ class GetLinksServiceTest :
                                 tags = listOf("검색", "둘째"),
                             ),
                         )
-                    todoRepository.insert(TodoFixture.createRandomTodoOf(linkId = secondLink.id!!, ownerId = user.id!!, title = "todo-1"))
-                    todoRepository.insert(TodoFixture.createRandomTodoOf(linkId = secondLink.id!!, ownerId = user.id!!, title = "todo-2"))
-                    todoRepository.insert(TodoFixture.createRandomTodoOf(linkId = secondLink.id!!, ownerId = user.id!!, title = "todo-3"))
+                    val secondLinkId = secondLink.id!!
+                    todoRepository.insert(TodoFixture.createRandomTodoOf(linkId = secondLinkId, ownerId = user.id!!, title = "todo-1"))
+                    todoRepository.insert(TodoFixture.createRandomTodoOf(linkId = secondLinkId, ownerId = user.id!!, title = "todo-2"))
+                    todoRepository.insert(TodoFixture.createRandomTodoOf(linkId = secondLinkId, ownerId = user.id!!, title = "todo-3"))
                     val response =
                         getLinksService.getLinks(
                             loginId = user.id!!,

@@ -1,5 +1,7 @@
 package com.qlink.link.route
 
+import com.qlink.ai.dto.AiSummaryRequest
+import com.qlink.ai.dto.AiSummaryResponse
 import com.qlink.common.docs.authErrorResponse
 import com.qlink.common.docs.examples
 import com.qlink.common.error.ErrorCode
@@ -56,6 +58,37 @@ internal fun createLinkDocs(): RouteConfig.() -> Unit =
                         ErrorCode.LINK_OWNER_NOT_FOUND,
                         ErrorCode.LINK_FOLDER_NOT_FOUND,
                     )
+                }
+            }
+        }
+    }
+
+internal fun updateLinkAiSummaryDocs(): RouteConfig.() -> Unit =
+    {
+        summary = "링크 AI 요약 요청 API"
+        request { body<AiSummaryRequest>() }
+        response {
+            code(HttpStatusCode.Accepted) {
+                description = "링크 AI 요약 요청 접수 성공"
+                body<ApiResponse<AiSummaryResponse>>()
+            }
+            code(HttpStatusCode.BadRequest) {
+                description = "링크 AI 요약 요청이 올바르지 않음"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.COMMON_BAD_REQUEST)
+                }
+            }
+            authErrorResponse()
+            code(HttpStatusCode.Forbidden) {
+                description = "링크 AI 요약 요청 권한 검증 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.LINK_DIFFERENT_OWNER)
+                }
+            }
+            code(HttpStatusCode.NotFound) {
+                description = "링크 AI 요약 요청 대상 리소스 조회 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.LINK_NOT_FOUND)
                 }
             }
         }

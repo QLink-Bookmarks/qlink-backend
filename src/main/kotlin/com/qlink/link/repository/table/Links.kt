@@ -1,7 +1,9 @@
 package com.qlink.link.repository.table
 
+import com.qlink.ai.repository.table.AvailableModels
 import com.qlink.folder.repository.table.Folders
 import com.qlink.link.domain.Link
+import com.qlink.link.domain.LinkStatus
 import com.qlink.link.domain.SourceType
 import com.qlink.user.repository.table.Users
 import org.jetbrains.exposed.v1.core.ReferenceOption
@@ -28,6 +30,10 @@ object Links : Table("links") {
     val searchText = text("search_text").default("")
     val thumbnailUrl = text("thumbnail_url").nullable()
     val sourceType = enumerationByName<SourceType>("source_type", 30)
+    val status = enumerationByName<LinkStatus>("status", 1).default(LinkStatus.C)
+    val workModelId =
+        reference("work_model_id", AvailableModels.id, onDelete = ReferenceOption.SET_NULL)
+            .nullable()
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
     val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp)
 
@@ -36,6 +42,8 @@ object Links : Table("links") {
     init {
         index("links_owner_id_idx", false, ownerId)
         index("links_folder_id_idx", false, folderId)
+        index("links_status_idx", false, status)
+        index("links_work_model_id_idx", false, workModelId)
         index("links_tags_idx", false, tags, indexType = "GIN")
     }
 }
@@ -52,6 +60,8 @@ fun ResultRow.toLinkDomain(): Link =
         tags = this[Links.tags],
         thumbnailUrl = this[Links.thumbnailUrl],
         sourceType = this[Links.sourceType],
+        status = this[Links.status],
+        workModelId = this[Links.workModelId],
         createdAt = this[Links.createdAt].toKotlinInstant(),
         updatedAt = this[Links.updatedAt].toKotlinInstant(),
     )
@@ -67,6 +77,8 @@ fun UpdateBuilder<*>.fromDomain(link: Link) {
     this[Links.searchText] = link.searchText()
     this[Links.thumbnailUrl] = link.thumbnailUrl
     this[Links.sourceType] = link.sourceType
+    this[Links.status] = link.status
+    this[Links.workModelId] = link.workModelId
 }
 
 fun UpdateBuilder<*>.refreshUpdatedAt() {
