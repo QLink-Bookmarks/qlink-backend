@@ -21,3 +21,13 @@ data class UpdateTodoResponse(
 data class CompleteTodoResponse(
     val completeAt: Instant?,
 )
+
+@Serializable
+data class GetTodosContentResponse(
+    val id: Long,
+    val title: String,
+    val reminderAt: Instant?,
+    val linkId: Long,
+    val linkUrl: String,
+    val linkTitle: String,
+)

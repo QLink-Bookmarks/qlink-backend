@@ -1,22 +1,39 @@
 package com.qlink.todo.repository
 
+import com.qlink.common.search.longLiteral
+import com.qlink.link.repository.table.Links
 import com.qlink.todo.domain.Todo
 import com.qlink.todo.dto.LinkDetailTodoQuery
 import com.qlink.todo.dto.LinkSearchTodoQuery
+import com.qlink.todo.dto.SearchTodosQuery
+import com.qlink.todo.dto.TodoReminderFilter
+import com.qlink.todo.dto.TodoSearchCursor
+import com.qlink.todo.dto.TodoSearchOrder
 import com.qlink.todo.dto.toLinkDetailTodoQuery
 import com.qlink.todo.dto.toLinkSearchTodoQuery
+import com.qlink.todo.dto.toSearchTodosQuery
 import com.qlink.todo.repository.table.Todos
 import com.qlink.todo.repository.table.fromDomain
 import com.qlink.todo.repository.table.refreshUpdatedAt
 import com.qlink.todo.repository.table.toTodoDomain
+import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.alias
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.greaterEq
 import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.isNotNull
+import org.jetbrains.exposed.v1.core.isNull
+import org.jetbrains.exposed.v1.core.less
+import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.updateReturning
+import kotlin.time.Clock
+import kotlin.time.toJavaInstant
 
 class DbTodoRepository : TodoRepository {
     override suspend fun insert(todo: Todo): Todo =
@@ -86,6 +103,59 @@ class DbTodoRepository : TodoRepository {
                     todo.copy(totalCount = todos.size)
                 }
             }
+    }
+
+    override suspend fun search(
+        ownerId: Long,
+        order: TodoSearchOrder,
+        cursor: TodoSearchCursor?,
+        size: Int,
+        isCompleted: Boolean?,
+        reminderAt: TodoReminderFilter?,
+    ): List<SearchTodosQuery> {
+        val joined =
+            Todos.join(
+                otherTable = Links,
+                joinType = JoinType.INNER,
+                additionalConstraint = { Todos.linkId eq Links.id },
+            )
+        val linkTitle = Links.title.alias("link_title")
+
+        return joined
+            .select(
+                Todos.id,
+                Todos.title,
+                Todos.reminderAt,
+                Todos.linkId,
+                Links.url,
+                linkTitle,
+            ).where { Todos.ownerId eq ownerId }
+            .apply {
+                isCompleted?.let { completed ->
+                    andWhere {
+                        if (completed) {
+                            Todos.completedAt.isNotNull()
+                        } else {
+                            Todos.completedAt.isNull()
+                        }
+                    }
+                }
+                reminderAt?.let { filter ->
+                    val now = Clock.System.now().toJavaInstant()
+
+                    andWhere {
+                        when (filter) {
+                            TodoReminderFilter.OVERDUE -> (Todos.reminderAt less now) and Todos.completedAt.isNull()
+                            TodoReminderFilter.UPCOMING -> (Todos.reminderAt greaterEq now) and Todos.completedAt.isNull()
+                        }
+                    }
+                }
+                cursor?.value?.id?.let { cursorId ->
+                    andWhere { Todos.id less longLiteral(cursorId) }
+                }
+            }.orderBy(Todos.id to SortOrder.DESC)
+            .limit(size + 1)
+            .map { it.toSearchTodosQuery(linkTitle) }
     }
 
     override suspend fun update(todo: Todo): Todo =
