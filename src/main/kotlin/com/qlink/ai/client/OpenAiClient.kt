@@ -33,7 +33,10 @@ class OpenAiClient(
                 .firstNotNullOfOrNull { it.text?.trim()?.takeIf(String::isNotBlank) }
                 ?: throw BusinessException(ErrorCode.AI_EMPTY_RESPONSE)
 
-        return parseSummaryResponse(rawResponse = text)
+        return parseSummaryResponse(
+            rawResponse = text,
+            usedTokens = response.usage?.totalTokens ?: text.length,
+        )
     }
 }
 
@@ -52,7 +55,7 @@ private data class OpenAiResponsesRequest(
         ): OpenAiResponsesRequest =
             OpenAiResponsesRequest(
                 model = model,
-                instructions = systemInstruction,
+                instructions = AiSummarySpec.systemInstruction,
                 input =
                     listOf(
                         OpenAiInput(
@@ -91,14 +94,15 @@ private data class OpenAiText(
 @Serializable
 private data class OpenAiFormat(
     val type: String = "json_schema",
-    val name: String = "qlink_bookmark_summary_result",
+    val name: String = AiSummarySpec.RESPONSE_SCHEMA_NAME,
     val strict: Boolean = true,
-    val schema: Map<String, String> = emptyMap(),
+    val schema: kotlinx.serialization.json.JsonObject = AiSummarySpec.openAiJsonSchema,
 )
 
 @Serializable
 private data class OpenAiResponsesResponse(
     val output: List<OpenAiOutput> = emptyList(),
+    val usage: OpenAiUsage? = null,
 )
 
 @Serializable
@@ -111,4 +115,14 @@ private data class OpenAiOutputContent(
     val type: String? = null,
     @SerialName("text")
     val text: String? = null,
+)
+
+@Serializable
+private data class OpenAiUsage(
+    @SerialName("input_tokens")
+    val inputTokens: Int? = null,
+    @SerialName("output_tokens")
+    val outputTokens: Int? = null,
+    @SerialName("total_tokens")
+    val totalTokens: Int = 0,
 )
