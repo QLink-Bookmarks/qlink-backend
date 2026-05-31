@@ -1,7 +1,9 @@
 package com.qlink.ai.domain
 
-enum class AiJobStatus {
-    P,
-    C,
-    F,
+enum class AiJobStatus(
+    val description: String,
+) {
+    P("Pending"),
+    C("Completed"),
+    F("Failed"),
 }
