@@ -114,6 +114,7 @@ object ServiceTestEnvironment {
                 dataModule(testApplicationConfig(), testDataSourceConfig()),
                 transactionModule(),
                 repositoryModule(),
+                aiTestModule(),
                 serviceModule(),
             )
         }
