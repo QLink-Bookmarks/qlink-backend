@@ -12,6 +12,7 @@ import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.domain.Link
 import com.qlink.link.repository.LinkRepository
 import com.qlink.support.BaseServiceTest
+import com.qlink.support.fixture.AiFixture
 import com.qlink.support.fixture.FolderFixture
 import com.qlink.support.fixture.LinkFixture
 import com.qlink.support.fixture.RandomFixture
@@ -40,26 +41,14 @@ class GetLinkDetailServiceTest :
 
         suspend fun modelFixture(): AvailableModel {
             val provider =
-                aiProviderRepository.findByType(AiProviderType.CLAUDE)
-                    ?: aiProviderRepository.insert(
-                        AiProvider(
-                            type = AiProviderType.CLAUDE,
-                            baseUrl = "https://example.com",
-                        ),
-                    )
+                AiFixture
+                    .createRandomValidAiProvider(excludingTypes = setOf(AiProviderType.GEMINI, AiProviderType.OPENAI))
+                    .let { aiProvider -> aiProviderRepository.findByType(aiProvider.type) ?: aiProviderRepository.insert(aiProvider) }
 
             return availableModelRepository
                 .findAllByProviderId(provider.id!!)
                 .firstOrNull()
-                ?: availableModelRepository.insert(
-                    AvailableModel(
-                        providerId = provider.id,
-                        model = "detail-test-model",
-                        priority = 1,
-                        rpdLimit = 20,
-                        tpdLimit = 2_000_000,
-                    ),
-                )
+                ?: availableModelRepository.insert(AiFixture.createRandomAvailableModelOf(providerId = provider.id))
         }
 
         Given("링크 상세 조회 서비스 테스트") {

@@ -1,14 +1,15 @@
 package com.qlink.link.repository
 
+import com.qlink.ai.repository.table.AvailableModels
 import com.qlink.common.search.arrayToString
 import com.qlink.common.search.bigmSimilarity
 import com.qlink.common.search.coalesceText
 import com.qlink.common.search.doubleLiteral
 import com.qlink.common.search.longLiteral
 import com.qlink.common.search.lowerText
-import com.qlink.ai.repository.table.AvailableModels
 import com.qlink.folder.repository.table.Folders
 import com.qlink.link.domain.Link
+import com.qlink.link.dto.LinkDetailQuery
 import com.qlink.link.dto.LinkSearchCursor
 import com.qlink.link.dto.LinkSearchCursorValue
 import com.qlink.link.dto.LinkSearchOrder
@@ -55,6 +56,48 @@ class DbLinkRepository : LinkRepository {
             .where { Links.id eq linkId }
             .singleOrNull()
             ?.toLinkDomain()
+
+    override suspend fun findDetailById(linkId: Long): LinkDetailQuery? {
+        val joined =
+            Links
+                .join(
+                    otherTable = Folders,
+                    joinType = JoinType.LEFT,
+                    additionalConstraint = { Links.folderId eq Folders.id },
+                ).join(
+                    otherTable = AvailableModels,
+                    joinType = JoinType.LEFT,
+                    additionalConstraint = { Links.workModelId eq AvailableModels.id },
+                )
+        val folderName = Folders.name.alias("folder_name")
+        val folderEmoji = Folders.emoji.alias("folder_emoji")
+        val workModel = AvailableModels.model.alias("work_model")
+
+        return joined
+            .select(
+                Links.id,
+                Links.ownerId,
+                Links.folderId,
+                folderName,
+                folderEmoji,
+                Links.url,
+                Links.title,
+                Links.summary,
+                Links.memo,
+                Links.tags,
+                Links.sourceType,
+                Links.status,
+                Links.workModelId,
+                workModel,
+                Links.createdAt,
+            ).where { Links.id eq linkId }
+            .singleOrNull()
+            ?.toLinkDetailQuery(
+                folderName = folderName,
+                folderEmoji = folderEmoji,
+                workModel = workModel,
+            )
+    }
 
     override suspend fun search(
         ownerId: Long,
@@ -423,5 +466,28 @@ class DbLinkRepository : LinkRepository {
             tagsScore = this[tagsScore],
             summaryScore = this[summaryScore],
             memoScore = this[memoScore],
+        )
+
+    private fun ResultRow.toLinkDetailQuery(
+        folderName: Expression<String>,
+        folderEmoji: Expression<String?>,
+        workModel: Expression<String>,
+    ): LinkDetailQuery =
+        LinkDetailQuery(
+            id = this[Links.id],
+            ownerId = this[Links.ownerId],
+            folderId = this[Links.folderId],
+            folderName = this[folderName],
+            folderEmoji = this[folderEmoji],
+            url = this[Links.url],
+            title = this[Links.title],
+            summary = this[Links.summary],
+            memo = this[Links.memo],
+            tags = this[Links.tags],
+            sourceType = this[Links.sourceType],
+            status = this[Links.status],
+            workModelId = this[Links.workModelId],
+            workModel = this[workModel],
+            createdAt = this[Links.createdAt].toKotlinInstant(),
         )
 }

@@ -4,6 +4,8 @@ package com.qlink.link.dto
 
 import com.qlink.common.search.SearchCursor
 import com.qlink.common.search.SearchOrder
+import com.qlink.link.domain.SourceType
+import com.qlink.link.domain.LinkStatus
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
 
@@ -25,6 +27,24 @@ data class SearchLinksQuery(
     val tagsScore: Double,
     val summaryScore: Double,
     val memoScore: Double,
+)
+
+data class LinkDetailQuery(
+    val id: Long,
+    val ownerId: Long,
+    val folderId: Long?,
+    val folderName: String?,
+    val folderEmoji: String?,
+    val url: String,
+    val title: String,
+    val summary: String?,
+    val memo: String?,
+    val tags: List<String>,
+    val sourceType: SourceType,
+    val status: LinkStatus,
+    val workModelId: Long?,
+    val workModel: String?,
+    val createdAt: Instant,
 )
 
 typealias LinkSearchOrder = SearchOrder

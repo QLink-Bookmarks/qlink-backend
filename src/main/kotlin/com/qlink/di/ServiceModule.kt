@@ -67,9 +67,7 @@ fun serviceModule() =
             GetLinkDetailService(
                 tx = get(),
                 linkRepository = get(),
-                folderRepository = get(),
                 todoRepository = get(),
-                availableModelRepository = get(),
             )
         }
 
