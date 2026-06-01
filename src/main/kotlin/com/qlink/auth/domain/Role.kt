@@ -4,7 +4,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 enum class Role {
-    GUEST,
-    NORMAL,
+    SUPER_ADMIN,
     ADMIN,
+    NORMAL,
+    GUEST,
 }

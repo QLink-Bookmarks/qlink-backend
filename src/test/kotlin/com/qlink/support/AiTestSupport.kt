@@ -9,7 +9,7 @@ import com.qlink.ai.domain.AiProvider
 import com.qlink.ai.domain.AiProviderType
 import com.qlink.ai.domain.AvailableModel
 import com.qlink.ai.domain.UserProvider
-import com.qlink.ai.domain.UserProviderRole
+import com.qlink.auth.domain.Role
 import com.qlink.ai.repository.AiProviderRepository
 import com.qlink.ai.repository.AvailableModelRepository
 import com.qlink.ai.repository.UserProviderRepository
@@ -89,7 +89,7 @@ suspend fun insertAiContext(
     aiProviderRepository: AiProviderRepository,
     availableModelRepository: AvailableModelRepository,
     userProviderRepository: UserProviderRepository,
-    role: UserProviderRole = UserProviderRole.NORMAL,
+    role: Role = Role.NORMAL,
 ): Pair<UserProvider, AvailableModel> {
     val provider =
         aiProviderRepository.insert(

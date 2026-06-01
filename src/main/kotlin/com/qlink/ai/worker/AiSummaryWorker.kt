@@ -7,13 +7,13 @@ import com.qlink.ai.domain.AiProvider
 import com.qlink.ai.domain.AvailableModel
 import com.qlink.ai.domain.DailyUsage
 import com.qlink.ai.domain.UserProvider
-import com.qlink.ai.domain.UserProviderRole
 import com.qlink.ai.repository.AiJobRepository
 import com.qlink.ai.repository.AiProviderRepository
 import com.qlink.ai.repository.AvailableModelRepository
 import com.qlink.ai.repository.DailyUsageRepository
 import com.qlink.ai.repository.UserProviderRepository
 import com.qlink.ai.service.copyAiStatus
+import com.qlink.auth.domain.Role
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.domain.LinkStatus
@@ -133,7 +133,7 @@ class AiSummaryWorker(
 
     private suspend fun summarize(context: AiSummaryContext): AiSummaryResult {
         val models =
-            if (context.userProvider.userRole == UserProviderRole.SUPER_ADMIN) {
+            if (context.userProvider.userRole == Role.SUPER_ADMIN) {
                 context.candidateModels
             } else {
                 listOf(context.requestModel)
@@ -173,7 +173,7 @@ class AiSummaryWorker(
                 }
             }
 
-            if (context.userProvider.userRole != UserProviderRole.SUPER_ADMIN || cycle == MAX_MODEL_CYCLES - 1) {
+            if (context.userProvider.userRole != Role.SUPER_ADMIN || cycle == MAX_MODEL_CYCLES - 1) {
                 throw IllegalStateException("AI summary generation failed")
             }
         }
