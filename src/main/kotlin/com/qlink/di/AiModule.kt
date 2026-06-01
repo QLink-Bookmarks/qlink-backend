@@ -26,6 +26,7 @@ fun aiModule(log: Logger) =
                     json(
                         Json {
                             ignoreUnknownKeys = true
+                            encodeDefaults = true
                         },
                     )
                 }
