@@ -1,11 +1,11 @@
 package com.qlink.ai.repository
 
 import com.qlink.ai.domain.UserProvider
-import com.qlink.ai.domain.UserProviderRole
 import com.qlink.ai.repository.table.UserProviders
 import com.qlink.ai.repository.table.fromDomain
 import com.qlink.ai.repository.table.refreshUserProviderUpdatedAt
 import com.qlink.ai.repository.table.toUserProviderDomain
+import com.qlink.auth.domain.Role
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
@@ -46,7 +46,7 @@ class DbUserProviderRepository : UserProviderRepository {
             .orderBy(UserProviders.id to SortOrder.ASC)
             .map { it.toUserProviderDomain() }
 
-    override suspend fun findAllByRole(userProviderRole: UserProviderRole): List<UserProvider> =
+    override suspend fun findAllByRole(userProviderRole: Role): List<UserProvider> =
         UserProviders
             .selectAll()
             .where { UserProviders.userRole eq userProviderRole }

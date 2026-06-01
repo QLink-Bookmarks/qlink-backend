@@ -1,7 +1,7 @@
 package com.qlink.di
 
-import com.qlink.ai.service.UpdateLinkAiSummaryService
 import com.qlink.ai.service.GetAiProviderModelsService
+import com.qlink.ai.service.UpdateLinkAiSummaryService
 import com.qlink.folder.service.CreateFolderService
 import com.qlink.folder.service.DeleteFolderService
 import com.qlink.folder.service.GetFoldersService

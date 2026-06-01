@@ -1,12 +1,12 @@
 package com.qlink.ai.service
 
 import com.qlink.ai.domain.UserProvider
-import com.qlink.ai.domain.UserProviderRole
 import com.qlink.ai.dto.AiProviderModelResponse
 import com.qlink.ai.dto.AiProviderModelsResponse
 import com.qlink.ai.repository.AiProviderRepository
 import com.qlink.ai.repository.AvailableModelRepository
 import com.qlink.ai.repository.UserProviderRepository
+import com.qlink.auth.domain.Role
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireFalse
@@ -27,12 +27,12 @@ class GetAiProviderModelsService(
             loginId?.let { userRepository.emptyById(it).requireFalse(ErrorCode.USER_NOT_FOUND) }
 
             val userProviders = loginId?.let { userProviderRepository.findAllByUserId(it) }.orEmpty()
-            val superAdminProviders = userProviderRepository.findAllByRole(UserProviderRole.SUPER_ADMIN)
+            val superAdminProviders = userProviderRepository.findAllByRole(Role.SUPER_ADMIN)
 
             (userProviders + superAdminProviders)
                 .distinctBy { it.providerId }
                 .map { userProvider ->
-                    userProvider.toResponse(isDefaultProvider = userProvider.userRole == UserProviderRole.SUPER_ADMIN)
+                    userProvider.toResponse(isDefaultProvider = userProvider.userRole == Role.SUPER_ADMIN)
                 }.sortedWith(compareBy({ it.providerType.name }, { it.providerId }))
         }
 

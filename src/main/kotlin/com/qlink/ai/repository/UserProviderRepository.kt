@@ -1,7 +1,7 @@
 package com.qlink.ai.repository
 
 import com.qlink.ai.domain.UserProvider
-import com.qlink.ai.domain.UserProviderRole
+import com.qlink.auth.domain.Role
 
 interface UserProviderRepository {
     suspend fun insert(userProvider: UserProvider): UserProvider
@@ -15,7 +15,7 @@ interface UserProviderRepository {
 
     suspend fun findAllByUserId(userId: Long): List<UserProvider>
 
-    suspend fun findAllByRole(userProviderRole: UserProviderRole): List<UserProvider>
+    suspend fun findAllByRole(userProviderRole: Role): List<UserProvider>
 
     suspend fun update(userProvider: UserProvider): UserProvider
 }
