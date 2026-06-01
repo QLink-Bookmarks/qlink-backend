@@ -1,10 +1,8 @@
 package com.qlink.ai.service
 
 import com.qlink.ai.domain.AiProvider
-import com.qlink.ai.domain.AiProviderType
 import com.qlink.ai.domain.AvailableModel
 import com.qlink.ai.domain.UserProvider
-import com.qlink.ai.domain.UserProviderRole
 import com.qlink.ai.repository.AiProviderRepository
 import com.qlink.ai.repository.AvailableModelRepository
 import com.qlink.ai.repository.UserProviderRepository
@@ -29,9 +27,9 @@ class GetAiProviderModelsServiceTest :
         val availableModelRepository = koinGet<AvailableModelRepository>()
         val userProviderRepository = koinGet<UserProviderRepository>()
 
-        suspend fun randomProvider(excludingTypes: Set<AiProviderType>): AiProvider =
+        suspend fun randomProvider(): AiProvider =
             AiFixture
-                .createRandomValidAiProvider(excludingTypes = excludingTypes)
+                .createRandomValidAiProvider()
                 .let { aiProvider -> aiProviderRepository.findByType(aiProvider.type) ?: aiProviderRepository.insert(aiProvider) }
 
         suspend fun firstModelOf(provider: AiProvider): AvailableModel =
@@ -48,16 +46,16 @@ class GetAiProviderModelsServiceTest :
 
             beforeTest {
                 user = userRepository.insert(UserFixture.createRandomValidUser())
-                val superAdmin = userRepository.insert(UserFixture.createRandomValidUser())
-                superAdminProvider = randomProvider(excludingTypes = emptySet())
+                val superAdmin = userRepository.insert(UserFixture.createRandomValidSuperAdmin())
+                superAdminProvider = randomProvider()
                 firstModelOf(superAdminProvider)
-                userProvider = randomProvider(excludingTypes = setOf(superAdminProvider.type))
+                userProvider = randomProvider()
                 userModel = firstModelOf(userProvider)
                 userProviderRepository.insert(
                     UserProvider(
                         userId = superAdmin.id!!,
                         providerId = superAdminProvider.id!!,
-                        userRole = UserProviderRole.SUPER_ADMIN,
+                        userRole = superAdmin.role,
                         apiKey = "super-admin-api-key",
                     ),
                 )
@@ -65,7 +63,7 @@ class GetAiProviderModelsServiceTest :
                     UserProvider(
                         userId = user.id!!,
                         providerId = userProvider.id!!,
-                        userRole = UserProviderRole.NORMAL,
+                        userRole = user.role,
                         apiKey = "user-api-key",
                     ),
                 )
