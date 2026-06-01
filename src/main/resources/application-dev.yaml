@@ -8,3 +8,4 @@ http:
     anyHost: false
     hosts:
       - dev.qlinkapps.com
+      - dev.api.qlinkapps.com
