@@ -14,3 +14,39 @@ data class GetMyProfileResponse(
     val avatarUrl: String?,
     val avatarEmoji: String?,
 )
+
+@Serializable
+data class GetMySettingsResponse(
+    val display: UserDisplaySettingsResponse,
+    val behavior: UserBehaviorSettingsResponse,
+    val ai: UserAiSettingsResponse,
+)
+
+@Serializable
+data class UserDisplaySettingsResponse(
+    val theme: String,
+    val accent: String,
+)
+
+@Serializable
+data class UserBehaviorSettingsResponse(
+    val allowsReminderNotification: Boolean,
+)
+
+@Serializable
+data class UserAiSettingsResponse(
+    val defaultProvider: UserDefaultProviderResponse,
+    val defaultModel: UserDefaultModelResponse,
+)
+
+@Serializable
+data class UserDefaultProviderResponse(
+    val id: Long?,
+    val type: String?,
+)
+
+@Serializable
+data class UserDefaultModelResponse(
+    val id: Long?,
+    val model: String?,
+)

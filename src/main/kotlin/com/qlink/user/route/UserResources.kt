@@ -7,5 +7,10 @@ class UserResources {
     @Resource("me")
     class Me(
         val parent: UserResources = UserResources(),
-    )
+    ) {
+        @Resource("settings")
+        class Settings(
+            val parent: Me = Me(),
+        )
+    }
 }
