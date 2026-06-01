@@ -1,7 +1,6 @@
 package com.qlink.user.service
 
 import com.qlink.ai.domain.AiProvider
-import com.qlink.ai.domain.AiProviderType
 import com.qlink.ai.domain.AvailableModel
 import com.qlink.ai.repository.AiProviderRepository
 import com.qlink.ai.repository.AvailableModelRepository
@@ -32,9 +31,7 @@ class GetMySettingsServiceTest :
             lateinit var user: User
 
             beforeTest {
-                provider =
-                    aiProviderRepository.findByType(AiProviderType.CLAUDE)
-                        ?: aiProviderRepository.insert(AiFixture.createRandomValidAiProvider())
+                provider = aiProviderRepository.insert(AiFixture.createRandomValidAiProvider())
                 model =
                     availableModelRepository
                         .findAllByProviderId(provider.id!!)
@@ -65,8 +62,8 @@ class GetMySettingsServiceTest :
                 Then("화면, 동작, AI 기본 설정을 반환한다") {
                     val response = get()
 
-                    response.display.theme shouldBe "dark"
-                    response.display.accent shouldBe "pink"
+                    response.display.theme shouldBe UserTheme.DARK.responseName
+                    response.display.accent shouldBe UserAccent.PINK.responseName
                     response.behavior.allowsReminderNotification shouldBe false
                     response.ai.defaultProvider.id shouldBe provider.id
                     response.ai.defaultProvider.type shouldBe provider.type.name

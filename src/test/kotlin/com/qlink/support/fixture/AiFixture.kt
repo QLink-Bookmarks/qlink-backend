@@ -3,11 +3,12 @@ package com.qlink.support.fixture
 import com.qlink.ai.domain.AiProvider
 import com.qlink.ai.domain.AiProviderType
 import com.qlink.ai.domain.AvailableModel
+import kotlin.random.Random
 
 object AiFixture {
     fun createRandomValidAiProvider(): AiProvider =
         AiProvider(
-            type = AiProviderType.CLAUDE,
+            type = AiProviderType.entries[Random.nextInt(AiProviderType.entries.size)],
             baseUrl = RandomFixture.randomUrl(),
         )
 
