@@ -31,7 +31,9 @@ class GetMySettingsServiceTest :
             lateinit var user: User
 
             beforeTest {
-                provider = aiProviderRepository.insert(AiFixture.createRandomValidAiProvider())
+                val randomProvider = AiFixture.createRandomValidAiProvider()
+                provider = aiProviderRepository.findByType(randomProvider.type)
+                    ?: aiProviderRepository.insert(randomProvider)
                 model =
                     availableModelRepository
                         .findAllByProviderId(provider.id!!)
