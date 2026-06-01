@@ -6,6 +6,7 @@ import com.qlink.common.search.coalesceText
 import com.qlink.common.search.doubleLiteral
 import com.qlink.common.search.longLiteral
 import com.qlink.common.search.lowerText
+import com.qlink.ai.repository.table.AvailableModels
 import com.qlink.folder.repository.table.Folders
 import com.qlink.link.domain.Link
 import com.qlink.link.dto.LinkSearchCursor
@@ -70,10 +71,15 @@ class DbLinkRepository : LinkRepository {
                 otherTable = Folders,
                 joinType = JoinType.LEFT,
                 additionalConstraint = { Links.folderId eq Folders.id },
+            ).join(
+                otherTable = AvailableModels,
+                joinType = JoinType.LEFT,
+                additionalConstraint = { Links.workModelId eq AvailableModels.id },
             )
 
         val folderName = Folders.name.alias("folder_name")
         val folderEmoji = Folders.emoji.alias("folder_emoji")
+        val workModel = AvailableModels.model.alias("work_model")
         val titleScoreBase =
             scoreExpression(normalizedQuery) { keyword ->
                 bigmSimilarity(Links.title, keyword)
@@ -114,6 +120,7 @@ class DbLinkRepository : LinkRepository {
                     Links.folderId,
                     folderName,
                     folderEmoji,
+                    workModel,
                     Links.url,
                     Links.title,
                     Links.tags,
@@ -156,6 +163,7 @@ class DbLinkRepository : LinkRepository {
             it.toSearchLinksQuery(
                 folderName = folderName,
                 folderEmoji = folderEmoji,
+                workModel = workModel,
                 score = score,
                 titleScore = titleScore,
                 urlScore = urlScore,
@@ -391,6 +399,7 @@ class DbLinkRepository : LinkRepository {
     private fun ResultRow.toSearchLinksQuery(
         folderName: Expression<String>,
         folderEmoji: Expression<String?>,
+        workModel: Expression<String>,
         score: Expression<Double>,
         titleScore: Expression<Double>,
         urlScore: Expression<Double>,
@@ -403,6 +412,7 @@ class DbLinkRepository : LinkRepository {
             folderId = this[Links.folderId],
             folderName = this[folderName],
             folderEmoji = this[folderEmoji],
+            workModel = this[workModel],
             url = this[Links.url],
             title = this[Links.title],
             tags = this[Links.tags],

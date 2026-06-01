@@ -14,6 +14,7 @@ data class SearchLinksQuery(
     val folderId: Long?,
     val folderName: String?,
     val folderEmoji: String?,
+    val workModel: String?,
     val url: String,
     val title: String,
     val tags: List<String>,

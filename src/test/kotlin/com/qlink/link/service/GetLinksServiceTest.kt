@@ -1,5 +1,10 @@
 package com.qlink.link.service
 
+import com.qlink.ai.domain.AiProvider
+import com.qlink.ai.domain.AiProviderType
+import com.qlink.ai.domain.AvailableModel
+import com.qlink.ai.repository.AiProviderRepository
+import com.qlink.ai.repository.AvailableModelRepository
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.scroll.Base64CursorCodec
@@ -33,6 +38,32 @@ class GetLinksServiceTest :
         val folderRepository = koinGet<FolderRepository>()
         val linkRepository = koinGet<LinkRepository>()
         val todoRepository = koinGet<TodoRepository>()
+        val aiProviderRepository = koinGet<AiProviderRepository>()
+        val availableModelRepository = koinGet<AvailableModelRepository>()
+
+        suspend fun modelFixture(): AvailableModel {
+            val provider =
+                aiProviderRepository.findByType(AiProviderType.CLAUDE)
+                    ?: aiProviderRepository.insert(
+                        AiProvider(
+                            type = AiProviderType.CLAUDE,
+                            baseUrl = "https://example.com",
+                        ),
+                    )
+
+            return availableModelRepository
+                .findAllByProviderId(provider.id!!)
+                .firstOrNull()
+                ?: availableModelRepository.insert(
+                    AvailableModel(
+                        providerId = provider.id,
+                        model = "list-test-model",
+                        priority = 1,
+                        rpdLimit = 20,
+                        tpdLimit = 2_000_000,
+                    ),
+                )
+        }
 
         Given("링크 검색 서비스 테스트") {
             lateinit var user: User
@@ -45,6 +76,7 @@ class GetLinksServiceTest :
 
             When("최신순으로 검색하면") {
                 Then("folderEmoji와 todo preview를 포함해 반환한다") {
+                    val model = modelFixture()
                     val firstLink =
                         linkRepository.insert(
                             LinkFixture.createRandomLinkOf(
@@ -53,6 +85,7 @@ class GetLinksServiceTest :
                                 title = "검색 대상 첫 링크",
                                 url = "https://example.com/first",
                                 tags = listOf("검색", "첫번째"),
+                                workModelId = model.id,
                             ),
                         )
                     val secondLink =
@@ -87,6 +120,7 @@ class GetLinksServiceTest :
                     response.contents[1].folderId shouldBe folder.id
                     response.contents[1].folderName shouldBe folder.name
                     response.contents[1].folderEmoji shouldBe folder.emoji
+                    response.contents[1].workModel shouldBe model.model
                 }
             }
 

@@ -69,6 +69,7 @@ fun serviceModule() =
                 linkRepository = get(),
                 folderRepository = get(),
                 todoRepository = get(),
+                availableModelRepository = get(),
             )
         }
 

@@ -26,6 +26,7 @@ data class GetLinkDetailResponse(
     val folderName: String?,
     val folderEmoji: String?,
     val todos: List<LinkDetailTodoQuery>,
+    val workModel: String?,
 )
 
 @Serializable
@@ -38,6 +39,7 @@ data class GetLinksContentResponse(
     val title: String,
     val tags: List<String>,
     val createdAt: Instant,
+    val workModel: String?,
     val todos: List<LinkSearchTodoResponse>,
     val countMoreTodos: Int,
 )
