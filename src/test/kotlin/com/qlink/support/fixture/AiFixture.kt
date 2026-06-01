@@ -3,16 +3,14 @@ package com.qlink.support.fixture
 import com.qlink.ai.domain.AiProvider
 import com.qlink.ai.domain.AiProviderType
 import com.qlink.ai.domain.AvailableModel
+import kotlin.random.Random
 
 object AiFixture {
-    fun createRandomValidAiProvider(excludingTypes: Set<AiProviderType> = emptySet()): AiProvider {
-        val candidates = AiProviderType.entries.filterNot { it in excludingTypes }
-
-        return AiProvider(
-            type = candidates[RandomFixture.randomInt(0, candidates.lastIndex)],
+    fun createRandomValidAiProvider(): AiProvider =
+        AiProvider(
+            type = AiProviderType.entries[Random.nextInt(AiProviderType.entries.size)],
             baseUrl = RandomFixture.randomUrl(),
         )
-    }
 
     fun createRandomAvailableModelOf(providerId: Long): AvailableModel =
         AvailableModel(
