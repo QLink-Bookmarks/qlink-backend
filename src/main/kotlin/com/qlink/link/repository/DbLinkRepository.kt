@@ -110,15 +110,16 @@ class DbLinkRepository : LinkRepository {
         val normalizedQuery = query?.trim()?.takeIf { it.isNotEmpty() }
         val loweredQuery = normalizedQuery?.lowercase()
         val joined =
-            Links.join(
-                otherTable = Folders,
-                joinType = JoinType.LEFT,
-                additionalConstraint = { Links.folderId eq Folders.id },
-            ).join(
-                otherTable = AvailableModels,
-                joinType = JoinType.LEFT,
-                additionalConstraint = { Links.workModelId eq AvailableModels.id },
-            )
+            Links
+                .join(
+                    otherTable = Folders,
+                    joinType = JoinType.LEFT,
+                    additionalConstraint = { Links.folderId eq Folders.id },
+                ).join(
+                    otherTable = AvailableModels,
+                    joinType = JoinType.LEFT,
+                    additionalConstraint = { Links.workModelId eq AvailableModels.id },
+                )
 
         val folderName = Folders.name.alias("folder_name")
         val folderEmoji = Folders.emoji.alias("folder_emoji")

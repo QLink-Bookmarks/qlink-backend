@@ -4,8 +4,8 @@ package com.qlink.link.dto
 
 import com.qlink.common.search.SearchCursor
 import com.qlink.common.search.SearchOrder
-import com.qlink.link.domain.SourceType
 import com.qlink.link.domain.LinkStatus
+import com.qlink.link.domain.SourceType
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
 

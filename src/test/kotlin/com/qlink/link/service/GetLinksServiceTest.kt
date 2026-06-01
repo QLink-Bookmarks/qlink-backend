@@ -45,7 +45,7 @@ class GetLinksServiceTest :
         suspend fun modelFixture(): AvailableModel {
             val provider =
                 AiFixture
-                    .createRandomValidAiProvider(excludingTypes = setOf(AiProviderType.GEMINI, AiProviderType.OPENAI))
+                    .createRandomValidAiProvider(type = AiProviderType.CLAUDE)
                     .let { aiProvider -> aiProviderRepository.findByType(aiProvider.type) ?: aiProviderRepository.insert(aiProvider) }
 
             return availableModelRepository

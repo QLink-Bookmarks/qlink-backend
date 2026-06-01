@@ -3,8 +3,8 @@ package com.qlink.link.service
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.transaction.TransactionRunner
-import com.qlink.link.dto.LinkDetailQuery
 import com.qlink.link.dto.GetLinkDetailResponse
+import com.qlink.link.dto.LinkDetailQuery
 import com.qlink.link.repository.LinkRepository
 import com.qlink.todo.dto.LinkDetailTodoQuery
 import com.qlink.todo.repository.TodoRepository
@@ -32,9 +32,7 @@ class GetLinkDetailService(
             )
         }
 
-    private fun LinkDetailQuery.toResponse(
-        todos: List<LinkDetailTodoQuery>,
-    ): GetLinkDetailResponse =
+    private fun LinkDetailQuery.toResponse(todos: List<LinkDetailTodoQuery>): GetLinkDetailResponse =
         GetLinkDetailResponse(
             id = id,
             url = url,

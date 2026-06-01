@@ -1,5 +1,6 @@
 package com.qlink.di
 
+import com.qlink.ai.service.GetAiProviderModelsService
 import com.qlink.ai.service.UpdateLinkAiSummaryService
 import com.qlink.folder.service.CreateFolderService
 import com.qlink.folder.service.DeleteFolderService
@@ -16,10 +17,38 @@ import com.qlink.todo.service.CreateTodoService
 import com.qlink.todo.service.DeleteTodoService
 import com.qlink.todo.service.GetTodosService
 import com.qlink.todo.service.UpdateTodoService
+import com.qlink.user.service.GetMyProfileService
+import com.qlink.user.service.GetMySettingsService
 import org.koin.dsl.module
 
 fun serviceModule() =
     module {
+        single {
+            GetMyProfileService(
+                tx = get(),
+                userRepository = get(),
+            )
+        }
+
+        single {
+            GetMySettingsService(
+                tx = get(),
+                userRepository = get(),
+                aiProviderRepository = get(),
+                availableModelRepository = get(),
+            )
+        }
+
+        single {
+            GetAiProviderModelsService(
+                tx = get(),
+                userRepository = get(),
+                userProviderRepository = get(),
+                aiProviderRepository = get(),
+                availableModelRepository = get(),
+            )
+        }
+
         single {
             CreateFolderService(
                 tx = get(),

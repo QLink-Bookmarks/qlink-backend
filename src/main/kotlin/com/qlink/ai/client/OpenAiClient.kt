@@ -12,6 +12,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
 class OpenAiClient(
     private val httpClient: HttpClient,
@@ -96,7 +97,7 @@ private data class OpenAiFormat(
     val type: String = "json_schema",
     val name: String = AiSummarySpec.RESPONSE_SCHEMA_NAME,
     val strict: Boolean = true,
-    val schema: kotlinx.serialization.json.JsonObject = AiSummarySpec.openAiJsonSchema,
+    val schema: JsonObject = AiSummarySpec.openAiJsonSchema,
 )
 
 @Serializable
