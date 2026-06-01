@@ -34,11 +34,7 @@ class GetMySettingsServiceTest :
             beforeTest {
                 provider =
                     aiProviderRepository.findByType(AiProviderType.CLAUDE)
-                        ?: aiProviderRepository.insert(
-                            AiFixture.createRandomValidAiProvider(
-                                excludingTypes = setOf(AiProviderType.GEMINI, AiProviderType.OPENAI),
-                            ),
-                        )
+                        ?: aiProviderRepository.insert(AiFixture.createRandomValidAiProvider())
                 model =
                     availableModelRepository
                         .findAllByProviderId(provider.id!!)

@@ -5,14 +5,11 @@ import com.qlink.ai.domain.AiProviderType
 import com.qlink.ai.domain.AvailableModel
 
 object AiFixture {
-    fun createRandomValidAiProvider(excludingTypes: Set<AiProviderType> = emptySet()): AiProvider {
-        val candidates = AiProviderType.entries.filterNot { it in excludingTypes }
-
-        return AiProvider(
-            type = candidates[RandomFixture.randomInt(0, candidates.lastIndex)],
+    fun createRandomValidAiProvider(): AiProvider =
+        AiProvider(
+            type = AiProviderType.CLAUDE,
             baseUrl = RandomFixture.randomUrl(),
         )
-    }
 
     fun createRandomAvailableModelOf(providerId: Long): AvailableModel =
         AvailableModel(
