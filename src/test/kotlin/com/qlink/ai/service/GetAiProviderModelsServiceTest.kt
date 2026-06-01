@@ -11,6 +11,7 @@ import com.qlink.ai.repository.UserProviderRepository
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.support.BaseServiceTest
+import com.qlink.support.fixture.AiFixture
 import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
@@ -28,28 +29,16 @@ class GetAiProviderModelsServiceTest :
         val availableModelRepository = koinGet<AvailableModelRepository>()
         val userProviderRepository = koinGet<UserProviderRepository>()
 
-        suspend fun providerOf(type: AiProviderType): AiProvider =
-            aiProviderRepository.findByType(type)
-                ?: aiProviderRepository.insert(
-                    AiProvider(
-                        type = type,
-                        baseUrl = "https://example.com",
-                    ),
-                )
+        suspend fun randomProvider(excludingTypes: Set<AiProviderType>): AiProvider =
+            AiFixture
+                .createRandomValidAiProvider(excludingTypes = excludingTypes)
+                .let { aiProvider -> aiProviderRepository.findByType(aiProvider.type) ?: aiProviderRepository.insert(aiProvider) }
 
         suspend fun firstModelOf(provider: AiProvider): AvailableModel =
             availableModelRepository
                 .findAllByProviderId(provider.id!!)
                 .firstOrNull()
-                ?: availableModelRepository.insert(
-                    AvailableModel(
-                        providerId = provider.id,
-                        model = "test-model-${provider.id}",
-                        priority = 1,
-                        rpdLimit = 20,
-                        tpdLimit = 2_000_000,
-                    ),
-                )
+                ?: availableModelRepository.insert(AiFixture.createRandomAvailableModelOf(providerId = provider.id))
 
         Given("AI Provider 설정 조회 서비스 테스트") {
             lateinit var user: User
@@ -60,10 +49,9 @@ class GetAiProviderModelsServiceTest :
             beforeTest {
                 user = userRepository.insert(UserFixture.createRandomValidUser())
                 val superAdmin = userRepository.insert(UserFixture.createRandomValidUser())
-                superAdminProvider = providerOf(AiProviderType.GEMINI)
+                superAdminProvider = randomProvider(excludingTypes = emptySet())
                 firstModelOf(superAdminProvider)
-                userProvider =
-                    providerOf(AiProviderType.OPENAI)
+                userProvider = randomProvider(excludingTypes = setOf(superAdminProvider.type))
                 userModel = firstModelOf(userProvider)
                 userProviderRepository.insert(
                     UserProvider(

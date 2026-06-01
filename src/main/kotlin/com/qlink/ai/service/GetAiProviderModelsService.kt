@@ -28,13 +28,9 @@ class GetAiProviderModelsService(
 
             val userProviders = loginId?.let { userProviderRepository.findAllByUserId(it) }.orEmpty()
             val superAdminProviders = userProviderRepository.findAllByRole(UserProviderRole.SUPER_ADMIN)
-            val selectedUserProviders =
-                userProviders.associateBy { it.providerId } +
-                    superAdminProviders
-                        .filterNot { superAdminProvider -> userProviders.any { it.providerId == superAdminProvider.providerId } }
-                        .associateBy { it.providerId }
 
-            selectedUserProviders.values
+            (userProviders + superAdminProviders)
+                .distinctBy { it.providerId }
                 .map { userProvider ->
                     userProvider.toResponse(isDefaultProvider = userProvider.userRole == UserProviderRole.SUPER_ADMIN)
                 }.sortedWith(compareBy({ it.providerType.name }, { it.providerId }))
