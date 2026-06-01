@@ -50,6 +50,7 @@ class GetAiProviderModelsService(
                             id = it.id!!,
                             model = DEFAULT_MODEL_NAME,
                             priority = it.priority,
+                            userProviderId = id!!,
                         )
                     }
                 } else {
@@ -58,6 +59,7 @@ class GetAiProviderModelsService(
                             id = it.id!!,
                             model = it.model,
                             priority = it.priority,
+                            userProviderId = id!!,
                         )
                     }
                 },

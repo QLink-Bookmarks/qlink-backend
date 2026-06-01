@@ -17,4 +17,5 @@ data class AiProviderModelResponse(
     val id: Long,
     val model: String,
     val priority: Int,
+    val userProviderId: Long,
 )
