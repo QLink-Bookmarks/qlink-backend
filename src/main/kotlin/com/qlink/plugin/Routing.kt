@@ -1,5 +1,6 @@
 package com.qlink.plugin
 
+import com.qlink.ai.route.aiRoutes
 import com.qlink.auth.domain.JwtPrincipal
 import com.qlink.auth.domain.Role
 import com.qlink.folder.route.folderRoutes
@@ -58,6 +59,7 @@ fun Application.configureRouting() {
         }
 
         route("/api") {
+            aiRoutes()
             folderRoutes()
             linkRoutes()
             todoRoutes()

@@ -26,6 +26,7 @@ private const val API_PREFIX = "api"
 
 private val apiTags =
     mapOf(
+        "ai" to "AI API",
         "links" to "링크 API",
         "users" to "유저 API",
         "folders" to "폴더 API",

@@ -9,12 +9,12 @@ import com.qlink.ai.domain.AiProvider
 import com.qlink.ai.domain.AiProviderType
 import com.qlink.ai.domain.AvailableModel
 import com.qlink.ai.domain.UserProvider
-import com.qlink.auth.domain.Role
 import com.qlink.ai.repository.AiProviderRepository
 import com.qlink.ai.repository.AvailableModelRepository
 import com.qlink.ai.repository.UserProviderRepository
 import com.qlink.ai.worker.AiSummaryDispatcher
 import com.qlink.ai.worker.AiSummaryWorker
+import com.qlink.auth.domain.Role
 import kotlinx.coroutines.channels.Channel
 import org.koin.dsl.module
 import org.slf4j.LoggerFactory
