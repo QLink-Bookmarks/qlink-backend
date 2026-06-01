@@ -16,6 +16,9 @@ enum class ErrorCode(
     AUTH_WRONG_CREDENTIALS("AUTH_401_0003", 401, "인증 형태가 유효하지 않아요"),
     AUTH_UNEXPECTED_CREDENTIALS("AUTH_401_0004", 401, "예기치 못한 인증 오류가 발생했어요"),
 
+    // User
+    USER_NOT_FOUND("USER_404_0001", 404, "로그인 사용자를 찾을 수 없어요"),
+
     // LINK
     LINK_URL_BLANK("LINK_400_0001", 400, "URL에 입력된 값이 없어요"),
     LINK_URL_WRONG_FORMAT("LINK_400_0002", 400, "잘못된 URL이에요"),

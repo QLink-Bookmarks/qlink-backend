@@ -5,6 +5,7 @@ import com.qlink.auth.domain.Role
 import com.qlink.folder.route.folderRoutes
 import com.qlink.link.route.linkRoutes
 import com.qlink.todo.route.todoRoutes
+import com.qlink.user.route.userRoutes
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.route
 import io.ktor.http.HttpStatusCode
@@ -60,6 +61,7 @@ fun Application.configureRouting() {
             folderRoutes()
             linkRoutes()
             todoRoutes()
+            userRoutes()
         }
     }
 }

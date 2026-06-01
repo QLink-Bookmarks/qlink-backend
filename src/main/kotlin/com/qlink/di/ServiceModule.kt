@@ -16,10 +16,28 @@ import com.qlink.todo.service.CreateTodoService
 import com.qlink.todo.service.DeleteTodoService
 import com.qlink.todo.service.GetTodosService
 import com.qlink.todo.service.UpdateTodoService
+import com.qlink.user.service.GetMyProfileService
+import com.qlink.user.service.GetMySettingsService
 import org.koin.dsl.module
 
 fun serviceModule() =
     module {
+        single {
+            GetMyProfileService(
+                tx = get(),
+                userRepository = get(),
+            )
+        }
+
+        single {
+            GetMySettingsService(
+                tx = get(),
+                userRepository = get(),
+                aiProviderRepository = get(),
+                availableModelRepository = get(),
+            )
+        }
+
         single {
             CreateFolderService(
                 tx = get(),

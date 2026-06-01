@@ -6,7 +6,8 @@ object UserFixture {
     fun createRandomValidUser(): User =
         User(
             id = RandomFixture.randomId(),
-            displayName = RandomFixture.randomSentenceWithMax(50),
+            username = "user-${RandomFixture.randomId()}",
+            nickname = RandomFixture.randomSentenceWithMax(50),
             avatarUrl = RandomFixture.randomUrl(),
             avatarEmoji = RandomFixture.randomEmoji(),
         )
