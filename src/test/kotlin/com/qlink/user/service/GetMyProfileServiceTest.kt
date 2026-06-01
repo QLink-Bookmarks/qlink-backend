@@ -69,7 +69,6 @@ private fun User.copyForProfile(role: Role): User =
         username = username,
         nickname = nickname,
         role = role,
-        displayName = displayName,
         avatarUrl = avatarUrl,
         avatarEmoji = avatarEmoji,
         theme = theme,

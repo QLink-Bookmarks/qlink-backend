@@ -8,6 +8,7 @@ import com.qlink.ai.repository.AvailableModelRepository
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.support.BaseServiceTest
+import com.qlink.support.fixture.AiFixture
 import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
@@ -34,9 +35,8 @@ class GetMySettingsServiceTest :
                 provider =
                     aiProviderRepository.findByType(AiProviderType.CLAUDE)
                         ?: aiProviderRepository.insert(
-                            AiProvider(
-                                type = AiProviderType.CLAUDE,
-                                baseUrl = "https://example.com",
+                            AiFixture.createRandomValidAiProvider(
+                                excludingTypes = setOf(AiProviderType.GEMINI, AiProviderType.OPENAI),
                             ),
                         )
                 model =
@@ -44,13 +44,7 @@ class GetMySettingsServiceTest :
                         .findAllByProviderId(provider.id!!)
                         .firstOrNull()
                         ?: availableModelRepository.insert(
-                            AvailableModel(
-                                providerId = provider.id!!,
-                                model = "test-model",
-                                priority = 1,
-                                rpdLimit = 20,
-                                tpdLimit = 2_000_000,
-                            ),
+                            AiFixture.createRandomAvailableModelOf(providerId = provider.id!!),
                         )
                 user =
                     userRepository.insert(
@@ -112,7 +106,6 @@ private fun User.copyForSettings(
         username = username,
         nickname = nickname,
         role = role,
-        displayName = displayName,
         avatarUrl = avatarUrl,
         avatarEmoji = avatarEmoji,
         theme = theme,
