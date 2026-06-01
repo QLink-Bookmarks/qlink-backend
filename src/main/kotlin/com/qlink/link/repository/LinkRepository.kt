@@ -1,6 +1,7 @@
 package com.qlink.link.repository
 
 import com.qlink.link.domain.Link
+import com.qlink.link.dto.LinkDetailQuery
 import com.qlink.link.dto.LinkSearchCursor
 import com.qlink.link.dto.LinkSearchOrder
 import com.qlink.link.dto.SearchLinksQuery
@@ -9,6 +10,8 @@ interface LinkRepository {
     suspend fun insert(link: Link): Link
 
     suspend fun findById(linkId: Long): Link?
+
+    suspend fun findDetailById(linkId: Long): LinkDetailQuery?
 
     suspend fun search(
         ownerId: Long,

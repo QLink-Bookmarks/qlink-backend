@@ -6,9 +6,9 @@ import com.qlink.ai.domain.AvailableModel
 import kotlin.random.Random
 
 object AiFixture {
-    fun createRandomValidAiProvider(): AiProvider =
+    fun createRandomValidAiProvider(type: AiProviderType = randomAiProviderType()): AiProvider =
         AiProvider(
-            type = AiProviderType.entries[Random.nextInt(AiProviderType.entries.size)],
+            type = type,
             baseUrl = RandomFixture.randomUrl(),
         )
 
@@ -20,4 +20,6 @@ object AiFixture {
             rpdLimit = RandomFixture.randomInt(1, 1000),
             tpdLimit = RandomFixture.randomInt(1, 10_000_000),
         )
+
+    private fun randomAiProviderType(): AiProviderType = AiProviderType.entries[Random.nextInt(AiProviderType.entries.size)]
 }

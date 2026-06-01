@@ -21,6 +21,7 @@ object LinkFixture {
         tags: List<String> = randomDistinctTags(),
         thumbnailUrl: String? = RandomFixture.randomUrl(),
         sourceType: SourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
+        workModelId: Long? = null,
     ): Link =
         Link(
             id = RandomFixture.randomId(),
@@ -32,6 +33,7 @@ object LinkFixture {
             memo = memo,
             thumbnailUrl = thumbnailUrl,
             sourceType = sourceType,
+            workModelId = workModelId,
             tags = tags,
         )
 

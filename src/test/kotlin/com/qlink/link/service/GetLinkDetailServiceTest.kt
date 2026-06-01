@@ -1,5 +1,10 @@
 package com.qlink.link.service
 
+import com.qlink.ai.domain.AiProvider
+import com.qlink.ai.domain.AiProviderType
+import com.qlink.ai.domain.AvailableModel
+import com.qlink.ai.repository.AiProviderRepository
+import com.qlink.ai.repository.AvailableModelRepository
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.folder.domain.Folder
@@ -7,6 +12,7 @@ import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.domain.Link
 import com.qlink.link.repository.LinkRepository
 import com.qlink.support.BaseServiceTest
+import com.qlink.support.fixture.AiFixture
 import com.qlink.support.fixture.FolderFixture
 import com.qlink.support.fixture.LinkFixture
 import com.qlink.support.fixture.RandomFixture
@@ -30,6 +36,20 @@ class GetLinkDetailServiceTest :
         val linkRepository = koinGet<LinkRepository>()
         val folderRepository = koinGet<FolderRepository>()
         val todoRepository = koinGet<TodoRepository>()
+        val aiProviderRepository = koinGet<AiProviderRepository>()
+        val availableModelRepository = koinGet<AvailableModelRepository>()
+
+        suspend fun modelFixture(): AvailableModel {
+            val provider =
+                AiFixture
+                    .createRandomValidAiProvider(type = AiProviderType.CLAUDE)
+                    .let { aiProvider -> aiProviderRepository.findByType(aiProvider.type) ?: aiProviderRepository.insert(aiProvider) }
+
+            return availableModelRepository
+                .findAllByProviderId(provider.id!!)
+                .firstOrNull()
+                ?: availableModelRepository.insert(AiFixture.createRandomAvailableModelOf(providerId = provider.id))
+        }
 
         Given("링크 상세 조회 서비스 테스트") {
             lateinit var user: User
@@ -43,11 +63,13 @@ class GetLinkDetailServiceTest :
             }
 
             When("폴더와 할 일이 있는 본인 링크 상세 조회를") {
+                val model = modelFixture()
                 val link =
                     linkRepository.insert(
                         LinkFixture.createRandomLinkOf(
                             ownerId = user.id!!,
                             folderId = folder.id,
+                            workModelId = model.id,
                         ),
                     )
                 val otherLink =
@@ -95,6 +117,7 @@ class GetLinkDetailServiceTest :
                     actual.folderId shouldBe expectedFolderId
                     actual.folderName shouldBe expectedFolderName
                     actual.folderEmoji shouldBe expectedFolderEmoji
+                    actual.workModel shouldBe model.model
                     actual.todos shouldContainExactly todos.map { it.toExpectedTodo() }
                 }
             }
@@ -113,6 +136,7 @@ class GetLinkDetailServiceTest :
                     actual.folderId shouldBe null
                     actual.folderName shouldBe null
                     actual.folderEmoji shouldBe null
+                    actual.workModel shouldBe null
                     actual.todos shouldBe emptyList()
                 }
             }

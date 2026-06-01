@@ -67,6 +67,7 @@ class GetLinksService(
                             folderId = queryRow.folderId,
                             folderName = queryRow.folderName,
                             folderEmoji = queryRow.folderEmoji,
+                            workModel = queryRow.workModel,
                             url = queryRow.url,
                             title = queryRow.title,
                             tags = queryRow.tags,
