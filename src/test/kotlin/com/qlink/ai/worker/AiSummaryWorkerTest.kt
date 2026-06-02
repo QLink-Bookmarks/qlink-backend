@@ -8,8 +8,8 @@ import com.qlink.ai.repository.AiProviderRepository
 import com.qlink.ai.repository.AvailableModelRepository
 import com.qlink.ai.repository.DailyUsageRepository
 import com.qlink.ai.repository.UserProviderRepository
-import com.qlink.auth.domain.Role
 import com.qlink.ai.service.UpdateLinkAiSummaryService
+import com.qlink.auth.domain.Role
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
@@ -50,14 +50,13 @@ class AiSummaryWorkerTest :
         suspend fun insertAiContext(
             userId: Long,
             role: Role = Role.NORMAL,
-        ) =
-            insertAiContext(
-                userId = userId,
-                aiProviderRepository = aiProviderRepository,
-                availableModelRepository = availableModelRepository,
-                userProviderRepository = userProviderRepository,
-                role = role,
-            )
+        ) = insertAiContext(
+            userId = userId,
+            aiProviderRepository = aiProviderRepository,
+            availableModelRepository = availableModelRepository,
+            userProviderRepository = userProviderRepository,
+            role = role,
+        )
 
         Given("AI 요약 worker 테스트") {
             lateinit var user: User
@@ -109,6 +108,32 @@ class AiSummaryWorkerTest :
                     usage!!.requests shouldBe 1
                     usage.tokens shouldBe 831
                     todos.map { it.title } shouldBe listOf("AI 할 일")
+                }
+            }
+
+            When("AI 응답 folderId가 요청 사용자의 폴더가 아니면") {
+                Then("요약은 성공 처리하고 링크 폴더를 null로 저장한다") {
+                    val (userProvider, model) = insertAiContext(userId = user.id!!)
+                    fakeAiClient.folderId = Long.MAX_VALUE
+                    val request =
+                        AiSummaryRequest(
+                            id = link.id!!,
+                            userProviderId = userProvider.id!!,
+                            modelId = model.id!!,
+                            url = link.url,
+                        )
+                    service.updateLinkAiSummary(user.id!!, request)
+                    val jobId = withTimeout(1_000) { commandChannel.receive() }
+
+                    worker.proceed(jobId)
+
+                    val actualJob = aiJobRepository.findById(jobId)!!
+                    val actualLink = linkRepository.findById(link.id!!)!!
+
+                    actualJob.status shouldBe AiJobStatus.C
+                    actualLink.status shouldBe LinkStatus.A
+                    actualLink.folderId shouldBe null
+                    actualLink.summary shouldBe "AI 요약"
                 }
             }
 

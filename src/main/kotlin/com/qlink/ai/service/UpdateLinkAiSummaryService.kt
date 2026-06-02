@@ -137,7 +137,7 @@ class UpdateLinkAiSummaryService(
             folderRepository.findAllByOwnerId(ownerId).forEach { folder ->
                 add(
                     buildJsonObject {
-                        folder.id?.let { put("id", it) } ?: put("id", JsonNull)
+                        put("id", folder.id)
                         put("title", folder.name)
                     },
                 )
