@@ -1,8 +1,10 @@
 package com.qlink.support.fixture
 
 import com.qlink.todo.domain.Todo
+import com.qlink.todo.domain.RepeatDay
 import com.qlink.todo.dto.CompleteTodoRequest
 import com.qlink.todo.dto.UpdateTodoRequest
+import java.time.LocalTime
 import kotlin.time.Instant
 import kotlin.time.toKotlinInstant
 
@@ -12,6 +14,10 @@ object TodoFixture {
         ownerId: Long,
         title: String = RandomFixture.randomSentenceWithMax(50),
         reminderAt: Instant? = RandomFixture.randomDateTime().toInstant().toKotlinInstant(),
+        repeatUntil: Instant? = null,
+        repeatDays: List<RepeatDay>? = null,
+        repeatTime: LocalTime? = null,
+        repeatTimezone: String? = null,
         completedAt: Instant? = null,
     ): Todo =
         Todo(
@@ -20,6 +26,10 @@ object TodoFixture {
             ownerId = ownerId,
             title = title,
             reminderAt = reminderAt,
+            repeatUntil = repeatUntil,
+            repeatDays = repeatDays,
+            repeatTime = repeatTime,
+            repeatTimezone = repeatTimezone,
             completedAt = completedAt,
         )
 
@@ -27,11 +37,19 @@ object TodoFixture {
         linkId: Long,
         title: String = RandomFixture.randomSentenceWithMax(50),
         reminderAt: Instant? = RandomFixture.randomDateTime().toInstant().toKotlinInstant(),
+        repeatUntil: Instant? = null,
+        repeatDays: List<RepeatDay>? = null,
+        repeatTime: String? = null,
+        repeatTimezone: String? = null,
     ): UpdateTodoRequest =
         UpdateTodoRequest(
             linkId = linkId,
             title = title,
             reminderAt = reminderAt,
+            repeatUntil = repeatUntil,
+            repeatDays = repeatDays,
+            repeatTime = repeatTime,
+            repeatTimezone = repeatTimezone,
         )
 
     fun createCompleteTodoRequest(isCompleted: Boolean): CompleteTodoRequest =

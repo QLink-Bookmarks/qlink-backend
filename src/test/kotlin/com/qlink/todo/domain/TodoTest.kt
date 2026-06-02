@@ -9,7 +9,9 @@ import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import java.time.LocalTime
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 class TodoTest :
     BehaviorSpec({
@@ -132,6 +134,10 @@ class TodoTest :
                         linkId = linkId,
                         title = title,
                         reminderAt = null,
+                        repeatUntil = null,
+                        repeatDays = null,
+                        repeatTime = null,
+                        repeatTimezone = null,
                     )
 
                 Then("성공한다") {
@@ -160,6 +166,10 @@ class TodoTest :
                         linkId = todo.linkId,
                         title = "",
                         reminderAt = todo.reminderAt,
+                        repeatUntil = todo.repeatUntil,
+                        repeatDays = todo.repeatDays,
+                        repeatTime = todo.repeatTime,
+                        repeatTimezone = todo.repeatTimezone,
                     )
                 }
 
@@ -235,6 +245,111 @@ class TodoTest :
                 Then("미완료 상태가 유지된다") {
                     actual.completedAt shouldBe null
                     actual.isCompleted shouldBe false
+                }
+            }
+        }
+
+        Given("반복 알림 계산 테스트") {
+            val linkId = RandomFixture.randomId()
+            val ownerId = RandomFixture.randomId()
+
+            When("오늘 반복 시간이 아직 지나지 않았으면") {
+                val now = Instant.parse("2026-06-01T00:00:00Z")
+                val todo =
+                    TodoFixture.createRandomTodoOf(
+                        linkId = linkId,
+                        ownerId = ownerId,
+                        reminderAt = null,
+                        repeatUntil = Instant.parse("2026-06-30T00:00:00Z"),
+                        repeatDays = listOf(RepeatDay.MONDAY),
+                        repeatTime = LocalTime.of(10, 30),
+                        repeatTimezone = "Asia/Seoul",
+                    )
+                val actual = todo.setNextReminder(now)
+
+                Then("오늘 반복 시간으로 알림을 설정한다") {
+                    actual.reminderAt shouldBe Instant.parse("2026-06-01T01:30:00Z")
+                }
+            }
+
+            When("오늘 반복 시간이 이미 지났으면") {
+                val now = Instant.parse("2026-06-01T02:00:00Z")
+                val todo =
+                    TodoFixture.createRandomTodoOf(
+                        linkId = linkId,
+                        ownerId = ownerId,
+                        reminderAt = null,
+                        repeatUntil = Instant.parse("2026-06-30T00:00:00Z"),
+                        repeatDays = listOf(RepeatDay.MONDAY),
+                        repeatTime = LocalTime.of(10, 30),
+                        repeatTimezone = "Asia/Seoul",
+                    )
+                val actual = todo.setNextReminder(now)
+
+                Then("다음 주 같은 요일 반복 시간으로 알림을 설정한다") {
+                    actual.reminderAt shouldBe Instant.parse("2026-06-08T01:30:00Z")
+                }
+            }
+
+            When("다음 알림이 반복 종료 시각 이후이면") {
+                val now = Instant.parse("2026-06-01T00:00:00Z")
+                val todo =
+                    TodoFixture.createRandomTodoOf(
+                        linkId = linkId,
+                        ownerId = ownerId,
+                        reminderAt = null,
+                        repeatUntil = Instant.parse("2026-06-01T01:00:00Z"),
+                        repeatDays = listOf(RepeatDay.MONDAY),
+                        repeatTime = LocalTime.of(10, 30),
+                        repeatTimezone = "Asia/Seoul",
+                    )
+                val actual = todo.setNextReminder(now)
+
+                Then("알림을 비운다") {
+                    actual.reminderAt shouldBe null
+                }
+            }
+        }
+
+        Given("반복 설정 검증 테스트") {
+            val linkId = RandomFixture.randomId()
+            val ownerId = RandomFixture.randomId()
+
+            When("반복 필드 일부가 누락되면") {
+                val create = {
+                    Todo(
+                        linkId = linkId,
+                        ownerId = ownerId,
+                        title = RandomFixture.randomSentenceWithMax(50),
+                        repeatUntil = Instant.parse("2026-06-30T00:00:00Z"),
+                        repeatDays = listOf(RepeatDay.MONDAY),
+                    )
+                }
+
+                Then("예외를 반환한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.TODO_REPEAT_FIELDS_INCOMPLETE.message) {
+                        create()
+                    }
+                }
+            }
+
+            When("시간대가 올바르지 않으면") {
+                val create = {
+                    Todo(
+                        linkId = linkId,
+                        ownerId = ownerId,
+                        title = RandomFixture.randomSentenceWithMax(50),
+                        repeatUntil = Instant.parse("2026-06-30T00:00:00Z"),
+                        repeatDays = listOf(RepeatDay.MONDAY),
+                        repeatTime = LocalTime.of(10, 30),
+                        repeatTimezone = "Mars/Seoul",
+                    )
+                }
+
+                Then("예외를 반환한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.TODO_REPEAT_TIMEZONE_INVALID.message) {
+                        create()
+                    }
                 }
             }
         }

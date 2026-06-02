@@ -14,6 +14,7 @@ import com.qlink.support.fixture.FolderFixture
 import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
+import com.qlink.todo.domain.RepeatDay
 import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.domain.User
 import com.qlink.user.repository.UserRepository
@@ -21,7 +22,10 @@ import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import java.util.concurrent.TimeUnit
 import kotlin.random.Random
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
 import kotlin.time.toKotlinInstant
 
 class CreateLinkServiceTest :
@@ -71,11 +75,17 @@ class CreateLinkServiceTest :
             }
 
             When("todos를 포함한 링크 생성을") {
+                val ignoredReminderAt = RandomFixture.pastDateTime(3, TimeUnit.DAYS).toInstant().toKotlinInstant()
+                val repeatUntil = Clock.System.now().plus(30.days)
                 val todos =
                     listOf(
                         CreateLinkTodoRequest(
                             title = RandomFixture.randomSentenceWithMax(50),
-                            reminderAt = RandomFixture.randomDateTime().toInstant().toKotlinInstant(),
+                            reminderAt = ignoredReminderAt,
+                            repeatUntil = repeatUntil,
+                            repeatDays = listOf(RepeatDay.MONDAY, RepeatDay.FRIDAY),
+                            repeatTime = "20:10",
+                            repeatTimezone = "Asia/Seoul",
                         ),
                         CreateLinkTodoRequest(
                             title = RandomFixture.randomSentenceWithMax(50),
@@ -101,7 +111,11 @@ class CreateLinkServiceTest :
 
                     actualLink shouldNotBe null
                     actualTodos.map { it.title } shouldContainExactly todos.map { it.title }
-                    actualTodos.map { it.reminderAt } shouldContainExactly todos.map { it.reminderAt }
+                    actualTodos.first().reminderAt shouldNotBe ignoredReminderAt
+                    actualTodos.first().repeatUntil shouldBe repeatUntil
+                    actualTodos.first().repeatDays shouldBe listOf(RepeatDay.MONDAY, RepeatDay.FRIDAY)
+                    actualTodos.first().repeatTime shouldBe "20:10"
+                    actualTodos.last().reminderAt shouldBe null
                 }
             }
 

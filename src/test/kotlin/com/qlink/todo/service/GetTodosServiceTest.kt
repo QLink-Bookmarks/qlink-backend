@@ -13,6 +13,7 @@ import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.TodoFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
+import com.qlink.todo.domain.RepeatDay
 import com.qlink.todo.dto.TodoSearchCursorValue
 import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.domain.User
@@ -21,6 +22,7 @@ import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
+import java.time.LocalTime
 import java.util.concurrent.TimeUnit
 import kotlin.time.Instant
 import kotlin.time.toKotlinInstant
@@ -37,6 +39,10 @@ class GetTodosServiceTest :
             ownerId: Long,
             title: String,
             reminderAt: Instant? = null,
+            repeatUntil: Instant? = null,
+            repeatDays: List<RepeatDay>? = null,
+            repeatTime: LocalTime? = null,
+            repeatTimezone: String? = null,
             completedAt: Instant? = null,
         ) = todoRepository.insert(
             TodoFixture.createRandomTodoOf(
@@ -44,6 +50,10 @@ class GetTodosServiceTest :
                 ownerId = ownerId,
                 title = title,
                 reminderAt = reminderAt,
+                repeatUntil = repeatUntil,
+                repeatDays = repeatDays,
+                repeatTime = repeatTime,
+                repeatTimezone = repeatTimezone,
                 completedAt = completedAt,
             ),
         )
@@ -108,6 +118,36 @@ class GetTodosServiceTest :
                     firstPage.hasNext shouldBe true
                     secondPage.contents.map { it.id } shouldContainExactly listOf(first.id!!)
                     secondPage.hasNext shouldBe false
+                }
+            }
+
+            When("반복 설정이 있는 할 일 목록 조회를") {
+                val repeatUntil = RandomFixture.futureDateTime(30, TimeUnit.DAYS).toInstant().toKotlinInstant()
+                val todo =
+                    insertTodo(
+                        linkId = link.id!!,
+                        ownerId = user.id!!,
+                        title = "repeat todo",
+                        repeatUntil = repeatUntil,
+                        repeatDays = listOf(RepeatDay.TUESDAY, RepeatDay.THURSDAY),
+                        repeatTime = LocalTime.of(8, 45),
+                        repeatTimezone = "Asia/Seoul",
+                    )
+                val actual =
+                    getTodosService.getTodos(
+                        loginId = user.id!!,
+                        order = "latest",
+                        scrollRequest = ScrollRequest(size = 50),
+                        isCompleted = null,
+                        reminderAt = null,
+                    )
+
+                Then("반복 종료일, 요일, 시간을 반환한다") {
+                    val content = actual.contents.first { it.id == todo.id!! }
+
+                    content.repeatUntil shouldBe repeatUntil
+                    content.repeatDays shouldBe listOf(RepeatDay.TUESDAY, RepeatDay.THURSDAY)
+                    content.repeatTime shouldBe "08:45"
                 }
             }
 
