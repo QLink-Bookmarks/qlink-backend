@@ -2,6 +2,7 @@ package com.qlink.ai.worker
 
 import com.qlink.ai.client.AiClientRouter
 import com.qlink.ai.client.AiSummaryClientRequest
+import com.qlink.ai.crypto.AiApiKeyCipher
 import com.qlink.ai.domain.AiJob
 import com.qlink.ai.domain.AiProvider
 import com.qlink.ai.domain.AvailableModel
@@ -43,6 +44,7 @@ class AiSummaryWorker(
     private val linkRepository: LinkRepository,
     private val todoRepository: TodoRepository,
     private val aiClientRouter: AiClientRouter,
+    private val apiKeyCipher: AiApiKeyCipher,
     private val channel: Channel<Long>,
     private val log: Logger,
 ) {
@@ -74,6 +76,7 @@ class AiSummaryWorker(
                     job = job,
                     userProvider = userProvider,
                     provider = provider,
+                    apiKey = apiKeyCipher.decrypt(userProvider.apiKey) ?: return@readOnly null,
                     requestModel = requestModel,
                     candidateModels = availableModelRepository.findAllByProviderId(provider.id!!),
                     selectableFolderIds = folderRepository.findAllByOwnerId(link.ownerId).mapNotNull { it.id }.toSet(),
@@ -157,7 +160,7 @@ class AiSummaryWorker(
                             AiSummaryClientRequest(
                                 providerType = context.provider.type,
                                 baseUrl = context.provider.baseUrl,
-                                apiKey = context.userProvider.apiKey,
+                                apiKey = context.apiKey,
                                 model = model.model,
                                 prompt = context.job.prompt,
                             ),
@@ -249,6 +252,7 @@ class AiSummaryWorker(
         val job: AiJob,
         val userProvider: UserProvider,
         val provider: AiProvider,
+        val apiKey: String,
         val requestModel: AvailableModel,
         val candidateModels: List<AvailableModel>,
         val selectableFolderIds: Set<Long>,

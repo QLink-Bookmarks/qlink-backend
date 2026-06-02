@@ -63,5 +63,6 @@ logging:
       - apiKey
 
 security:
+  aiApiKeyEncryptionKeyBase64: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
   jwt:
     secret: Y1d4cGJtc3RZbTl2YTIxaGNtdHo=

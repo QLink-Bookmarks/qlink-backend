@@ -8,4 +8,9 @@ class AiResources {
     class ProviderModels(
         val parent: AiResources = AiResources(),
     )
+
+    @Resource("users/providers")
+    class UserProviders(
+        val parent: AiResources = AiResources(),
+    )
 }

@@ -35,8 +35,11 @@ enum class ErrorCode(
 
     // AI
     AI_PROVIDER_NOT_SUPPORTED("AI_400_0001", 400, "지원하지 않는 AI 제공자에요"),
+    AI_API_KEY_INVALID("AI_400_0002", 400, "유효하지 않은 AI API 키에요"),
+    AI_VENDOR_TEMPORARY_UNAVAILABLE("AI_422_0001", 422, "AI 제공자 서비스를 일시적으로 사용할 수 없어요"),
     AI_USER_PROVIDER_NOT_FOUND("AI_404_0001", 404, "AI 제공자 설정을 찾을 수 없어요"),
     AI_MODEL_NOT_FOUND("AI_404_0002", 404, "AI 모델을 찾을 수 없어요"),
+    AI_PROVIDER_NOT_FOUND("AI_404_0003", 404, "AI 제공자를 찾을 수 없어요"),
     AI_API_KEY_MISSING("AI_500_0001", 500, "AI API 키가 설정되지 않았어요"),
     AI_EMPTY_RESPONSE("AI_502_0001", 502, "AI 응답이 비어 있어요"),
 

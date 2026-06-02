@@ -8,8 +8,8 @@ import com.qlink.ai.repository.AiProviderRepository
 import com.qlink.ai.repository.AvailableModelRepository
 import com.qlink.ai.repository.DailyUsageRepository
 import com.qlink.ai.repository.UserProviderRepository
-import com.qlink.auth.domain.Role
 import com.qlink.ai.service.UpdateLinkAiSummaryService
+import com.qlink.auth.domain.Role
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
@@ -50,14 +50,13 @@ class AiSummaryWorkerTest :
         suspend fun insertAiContext(
             userId: Long,
             role: Role = Role.NORMAL,
-        ) =
-            insertAiContext(
-                userId = userId,
-                aiProviderRepository = aiProviderRepository,
-                availableModelRepository = availableModelRepository,
-                userProviderRepository = userProviderRepository,
-                role = role,
-            )
+        ) = insertAiContext(
+            userId = userId,
+            aiProviderRepository = aiProviderRepository,
+            availableModelRepository = availableModelRepository,
+            userProviderRepository = userProviderRepository,
+            role = role,
+        )
 
         Given("AI 요약 worker 테스트") {
             lateinit var user: User
@@ -106,6 +105,7 @@ class AiSummaryWorkerTest :
                     actualLink.summary shouldBe "AI 요약"
                     actualLink.tags shouldBe listOf("포털", "검색")
                     fakeAiClient.requestedModels shouldBe listOf(model.model)
+                    fakeAiClient.requestedApiKeys shouldBe listOf("api-key")
                     usage!!.requests shouldBe 1
                     usage.tokens shouldBe 831
                     todos.map { it.title } shouldBe listOf("AI 할 일")

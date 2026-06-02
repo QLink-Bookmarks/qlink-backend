@@ -1,6 +1,7 @@
 package com.qlink.di
 
 import com.qlink.ai.service.GetAiProviderModelsService
+import com.qlink.ai.service.PutAiUserProviderService
 import com.qlink.ai.service.UpdateLinkAiSummaryService
 import com.qlink.folder.service.CreateFolderService
 import com.qlink.folder.service.DeleteFolderService
@@ -46,6 +47,17 @@ fun serviceModule() =
                 userProviderRepository = get(),
                 aiProviderRepository = get(),
                 availableModelRepository = get(),
+            )
+        }
+
+        single {
+            PutAiUserProviderService(
+                tx = get(),
+                userRepository = get(),
+                aiProviderRepository = get(),
+                userProviderRepository = get(),
+                aiClientRouter = get(),
+                apiKeyCipher = get(),
             )
         }
 

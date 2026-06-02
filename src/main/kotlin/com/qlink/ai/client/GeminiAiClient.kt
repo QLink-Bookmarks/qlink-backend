@@ -5,6 +5,7 @@ import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -40,6 +41,17 @@ class GeminiAiClient(
             rawResponse = text,
             usedTokens = response.usageMetadata?.totalTokenCount ?: text.length,
         )
+    }
+
+    override suspend fun validateApiKey(request: AiApiKeyValidationRequest) {
+        val response =
+            httpClient.get("${request.baseUrl}/models") {
+                parameter("key", request.apiKey)
+            }
+
+        if (response.status.value !in 200..299) {
+            throw AiApiKeyValidationException(response.status.value)
+        }
     }
 }
 
