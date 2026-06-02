@@ -41,6 +41,10 @@ internal fun createLinkDocs(): RouteConfig.() -> Unit =
                         ErrorCode.LINK_TITLE_OVER_MAX,
                         ErrorCode.TODO_TITLE_BLANK,
                         ErrorCode.TODO_TITLE_OVER_MAX,
+                        ErrorCode.TODO_REPEAT_FIELDS_INCOMPLETE,
+                        ErrorCode.TODO_REPEAT_DAYS_EMPTY,
+                        ErrorCode.TODO_REPEAT_TIME_INVALID,
+                        ErrorCode.TODO_REPEAT_TIMEZONE_INVALID,
                     )
                 }
             }
@@ -221,6 +225,10 @@ internal fun patchLinkDocs(): RouteConfig.() -> Unit =
                         ErrorCode.TODO_TITLE_OVER_MAX,
                         ErrorCode.TODO_DIFFERENT_LINK,
                         ErrorCode.TODO_DUPLICATE_ID,
+                        ErrorCode.TODO_REPEAT_FIELDS_INCOMPLETE,
+                        ErrorCode.TODO_REPEAT_DAYS_EMPTY,
+                        ErrorCode.TODO_REPEAT_TIME_INVALID,
+                        ErrorCode.TODO_REPEAT_TIMEZONE_INVALID,
                     )
                 }
             }

@@ -7,12 +7,14 @@ import com.qlink.common.transaction.TransactionRunner
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
+import com.qlink.link.dto.CreateLinkTodoRequest
 import com.qlink.link.dto.CreateLinkRequest
 import com.qlink.link.dto.CreateLinkResponse
 import com.qlink.link.repository.LinkRepository
 import com.qlink.todo.domain.Todo
 import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.repository.UserRepository
+import kotlin.time.Clock
 
 class CreateLinkService(
     private val tx: TransactionRunner,
@@ -50,15 +52,40 @@ class CreateLinkService(
 
             request.todos.forEach { todoRequest ->
                 todoRepository.insert(
-                    Todo(
+                    todoRequest.toTodo(
                         linkId = createdLink.id!!,
                         ownerId = loginId,
-                        title = todoRequest.title,
-                        reminderAt = todoRequest.reminderAt,
                     ),
                 )
             }
 
             CreateLinkResponse(createdLink.id!!)
         }
+
+    private fun CreateLinkTodoRequest.toTodo(
+        linkId: Long,
+        ownerId: Long,
+    ): Todo {
+        val repeatTime = Todo.parseRepeatTime(repeatTime)
+
+        return Todo(
+            linkId = linkId,
+            ownerId = ownerId,
+            title = title,
+            reminderAt = reminderAt.takeIf { !hasCompleteRepeat() },
+            repeatUntil = repeatUntil,
+            repeatDays = repeatDays,
+            repeatTime = repeatTime,
+            repeatTimezone =
+                Todo.normalizeRepeatTimezone(
+                    repeatUntil = repeatUntil,
+                    repeatDays = repeatDays,
+                    repeatTime = repeatTime,
+                    repeatTimezone = repeatTimezone,
+                ),
+        ).let { if (it.hasRepeat) it.setNextReminder(Clock.System.now()) else it }
+    }
+
+    private fun CreateLinkTodoRequest.hasCompleteRepeat(): Boolean =
+        repeatUntil != null && repeatDays != null && repeatTime != null
 }

@@ -74,6 +74,9 @@ class DbTodoRepository : TodoRepository {
                 Todos.title,
                 Todos.completedAt,
                 Todos.reminderAt,
+                Todos.repeatUntil,
+                Todos.repeatDays,
+                Todos.repeatTime,
             ).where { Todos.linkId eq linkId }
             .orderBy(Todos.id to SortOrder.ASC)
             .map { it.toLinkDetailTodoQuery() }
@@ -90,6 +93,9 @@ class DbTodoRepository : TodoRepository {
                 Todos.title,
                 Todos.completedAt,
                 Todos.reminderAt,
+                Todos.repeatUntil,
+                Todos.repeatDays,
+                Todos.repeatTime,
             ).where { Todos.linkId inList linkIds }
             .orderBy(
                 Todos.linkId to SortOrder.ASC,
@@ -126,6 +132,9 @@ class DbTodoRepository : TodoRepository {
                 Todos.id,
                 Todos.title,
                 Todos.reminderAt,
+                Todos.repeatUntil,
+                Todos.repeatDays,
+                Todos.repeatTime,
                 Todos.linkId,
                 Links.url,
                 linkTitle,

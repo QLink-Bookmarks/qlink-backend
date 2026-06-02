@@ -5,6 +5,7 @@ package com.qlink.todo.dto
 import com.qlink.common.search.SearchCursor
 import com.qlink.common.search.SearchOrder
 import com.qlink.link.repository.table.Links
+import com.qlink.todo.domain.RepeatDay
 import com.qlink.todo.repository.table.Todos
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.core.Expression
@@ -40,6 +41,9 @@ data class LinkDetailTodoQuery(
     val title: String,
     val completedAt: Instant?,
     val reminderAt: Instant?,
+    val repeatUntil: Instant?,
+    val repeatDays: List<RepeatDay>?,
+    val repeatTime: String?,
 )
 
 data class LinkSearchTodoQuery(
@@ -48,6 +52,9 @@ data class LinkSearchTodoQuery(
     val title: String,
     val completedAt: Instant?,
     val reminderAt: Instant?,
+    val repeatUntil: Instant?,
+    val repeatDays: List<RepeatDay>?,
+    val repeatTime: String?,
     val totalCount: Int,
 )
 
@@ -55,6 +62,9 @@ data class SearchTodosQuery(
     val id: Long,
     val title: String,
     val reminderAt: Instant?,
+    val repeatUntil: Instant?,
+    val repeatDays: List<RepeatDay>?,
+    val repeatTime: String?,
     val linkId: Long,
     val linkUrl: String,
     val linkTitle: String,
@@ -66,6 +76,9 @@ fun ResultRow.toLinkDetailTodoQuery(): LinkDetailTodoQuery =
         title = this[Todos.title],
         completedAt = this[Todos.completedAt]?.toKotlinInstant(),
         reminderAt = this[Todos.reminderAt]?.toKotlinInstant(),
+        repeatUntil = this[Todos.repeatUntil]?.toKotlinInstant(),
+        repeatDays = this[Todos.repeatDays]?.toRepeatDays(),
+        repeatTime = this[Todos.repeatTime]?.toString(),
     )
 
 fun ResultRow.toLinkSearchTodoQuery(): LinkSearchTodoQuery =
@@ -75,6 +88,9 @@ fun ResultRow.toLinkSearchTodoQuery(): LinkSearchTodoQuery =
         title = this[Todos.title],
         completedAt = this[Todos.completedAt]?.toKotlinInstant(),
         reminderAt = this[Todos.reminderAt]?.toKotlinInstant(),
+        repeatUntil = this[Todos.repeatUntil]?.toKotlinInstant(),
+        repeatDays = this[Todos.repeatDays]?.toRepeatDays(),
+        repeatTime = this[Todos.repeatTime]?.toString(),
         totalCount = 0,
     )
 
@@ -83,7 +99,15 @@ fun ResultRow.toSearchTodosQuery(linkTitle: Expression<String>): SearchTodosQuer
         id = this[Todos.id],
         title = this[Todos.title],
         reminderAt = this[Todos.reminderAt]?.toKotlinInstant(),
+        repeatUntil = this[Todos.repeatUntil]?.toKotlinInstant(),
+        repeatDays = this[Todos.repeatDays]?.toRepeatDays(),
+        repeatTime = this[Todos.repeatTime]?.toString(),
         linkId = this[Todos.linkId],
         linkUrl = this[Links.url],
         linkTitle = this[linkTitle],
     )
+
+private fun String.toRepeatDays(): List<RepeatDay> =
+    split(",")
+        .filter { it.isNotBlank() }
+        .map { RepeatDay.valueOf(it) }

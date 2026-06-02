@@ -2,6 +2,7 @@
 
 package com.qlink.todo.dto
 
+import com.qlink.todo.domain.RepeatDay
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
 
@@ -15,6 +16,9 @@ data class UpdateTodoResponse(
     val linkId: Long,
     val title: String,
     val reminderAt: Instant?,
+    val repeatUntil: Instant?,
+    val repeatDays: List<RepeatDay>?,
+    val repeatTime: String?,
 )
 
 @Serializable
@@ -27,6 +31,9 @@ data class GetTodosContentResponse(
     val id: Long,
     val title: String,
     val reminderAt: Instant?,
+    val repeatUntil: Instant?,
+    val repeatDays: List<RepeatDay>?,
+    val repeatTime: String?,
     val linkId: Long,
     val linkUrl: String,
     val linkTitle: String,
