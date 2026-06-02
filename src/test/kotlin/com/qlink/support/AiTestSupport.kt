@@ -63,9 +63,14 @@ class FakeAiClient : AiClient {
     var folderId: Long? = null
     var tags: List<String> = listOf("AI 태그")
     var usedTokens: Int = 11
+    var failuresByModel: Map<String, Throwable> = emptyMap()
+    val requestedModels: MutableList<String> = mutableListOf()
 
-    override suspend fun summarize(request: AiSummaryClientRequest): AiSummaryClientResponse =
-        AiSummaryClientResponse(
+    override suspend fun summarize(request: AiSummaryClientRequest): AiSummaryClientResponse {
+        requestedModels.add(request.model)
+        failuresByModel[request.model]?.let { throw it }
+
+        return AiSummaryClientResponse(
             linkId = linkId,
             folderId = folderId,
             rawResponse = """{"id":1,"title":"AI 제목","summary":"AI 요약","todos":[{"title":"AI 할 일","reminderAt":null}]}""",
@@ -75,12 +80,15 @@ class FakeAiClient : AiClient {
             todos = listOf(AiSummaryTodo(title = "AI 할 일", reminderAt = null)),
             usedTokens = usedTokens,
         )
+    }
 
     fun reset() {
         linkId = null
         folderId = null
         tags = listOf("AI 태그")
         usedTokens = 11
+        failuresByModel = emptyMap()
+        requestedModels.clear()
     }
 }
 
