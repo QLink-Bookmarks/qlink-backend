@@ -102,10 +102,12 @@ class AiSummaryWorker(
                         ),
                     )
                     upsertDailyUsage(context.userProvider, result.model, result.response.usedTokens)
+                    val responseFolderId =
+                        result.response.folderId?.takeIf { it in context.selectableFolderIds }
                     linkRepository.update(
                         latestLink
                             .update(
-                                folderId = context.fixedFolderId ?: result.response.folderId,
+                                folderId = context.fixedFolderId ?: responseFolderId,
                                 url = latestLink.url,
                                 title = result.response.title,
                                 summary = result.response.summary,
@@ -171,9 +173,6 @@ class AiSummaryWorker(
 
                 check(result.linkId == null || result.linkId == context.job.linkId) {
                     "AI summary response linkId does not match. expected=${context.job.linkId}, actual=${result.linkId}"
-                }
-                check(result.folderId == null || result.folderId in context.selectableFolderIds) {
-                    "AI summary response folderId is not selectable. folderId=${result.folderId}"
                 }
                 return AiSummaryResult(model = model, response = result)
             }

@@ -58,6 +58,10 @@ class UpdateLinkAiSummaryServiceTest :
 
             When("기존 링크로 AI 요약 요청을") {
                 Then("링크를 생성 중 상태로 바꾸고 작업을 만든다") {
+                    val folder = folderRepository.insert(FolderFixture.createFolderWith(ownerId = user.id!!, name = "요청 사용자 폴더"))
+                    val otherUser = userRepository.insert(UserFixture.createRandomValidUser())
+                    val otherFolder =
+                        folderRepository.insert(FolderFixture.createFolderWith(ownerId = otherUser.id!!, name = "다른 사용자 폴더"))
                     val (userProvider, model) = insertAiContext(userId = user.id!!)
                     val request =
                         AiSummaryRequest(
@@ -81,6 +85,9 @@ class UpdateLinkAiSummaryServiceTest :
                     actualJob.requestedUrl shouldBe request.url
                     actualJob.prompt.contains("## Folders") shouldBe true
                     actualJob.prompt.contains("\"id\":null,\"title\":\"미분류\"") shouldBe true
+                    actualJob.prompt.contains("\"id\":${folder.id},\"title\":\"${folder.name}\"") shouldBe true
+                    actualJob.prompt.contains("\"id\":null,\"title\":\"${folder.name}\"") shouldBe false
+                    actualJob.prompt.contains("\"id\":${otherFolder.id},\"title\":\"${otherFolder.name}\"") shouldBe false
                     actualJob.status shouldBe AiJobStatus.P
                 }
             }
