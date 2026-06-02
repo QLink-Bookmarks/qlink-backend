@@ -1,12 +1,14 @@
 package com.qlink.ai.worker
 
 import com.qlink.ai.domain.AiJobStatus
+import com.qlink.ai.domain.AvailableModel
 import com.qlink.ai.dto.AiSummaryRequest
 import com.qlink.ai.repository.AiJobRepository
 import com.qlink.ai.repository.AiProviderRepository
 import com.qlink.ai.repository.AvailableModelRepository
 import com.qlink.ai.repository.DailyUsageRepository
 import com.qlink.ai.repository.UserProviderRepository
+import com.qlink.auth.domain.Role
 import com.qlink.ai.service.UpdateLinkAiSummaryService
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.domain.Link
@@ -25,6 +27,7 @@ import com.qlink.user.repository.UserRepository
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.withTimeout
+import java.net.URI
 import java.time.LocalDate
 import java.time.ZoneOffset
 
@@ -44,12 +47,16 @@ class AiSummaryWorkerTest :
         val folderRepository = koinGet<FolderRepository>()
         val fakeAiClient = koinGet<FakeAiClient>()
 
-        suspend fun insertAiContext(userId: Long) =
+        suspend fun insertAiContext(
+            userId: Long,
+            role: Role = Role.NORMAL,
+        ) =
             insertAiContext(
                 userId = userId,
                 aiProviderRepository = aiProviderRepository,
                 availableModelRepository = availableModelRepository,
                 userProviderRepository = userProviderRepository,
+                role = role,
             )
 
         Given("AI 요약 worker 테스트") {
@@ -98,9 +105,43 @@ class AiSummaryWorkerTest :
                     actualLink.title shouldBe "AI 제목"
                     actualLink.summary shouldBe "AI 요약"
                     actualLink.tags shouldBe listOf("포털", "검색")
+                    fakeAiClient.requestedModels shouldBe listOf(model.model)
                     usage!!.requests shouldBe 1
                     usage.tokens shouldBe 831
                     todos.map { it.title } shouldBe listOf("AI 할 일")
+                }
+            }
+
+            When("첫 번째 모델 시도가 성공하면") {
+                Then("다음 모델을 시도하지 않는다") {
+                    val (userProvider, model) = insertAiContext(userId = user.id!!, role = Role.SUPER_ADMIN)
+                    availableModelRepository.insert(
+                        AvailableModel(
+                            providerId = userProvider.providerId,
+                            model = "unused-model-${userProvider.id}",
+                            priority = 2,
+                            rpdLimit = 20,
+                            tpdLimit = 2_000_000,
+                        ),
+                    )
+                    val request =
+                        AiSummaryRequest(
+                            id = link.id!!,
+                            userProviderId = userProvider.id!!,
+                            modelId = model.id!!,
+                            url = link.url,
+                        )
+                    service.updateLinkAiSummary(user.id!!, request)
+                    val jobId = withTimeout(1_000) { commandChannel.receive() }
+
+                    worker.proceed(jobId)
+
+                    val actualJob = aiJobRepository.findById(jobId)!!
+                    val actualLink = linkRepository.findById(link.id!!)!!
+
+                    actualJob.status shouldBe AiJobStatus.C
+                    actualLink.status shouldBe LinkStatus.A
+                    fakeAiClient.requestedModels shouldBe listOf(model.model)
                 }
             }
 
@@ -125,6 +166,50 @@ class AiSummaryWorkerTest :
 
                     actualJob.status shouldBe AiJobStatus.F
                     actualLink.status shouldBe LinkStatus.F
+                    actualLink.title shouldBe "AI 생성 실패 - ${URI(link.url).host}"
+                    actualLink.summary shouldBe
+                        "AI summary response linkId does not match. expected=${link.id}, actual=${link.id!! + 1}"
+                }
+            }
+
+            When("모든 모델 시도가 실패하면") {
+                Then("마지막 시도 에러 메시지를 링크 요약에 남긴다") {
+                    val (userProvider, model) = insertAiContext(userId = user.id!!, role = Role.SUPER_ADMIN)
+                    val fallbackModel =
+                        availableModelRepository.insert(
+                            AvailableModel(
+                                providerId = userProvider.providerId,
+                                model = "fallback-model-${userProvider.id}",
+                                priority = 2,
+                                rpdLimit = 20,
+                                tpdLimit = 2_000_000,
+                            ),
+                        )
+                    fakeAiClient.failuresByModel =
+                        mapOf(
+                            model.model to IllegalStateException("first model failure"),
+                            fallbackModel.model to IllegalStateException("fallback model failure"),
+                        )
+                    val request =
+                        AiSummaryRequest(
+                            id = link.id!!,
+                            userProviderId = userProvider.id!!,
+                            modelId = model.id!!,
+                            url = link.url,
+                        )
+                    service.updateLinkAiSummary(user.id!!, request)
+                    val jobId = withTimeout(1_000) { commandChannel.receive() }
+
+                    worker.proceed(jobId)
+
+                    val actualJob = aiJobRepository.findById(jobId)!!
+                    val actualLink = linkRepository.findById(link.id!!)!!
+
+                    actualJob.status shouldBe AiJobStatus.F
+                    actualLink.status shouldBe LinkStatus.F
+                    actualLink.title shouldBe "AI 생성 실패 - ${URI(link.url).host}"
+                    actualLink.summary shouldBe "fallback model failure"
+                    fakeAiClient.requestedModels.last() shouldBe fallbackModel.model
                 }
             }
         }

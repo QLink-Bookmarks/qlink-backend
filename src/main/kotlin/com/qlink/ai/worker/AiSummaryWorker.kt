@@ -26,6 +26,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import org.slf4j.Logger
+import java.net.URI
 import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlin.time.Clock
@@ -54,7 +55,7 @@ class AiSummaryWorker(
                 runCatching { proceed(jobId) }
                     .onFailure {
                         log.warn("[WORKER] Failed to process AI summary. jobId=$jobId", it)
-                        markFailed(jobId)
+                        markFailed(jobId = jobId, reason = it.failureSummary())
                     }
             }
         }
@@ -127,7 +128,7 @@ class AiSummaryWorker(
                 }
             }.onFailure {
                 log.warn("AI summary failed. jobId={}", context.job.id, it)
-                markFailed(context.job.id!!)
+                markFailed(jobId = context.job.id!!, reason = it.failureSummary())
             }
     }
 
@@ -138,6 +139,7 @@ class AiSummaryWorker(
             } else {
                 listOf(context.requestModel)
             }
+        var lastFailure: Throwable? = null
         val availableModels =
             tx.readOnly {
                 models.filterNot { model ->
@@ -149,7 +151,7 @@ class AiSummaryWorker(
             availableModels.forEach { model ->
                 log.info("[WORKER] Trial model=${model.model}")
 
-                val result =
+                val summary =
                     runCatching {
                         aiClientRouter.summarize(
                             AiSummaryClientRequest(
@@ -160,25 +162,28 @@ class AiSummaryWorker(
                                 prompt = context.job.prompt,
                             ),
                         )
-                    }.getOrNull()
-
-                if (result != null) {
-                    check(result.linkId == null || result.linkId == context.job.linkId) {
-                        "AI summary response linkId does not match. expected=${context.job.linkId}, actual=${result.linkId}"
                     }
-                    check(result.folderId == null || result.folderId in context.selectableFolderIds) {
-                        "AI summary response folderId is not selectable. folderId=${result.folderId}"
-                    }
-                    return AiSummaryResult(model = model, response = result)
+                val result = summary.getOrNull()
+                if (result == null) {
+                    lastFailure = summary.exceptionOrNull()
+                    return@forEach
                 }
+
+                check(result.linkId == null || result.linkId == context.job.linkId) {
+                    "AI summary response linkId does not match. expected=${context.job.linkId}, actual=${result.linkId}"
+                }
+                check(result.folderId == null || result.folderId in context.selectableFolderIds) {
+                    "AI summary response folderId is not selectable. folderId=${result.folderId}"
+                }
+                return AiSummaryResult(model = model, response = result)
             }
 
             if (context.userProvider.userRole != Role.SUPER_ADMIN || cycle == MAX_MODEL_CYCLES - 1) {
-                throw IllegalStateException("AI summary generation failed")
+                throw IllegalStateException(lastFailure.failureSummary(), lastFailure)
             }
         }
 
-        throw IllegalStateException("AI summary generation failed")
+        throw IllegalStateException(lastFailure.failureSummary(), lastFailure)
     }
 
     private suspend fun upsertDailyUsage(
@@ -214,7 +219,10 @@ class AiSummaryWorker(
             usageDate = LocalDate.now(ZoneOffset.UTC),
         )
 
-    private suspend fun markFailed(jobId: Long) {
+    private suspend fun markFailed(
+        jobId: Long,
+        reason: String,
+    ) {
         tx.required {
             val job = aiJobRepository.findById(jobId) ?: return@required
             val link = linkRepository.findById(job.linkId) ?: return@required
@@ -226,8 +234,8 @@ class AiSummaryWorker(
                     .update(
                         folderId = link.folderId,
                         url = link.url,
-                        title = "AI 요약 생성 실패",
-                        summary = link.summary,
+                        title = failedTitle(link.url),
+                        summary = reason,
                         memo = link.memo,
                         tags = link.tags,
                         thumbnailUrl = link.thumbnailUrl,
@@ -255,6 +263,20 @@ class AiSummaryWorker(
     private companion object {
         const val MAX_MODEL_CYCLES = 5
     }
+}
+
+private const val DEFAULT_FAILURE_MESSAGE = "AI summary generation failed"
+
+private fun Throwable?.failureSummary(): String =
+    this
+        ?.message
+        ?.takeIf { it.isNotBlank() }
+        ?: DEFAULT_FAILURE_MESSAGE
+
+private fun failedTitle(url: String): String {
+    val host = runCatching { URI(url).host }.getOrNull()?.takeIf { it.isNotBlank() } ?: url
+
+    return "AI 생성 실패 - $host"
 }
 
 private fun String.extractFixedFolderId(): Long? =
