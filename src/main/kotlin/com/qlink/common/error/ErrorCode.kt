@@ -17,6 +17,8 @@ enum class ErrorCode(
     AUTH_UNEXPECTED_CREDENTIALS("AUTH_401_0004", 401, "예기치 못한 인증 오류가 발생했어요"),
 
     // User
+    USER_THEME_NOT_SUPPORTED("USER_400_0001", 400, "지원하지 않는 화면 테마에요"),
+    USER_ACCENT_NOT_SUPPORTED("USER_400_0002", 400, "지원하지 않는 강조 색상이에요"),
     USER_NOT_FOUND("USER_404_0001", 404, "로그인 사용자를 찾을 수 없어요"),
 
     // LINK
@@ -36,6 +38,7 @@ enum class ErrorCode(
     // AI
     AI_PROVIDER_NOT_SUPPORTED("AI_400_0001", 400, "지원하지 않는 AI 제공자에요"),
     AI_API_KEY_INVALID("AI_400_0002", 400, "유효하지 않은 AI API 키에요"),
+    AI_MODEL_DIFFERENT_PROVIDER("AI_400_0003", 400, "AI 모델이 제공자에 속하지 않아요"),
     AI_VENDOR_TEMPORARY_UNAVAILABLE("AI_422_0001", 422, "AI 제공자 서비스를 일시적으로 사용할 수 없어요"),
     AI_USER_PROVIDER_NOT_FOUND("AI_404_0001", 404, "AI 제공자 설정을 찾을 수 없어요"),
     AI_MODEL_NOT_FOUND("AI_404_0002", 404, "AI 모델을 찾을 수 없어요"),

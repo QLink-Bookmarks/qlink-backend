@@ -1,5 +1,7 @@
 package com.qlink.ai.domain
 
+import com.qlink.common.error.ErrorCode
+import com.qlink.common.error.requireTrue
 import kotlin.time.Instant
 
 class AvailableModel(
@@ -11,4 +13,8 @@ class AvailableModel(
     val tpdLimit: Int?,
     val createdAt: Instant? = null,
     val updatedAt: Instant? = null,
-)
+) {
+    fun validateProvider(providerId: Long) {
+        (this.providerId == providerId).requireTrue(ErrorCode.AI_MODEL_DIFFERENT_PROVIDER)
+    }
+}
