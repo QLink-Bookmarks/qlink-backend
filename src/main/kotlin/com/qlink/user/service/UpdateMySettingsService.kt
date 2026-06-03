@@ -1,6 +1,5 @@
 package com.qlink.user.service
 
-import com.qlink.ai.domain.AvailableModel
 import com.qlink.ai.repository.AiProviderRepository
 import com.qlink.ai.repository.AvailableModelRepository
 import com.qlink.common.error.BusinessException
@@ -28,7 +27,10 @@ class UpdateMySettingsService(
 
             val targetProviderId = request.defaultProviderId ?: user.defaultAiProviderId
             val targetModelId = request.defaultModelId ?: user.defaultModelId
-            val targetModel = targetModelId?.let { findModel(it) }
+            val targetModel =
+                targetModelId?.let { modelId ->
+                    availableModelRepository.findById(modelId) ?: throw BusinessException(ErrorCode.AI_MODEL_NOT_FOUND)
+                }
 
             request.defaultProviderId?.let {
                 aiProviderRepository.findById(it) ?: throw BusinessException(ErrorCode.AI_PROVIDER_NOT_FOUND)
@@ -49,7 +51,4 @@ class UpdateMySettingsService(
             }
         }
     }
-
-    private suspend fun findModel(modelId: Long): AvailableModel =
-        availableModelRepository.findById(modelId) ?: throw BusinessException(ErrorCode.AI_MODEL_NOT_FOUND)
 }
