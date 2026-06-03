@@ -6,9 +6,11 @@ import com.qlink.common.transaction.TransactionRunner
 import com.qlink.device.domain.DeviceToken
 import com.qlink.device.repository.DeviceTokenRepository
 import com.qlink.notification.domain.Notification
+import com.qlink.notification.domain.NotificationContext
 import com.qlink.notification.repository.NotificationRepository
 import com.qlink.push.client.PushNotificationSendRequest
 import com.qlink.push.client.PushNotificationSenderRouter
+import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.repository.UserRepository
 import kotlin.time.Clock
 
@@ -18,6 +20,7 @@ class SendNotificationService(
     private val userRepository: UserRepository,
     private val deviceTokenRepository: DeviceTokenRepository,
     private val senderRouter: PushNotificationSenderRouter,
+    private val todoRepository: TodoRepository,
 ) {
     suspend fun send(notificationId: Long): SendNotificationResult {
         val target = findSendTarget(notificationId)
@@ -28,13 +31,20 @@ class SendNotificationService(
 
         val updatedNotification =
             tx.required {
-                notificationRepository.update(
-                    target.notification.recordSendResult(
-                        handledAt = Clock.System.now(),
-                        successCount = successCount,
-                        failureCount = failureCount,
-                    ),
-                )
+                val savedNotification =
+                    notificationRepository.update(
+                        target.notification.recordSendResult(
+                            handledAt = Clock.System.now(),
+                            successCount = successCount,
+                            failureCount = failureCount,
+                        ),
+                    )
+
+                if (savedNotification.firedAt != null) {
+                    createNextTodoNotificationIfNeeded(savedNotification)
+                }
+
+                savedNotification
             }
 
         return SendNotificationResult(
@@ -87,6 +97,30 @@ class SendNotificationService(
                     "contextId" to contextId.toString(),
                 ),
         )
+
+    private suspend fun createNextTodoNotificationIfNeeded(notification: Notification) {
+        if (!notification.isTodo) {
+            return
+        }
+
+        val todo =
+            todoRepository.findById(notification.contextId)
+                ?: throw BusinessException(ErrorCode.TODO_NOT_FOUND)
+        if (!todo.hasRepeat) {
+            return
+        }
+
+        val savedTodo = todoRepository.update(todo.setNextReminder(Clock.System.now()))
+        Notification
+            .todo(savedTodo)
+            ?.takeUnless { nextNotification ->
+                notificationRepository
+                    .findPendingByContext(
+                        context = NotificationContext.TODO,
+                        contextId = savedTodo.id!!,
+                    ).any { it.willFireAt == nextNotification.willFireAt }
+            }?.let { notificationRepository.insert(it) }
+    }
 }
 
 data class SendNotificationResult(

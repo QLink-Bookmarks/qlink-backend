@@ -245,6 +245,7 @@ fun serviceModule() =
                 userRepository = get(),
                 deviceTokenRepository = get(),
                 senderRouter = get(),
+                todoRepository = get(),
             )
         }
     }
