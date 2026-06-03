@@ -1,4 +1,4 @@
-package com.qlink.ai.crypto
+package com.qlink.common.crypto
 
 import java.security.SecureRandom
 import java.util.Base64
@@ -6,7 +6,7 @@ import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
-class AiApiKeyCipher(
+class ApiKeyCipher(
     keyBase64: String,
     private val secureRandom: SecureRandom = SecureRandom(),
 ) {

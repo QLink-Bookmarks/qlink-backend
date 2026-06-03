@@ -23,7 +23,7 @@ class OpenAiClient(
     override suspend fun summarize(request: AiSummaryClientRequest): AiSummaryClientResponse {
         val response =
             httpClient
-                .post(request.baseUrl) {
+                .post(request.baseUrl.openAiResponsesUrl()) {
                     bearerAuth(request.apiKey)
                     contentType(ContentType.Application.Json)
                     setBody(OpenAiResponsesRequest.from(request.model, request.prompt))
@@ -54,9 +54,12 @@ class OpenAiClient(
 }
 
 private fun String.openAiModelsUrl(): String =
-    removeSuffix("/responses")
-        .removeSuffix("/")
+    removeSuffix("/")
         .let { "$it/models" }
+
+private fun String.openAiResponsesUrl(): String =
+    removeSuffix("/")
+        .let { "$it/responses" }
 
 @Serializable
 private data class OpenAiResponsesRequest(

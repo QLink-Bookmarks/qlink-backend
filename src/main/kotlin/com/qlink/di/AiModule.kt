@@ -3,9 +3,9 @@ package com.qlink.di
 import com.qlink.ai.client.AiClientRouter
 import com.qlink.ai.client.GeminiAiClient
 import com.qlink.ai.client.OpenAiClient
-import com.qlink.ai.crypto.AiApiKeyCipher
 import com.qlink.ai.worker.AiSummaryDispatcher
 import com.qlink.ai.worker.AiSummaryWorker
+import com.qlink.common.crypto.ApiKeyCipher
 import com.qlink.config.MonitoringConfig
 import com.qlink.config.string
 import com.qlink.plugin.ExternalHttpClientLogging
@@ -50,7 +50,7 @@ fun aiModule(
                 ?.takeUnless { it.isBlank() }
                 ?: config.string("security.aiApiKeyEncryptionKeyBase64")
 
-        AiApiKeyCipher(keyBase64 = keyBase64)
+        ApiKeyCipher(keyBase64 = keyBase64)
     }
 
     single {

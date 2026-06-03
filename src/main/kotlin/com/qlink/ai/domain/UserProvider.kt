@@ -7,7 +7,7 @@ class UserProvider(
     val id: Long? = null,
     val userId: Long,
     val providerId: Long,
-    val userRole: Role,
+    val userRole: Role = Role.NORMAL,
     val apiKey: String,
     val createdAt: Instant? = null,
     val updatedAt: Instant? = null,

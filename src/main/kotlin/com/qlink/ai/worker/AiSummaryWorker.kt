@@ -2,7 +2,6 @@ package com.qlink.ai.worker
 
 import com.qlink.ai.client.AiClientRouter
 import com.qlink.ai.client.AiSummaryClientRequest
-import com.qlink.ai.crypto.AiApiKeyCipher
 import com.qlink.ai.domain.AiJob
 import com.qlink.ai.domain.AiProvider
 import com.qlink.ai.domain.AvailableModel
@@ -15,6 +14,7 @@ import com.qlink.ai.repository.DailyUsageRepository
 import com.qlink.ai.repository.UserProviderRepository
 import com.qlink.ai.service.copyAiStatus
 import com.qlink.auth.domain.Role
+import com.qlink.common.crypto.ApiKeyCipher
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.domain.LinkStatus
@@ -44,7 +44,7 @@ class AiSummaryWorker(
     private val linkRepository: LinkRepository,
     private val todoRepository: TodoRepository,
     private val aiClientRouter: AiClientRouter,
-    private val apiKeyCipher: AiApiKeyCipher,
+    private val apiKeyCipher: ApiKeyCipher,
     private val channel: Channel<Long>,
     private val log: Logger,
 ) {

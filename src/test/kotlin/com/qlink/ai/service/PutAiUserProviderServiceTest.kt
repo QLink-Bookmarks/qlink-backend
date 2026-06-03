@@ -1,11 +1,11 @@
 package com.qlink.ai.service
 
-import com.qlink.ai.crypto.AiApiKeyCipher
 import com.qlink.ai.domain.AiProvider
 import com.qlink.ai.domain.AiProviderType
 import com.qlink.ai.dto.PutAiUserProviderRequest
 import com.qlink.ai.repository.AiProviderRepository
 import com.qlink.ai.repository.UserProviderRepository
+import com.qlink.common.crypto.ApiKeyCipher
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.support.BaseServiceTest
@@ -26,7 +26,7 @@ class PutAiUserProviderServiceTest :
         val userRepository = koinGet<UserRepository>()
         val aiProviderRepository = koinGet<AiProviderRepository>()
         val userProviderRepository = koinGet<UserProviderRepository>()
-        val apiKeyCipher = koinGet<AiApiKeyCipher>()
+        val apiKeyCipher = koinGet<ApiKeyCipher>()
         val fakeAiClient = koinGet<FakeAiClient>()
 
         suspend fun insertProvider(type: AiProviderType = AiProviderType.OPENAI): AiProvider =

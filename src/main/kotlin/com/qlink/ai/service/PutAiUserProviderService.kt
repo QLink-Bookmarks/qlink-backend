@@ -2,13 +2,12 @@ package com.qlink.ai.service
 
 import com.qlink.ai.client.AiApiKeyValidationException
 import com.qlink.ai.client.AiClientRouter
-import com.qlink.ai.crypto.AiApiKeyCipher
 import com.qlink.ai.domain.UserProvider
 import com.qlink.ai.dto.PutAiUserProviderRequest
 import com.qlink.ai.dto.PutAiUserProviderResponse
 import com.qlink.ai.repository.AiProviderRepository
 import com.qlink.ai.repository.UserProviderRepository
-import com.qlink.auth.domain.Role
+import com.qlink.common.crypto.ApiKeyCipher
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireFalse
@@ -21,49 +20,35 @@ class PutAiUserProviderService(
     private val aiProviderRepository: AiProviderRepository,
     private val userProviderRepository: UserProviderRepository,
     private val aiClientRouter: AiClientRouter,
-    private val apiKeyCipher: AiApiKeyCipher,
+    private val apiKeyCipher: ApiKeyCipher,
 ) {
     suspend fun putAiUserProvider(
         loginId: Long,
         request: PutAiUserProviderRequest,
     ): PutAiUserProviderResponse {
-        val provider =
-            tx.readOnly {
-                userRepository.emptyById(loginId).requireFalse(ErrorCode.USER_NOT_FOUND)
-                aiProviderRepository.findById(request.providerId)
-                    ?: throw BusinessException(ErrorCode.AI_PROVIDER_NOT_FOUND)
-            }
-
-        runCatching {
-            aiClientRouter.validateApiKey(
-                providerType = provider.type,
-                baseUrl = provider.baseUrl,
-                apiKey = request.apiKey,
-            )
-        }.onFailure { throw it.toBusinessException() }
-
-        val encryptedApiKey = apiKeyCipher.encrypt(request.apiKey)
         val saved =
             tx.required {
-                val existing =
-                    userProviderRepository.findByUserIdAndProviderId(
-                        userId = loginId,
-                        providerId = provider.id!!,
+                userRepository.emptyById(loginId).requireFalse(ErrorCode.USER_NOT_FOUND)
+                val provider =
+                    aiProviderRepository.findById(request.providerId)
+                        ?: throw BusinessException(ErrorCode.AI_PROVIDER_NOT_FOUND)
+
+                runCatching {
+                    aiClientRouter.validateApiKey(
+                        providerType = provider.type,
+                        baseUrl = provider.baseUrl,
+                        apiKey = request.apiKey,
                     )
+                }.onFailure { throw it.toBusinessException() }
+
                 val userProvider =
                     UserProvider(
-                        id = existing?.id,
                         userId = loginId,
-                        providerId = provider.id,
-                        userRole = existing?.userRole ?: Role.NORMAL,
-                        apiKey = encryptedApiKey,
+                        providerId = provider.id!!,
+                        apiKey = apiKeyCipher.encrypt(request.apiKey),
                     )
 
-                if (existing == null) {
-                    userProviderRepository.insert(userProvider)
-                } else {
-                    userProviderRepository.update(userProvider)
-                }
+                userProviderRepository.save(userProvider)
             }
 
         return PutAiUserProviderResponse(id = saved.id!!)

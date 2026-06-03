@@ -7,7 +7,7 @@ import com.qlink.ai.client.AiClientRouter
 import com.qlink.ai.client.AiSummaryClientRequest
 import com.qlink.ai.client.AiSummaryClientResponse
 import com.qlink.ai.client.AiSummaryTodo
-import com.qlink.ai.crypto.AiApiKeyCipher
+import com.qlink.common.crypto.ApiKeyCipher
 import com.qlink.ai.domain.AiProvider
 import com.qlink.ai.domain.AiProviderType
 import com.qlink.ai.domain.AvailableModel
@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory
 fun aiTestModule() =
     module {
         single {
-            AiApiKeyCipher(keyBase64 = TEST_AI_API_KEY_ENCRYPTION_KEY_BASE64)
+            ApiKeyCipher(keyBase64 = TEST_AI_API_KEY_ENCRYPTION_KEY_BASE64)
         }
 
         single {
@@ -140,7 +140,7 @@ suspend fun insertAiContext(
                 userId = userId,
                 providerId = provider.id,
                 userRole = role,
-                apiKey = AiApiKeyCipher(TEST_AI_API_KEY_ENCRYPTION_KEY_BASE64).encrypt("api-key"),
+                apiKey = ApiKeyCipher(TEST_AI_API_KEY_ENCRYPTION_KEY_BASE64).encrypt("api-key"),
             ),
         )
 

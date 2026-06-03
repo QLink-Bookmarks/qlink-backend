@@ -6,6 +6,8 @@ import com.qlink.auth.domain.Role
 interface UserProviderRepository {
     suspend fun insert(userProvider: UserProvider): UserProvider
 
+    suspend fun save(userProvider: UserProvider): UserProvider
+
     suspend fun findByUserIdAndProviderId(
         userId: Long,
         providerId: Long,
