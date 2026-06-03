@@ -15,6 +15,7 @@ import com.qlink.link.service.GetLinksService
 import com.qlink.link.service.PatchLinkService
 import com.qlink.link.service.UpdateLinkService
 import com.qlink.notification.service.ScheduleTodoNotificationService
+import com.qlink.notification.service.SendNotificationService
 import com.qlink.todo.service.CompleteTodoService
 import com.qlink.todo.service.CreateTodoService
 import com.qlink.todo.service.DeleteTodoService
@@ -234,6 +235,16 @@ fun serviceModule() =
                 tx = get(),
                 notificationRepository = get(),
                 taskScheduler = get(),
+            )
+        }
+
+        single {
+            SendNotificationService(
+                tx = get(),
+                notificationRepository = get(),
+                userRepository = get(),
+                deviceTokenRepository = get(),
+                senderRouter = get(),
             )
         }
     }

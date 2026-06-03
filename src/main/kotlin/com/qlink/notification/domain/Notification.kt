@@ -59,6 +59,18 @@ class Notification(
             failureCount = 1,
         )
 
+    fun recordSendResult(
+        handledAt: Instant,
+        successCount: Int,
+        failureCount: Int,
+    ): Notification =
+        copy(
+            firedAt = handledAt.takeIf { successCount > 0 },
+            failedAt = handledAt.takeIf { successCount == 0 },
+            successCount = successCount,
+            failureCount = failureCount,
+        )
+
     private fun copy(
         scheduledAt: Instant? = this.scheduledAt,
         firedAt: Instant? = this.firedAt,

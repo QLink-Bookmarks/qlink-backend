@@ -134,6 +134,8 @@ dependencies {
     implementation(ktorLibs.client.core)
     implementation(ktorLibs.client.contentNegotiation)
     implementation(libs.ktor.client.cio)
+    implementation(libs.firebase.admin)
+    implementation(libs.expo.server.sdk)
 
     // Auth
     implementation(ktorLibs.server.auth)
