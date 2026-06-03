@@ -61,6 +61,7 @@ data class LinkSearchTodoQuery(
 data class SearchTodosQuery(
     val id: Long,
     val title: String,
+    val completedAt: Instant?,
     val reminderAt: Instant?,
     val repeatUntil: Instant?,
     val repeatDays: List<RepeatDay>?,
@@ -98,6 +99,7 @@ fun ResultRow.toSearchTodosQuery(linkTitle: Expression<String>): SearchTodosQuer
     SearchTodosQuery(
         id = this[Todos.id],
         title = this[Todos.title],
+        completedAt = this[Todos.completedAt]?.toKotlinInstant(),
         reminderAt = this[Todos.reminderAt]?.toKotlinInstant(),
         repeatUntil = this[Todos.repeatUntil]?.toKotlinInstant(),
         repeatDays = this[Todos.repeatDays]?.map { RepeatDay.valueOf(it) },

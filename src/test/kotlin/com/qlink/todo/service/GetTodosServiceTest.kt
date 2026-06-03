@@ -175,7 +175,9 @@ class GetTodosServiceTest :
 
                 Then("조건에 맞는 할 일만 반환한다") {
                     completedResult.contents.map { it.id } shouldContainExactly listOf(completed.id!!)
+                    completedResult.contents.first().completedAt.truncatedToSecond() shouldBe completedAt.truncatedToSecond()
                     incompleteResult.contents.map { it.id } shouldContainExactly listOf(incomplete.id!!)
+                    incompleteResult.contents.first().completedAt shouldBe null
                 }
             }
 

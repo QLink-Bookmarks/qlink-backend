@@ -30,6 +30,7 @@ data class CompleteTodoResponse(
 data class GetTodosContentResponse(
     val id: Long,
     val title: String,
+    val completedAt: Instant?,
     val reminderAt: Instant?,
     val repeatUntil: Instant?,
     val repeatDays: List<RepeatDay>?,

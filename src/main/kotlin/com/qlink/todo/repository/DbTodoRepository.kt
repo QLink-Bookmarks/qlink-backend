@@ -131,6 +131,7 @@ class DbTodoRepository : TodoRepository {
             .select(
                 Todos.id,
                 Todos.title,
+                Todos.completedAt,
                 Todos.reminderAt,
                 Todos.repeatUntil,
                 Todos.repeatDays,
