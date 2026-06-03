@@ -51,6 +51,10 @@ enum class ErrorCode(
     TODO_TITLE_OVER_MAX("TODO_400_0002", 400, "할 일 제목은 최대 50자에요"),
     TODO_DIFFERENT_LINK("TODO_400_0003", 400, "링크가 다른 할 일이에요"),
     TODO_DUPLICATE_ID("TODO_400_0004", 400, "할 일 ID가 중복되었어요"),
+    TODO_REPEAT_FIELDS_INCOMPLETE("TODO_400_0005", 400, "반복 설정이 완전하지 않아요"),
+    TODO_REPEAT_DAYS_EMPTY("TODO_400_0006", 400, "반복 요일이 입력되지 않았어요"),
+    TODO_REPEAT_TIME_INVALID("TODO_400_0007", 400, "반복 시간이 올바르지 않아요"),
+    TODO_REPEAT_TIMEZONE_INVALID("TODO_400_0008", 400, "반복 시간대가 올바르지 않아요"),
 
     TODO_DIFFERENT_OWNER("TODO_403_0001", 403, "할 일에 대한 권한이 없어요"),
 

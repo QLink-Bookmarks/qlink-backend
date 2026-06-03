@@ -3,6 +3,7 @@
 package com.qlink.link.dto
 
 import com.qlink.link.domain.SourceType
+import com.qlink.todo.domain.RepeatDay
 import com.qlink.todo.dto.LinkDetailTodoQuery
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
@@ -50,6 +51,9 @@ data class LinkSearchTodoResponse(
     val title: String,
     val completedAt: Instant?,
     val reminderAt: Instant?,
+    val repeatUntil: Instant?,
+    val repeatDays: List<RepeatDay>?,
+    val repeatTime: String?,
 )
 
 @Serializable

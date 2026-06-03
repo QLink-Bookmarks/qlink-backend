@@ -13,6 +13,7 @@ import com.qlink.link.repository.LinkRepository
 import com.qlink.todo.domain.Todo
 import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.repository.UserRepository
+import kotlin.time.Clock
 
 class PatchLinkService(
     private val tx: TransactionRunner,
@@ -140,6 +141,11 @@ class PatchLinkService(
                             linkId = linkId,
                             title = todoRequest.title,
                             reminderAt = todoRequest.reminderAt,
+                            repeatUntil = todoRequest.repeatUntil,
+                            repeatDays = todoRequest.repeatDays,
+                            repeatTime = todoRequest.repeatTime,
+                            repeatTimezone = todoRequest.repeatTimezone,
+                            now = Clock.System.now(),
                         )
                     }
                 }
@@ -148,11 +154,9 @@ class PatchLinkService(
             todos
                 .filter { it.id == null }
                 .map { todoRequest ->
-                    Todo(
+                    todoRequest.toTodo(
                         linkId = linkId,
                         ownerId = loginId,
-                        title = todoRequest.title,
-                        reminderAt = todoRequest.reminderAt,
                     )
                 }
 
@@ -175,4 +179,20 @@ class PatchLinkService(
         val todosToCreate: List<Todo>,
         val todoIdsToDelete: List<Long>,
     )
+
+    private fun PatchLinkTodoRequest.toTodo(
+        linkId: Long,
+        ownerId: Long,
+    ): Todo =
+        Todo.create(
+            linkId = linkId,
+            ownerId = ownerId,
+            title = title,
+            reminderAt = reminderAt,
+            repeatUntil = repeatUntil,
+            repeatDays = repeatDays,
+            repeatTime = repeatTime,
+            repeatTimezone = repeatTimezone,
+            now = Clock.System.now(),
+        )
 }

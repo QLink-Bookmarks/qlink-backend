@@ -3,6 +3,7 @@
 package com.qlink.link.dto
 
 import com.qlink.link.domain.SourceType
+import com.qlink.todo.domain.RepeatDay
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
 
@@ -23,6 +24,10 @@ data class CreateLinkRequest(
 data class CreateLinkTodoRequest(
     val title: String,
     val reminderAt: Instant? = null,
+    val repeatUntil: Instant? = null,
+    val repeatDays: List<RepeatDay>? = null,
+    val repeatTime: String? = null,
+    val repeatTimezone: String? = null,
 )
 
 @Serializable

@@ -10,6 +10,8 @@ import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.TodoFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
+import com.qlink.support.truncatedToSecond
+import com.qlink.todo.domain.RepeatDay
 import com.qlink.todo.domain.Todo
 import com.qlink.todo.dto.UpdateTodoRequest
 import com.qlink.todo.repository.TodoRepository
@@ -18,6 +20,10 @@ import com.qlink.user.repository.UserRepository
 import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import java.util.concurrent.TimeUnit
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
+import kotlin.time.toKotlinInstant
 
 class UpdateTodoServiceTest :
     BaseServiceTest({
@@ -90,6 +96,44 @@ class UpdateTodoServiceTest :
 
                     val actual = todoRepository.findById(todo.id!!)
                     actual!!.linkId shouldBe expectedLinkId
+                }
+            }
+
+            When("반복 설정이 있는 할 일 수정을") {
+                val ignoredReminderAt = RandomFixture.pastDateTime(3, TimeUnit.DAYS).toInstant().toKotlinInstant()
+                val repeatUntil = Clock.System.now().plus(30.days)
+                lateinit var updateRequest: UpdateTodoRequest
+                val update =
+                    suspend {
+                        updateRequest =
+                            UpdateTodoRequest(
+                                linkId = todo.linkId,
+                                title = RandomFixture.randomSentenceWithMax(50),
+                                reminderAt = ignoredReminderAt,
+                                repeatUntil = repeatUntil,
+                                repeatDays = listOf(RepeatDay.MON, RepeatDay.WED),
+                                repeatTime = "09:15",
+                                repeatTimezone = "Asia/Seoul",
+                            )
+                        updateTodoService.updateTodo(user.id!!, todo.id!!, updateRequest)
+                    }
+
+                Then("응답과 저장 데이터에 반복 설정을 반영한다") {
+                    val response = update()
+                    val actual = todoRepository.findById(todo.id!!)
+
+                    response.reminderAt shouldNotBe ignoredReminderAt
+                    response.repeatUntil.truncatedToSecond() shouldBe repeatUntil.truncatedToSecond()
+                    response.repeatDays shouldBe updateRequest.repeatDays
+                    response.repeatTime shouldBe "09:15"
+
+                    actual shouldNotBe null
+                    actual!!.reminderAt shouldNotBe ignoredReminderAt
+                    actual.reminderAt shouldNotBe null
+                    actual.repeatUntil.truncatedToSecond() shouldBe repeatUntil.truncatedToSecond()
+                    actual.repeatDays shouldBe updateRequest.repeatDays
+                    actual.repeatTime.toString() shouldBe "09:15"
+                    actual.repeatTimezone?.id shouldBe "Asia/Seoul"
                 }
             }
 

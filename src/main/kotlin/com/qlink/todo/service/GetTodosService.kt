@@ -92,7 +92,11 @@ class GetTodosService(
         GetTodosContentResponse(
             id = id,
             title = title,
+            completedAt = completedAt,
             reminderAt = reminderAt,
+            repeatUntil = repeatUntil,
+            repeatDays = repeatDays,
+            repeatTime = repeatTime,
             linkId = linkId,
             linkUrl = linkUrl,
             linkTitle = linkTitle,

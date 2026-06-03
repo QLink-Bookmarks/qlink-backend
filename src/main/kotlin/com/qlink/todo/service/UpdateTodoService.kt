@@ -10,6 +10,7 @@ import com.qlink.todo.dto.UpdateTodoRequest
 import com.qlink.todo.dto.UpdateTodoResponse
 import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.repository.UserRepository
+import kotlin.time.Clock
 
 class UpdateTodoService(
     private val tx: TransactionRunner,
@@ -40,6 +41,11 @@ class UpdateTodoService(
                     linkId = request.linkId,
                     title = request.title,
                     reminderAt = request.reminderAt,
+                    repeatUntil = request.repeatUntil,
+                    repeatDays = request.repeatDays,
+                    repeatTime = request.repeatTime,
+                    repeatTimezone = request.repeatTimezone,
+                    now = Clock.System.now(),
                 )
 
             todoRepository.update(updatedTodo).toResponse()
@@ -50,5 +56,9 @@ class UpdateTodoService(
             linkId = linkId,
             title = title,
             reminderAt = reminderAt,
+            repeatUntil = repeatUntil,
+            repeatDays = repeatDays,
+            repeatTime = repeatTime?.toString(),
         )
+
 }
