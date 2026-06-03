@@ -1,0 +1,30 @@
+package com.qlink.notification.repository
+
+import com.qlink.notification.domain.Notification
+import com.qlink.notification.domain.NotificationContext
+import kotlin.time.Instant
+
+interface NotificationRepository {
+    suspend fun insert(notification: Notification): Notification
+
+    suspend fun findById(notificationId: Long): Notification?
+
+    suspend fun findPendingById(notificationId: Long): Notification?
+
+    suspend fun findPendingBetween(
+        startInclusive: Instant,
+        endExclusive: Instant,
+    ): List<Notification>
+
+    suspend fun findPendingByContext(
+        context: NotificationContext,
+        contextId: Long,
+    ): List<Notification>
+
+    suspend fun update(notification: Notification): Notification
+
+    suspend fun deletePendingByContext(
+        context: NotificationContext,
+        contextId: Long,
+    ): List<Long>
+}
