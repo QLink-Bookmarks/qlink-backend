@@ -7,7 +7,6 @@ import com.qlink.ai.client.AiClientRouter
 import com.qlink.ai.client.AiSummaryClientRequest
 import com.qlink.ai.client.AiSummaryClientResponse
 import com.qlink.ai.client.AiSummaryTodo
-import com.qlink.common.crypto.ApiKeyCipher
 import com.qlink.ai.domain.AiProvider
 import com.qlink.ai.domain.AiProviderType
 import com.qlink.ai.domain.AvailableModel
@@ -18,6 +17,7 @@ import com.qlink.ai.repository.UserProviderRepository
 import com.qlink.ai.worker.AiSummaryDispatcher
 import com.qlink.ai.worker.AiSummaryWorker
 import com.qlink.auth.domain.Role
+import com.qlink.common.crypto.ApiKeyCipher
 import kotlinx.coroutines.channels.Channel
 import org.koin.dsl.module
 import org.slf4j.LoggerFactory
@@ -57,6 +57,7 @@ fun aiTestModule() =
                 folderRepository = get(),
                 linkRepository = get(),
                 todoRepository = get(),
+                scheduleTodoNotificationService = get(),
                 aiClientRouter = get(),
                 apiKeyCipher = get(),
                 channel = get(),

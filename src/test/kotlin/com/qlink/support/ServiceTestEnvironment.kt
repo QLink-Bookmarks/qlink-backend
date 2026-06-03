@@ -3,6 +3,7 @@ package com.qlink.support
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.config.DataSourceConfig
 import com.qlink.di.dataModule
+import com.qlink.di.notificationModule
 import com.qlink.di.repositoryModule
 import com.qlink.di.serviceModule
 import com.qlink.di.transactionModule
@@ -18,6 +19,7 @@ import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
+import org.slf4j.LoggerFactory
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.utility.DockerImageName
 import javax.sql.DataSource
@@ -114,6 +116,7 @@ object ServiceTestEnvironment {
                 dataModule(testApplicationConfig(), testDataSourceConfig()),
                 transactionModule(),
                 repositoryModule(),
+                notificationModule(LoggerFactory.getLogger("TestTaskScheduler")),
                 aiTestModule(),
                 serviceModule(),
             )

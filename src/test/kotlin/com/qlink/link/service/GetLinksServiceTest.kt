@@ -118,9 +118,16 @@ class GetLinksServiceTest :
                     response.contents[0].status shouldBe secondLink.status
                     response.contents[0].folderEmoji shouldBe null
                     response.contents[0].todos.shouldHaveSize(2)
-                    response.contents[0].todos.first { it.title == "todo-1" }.completedAt.truncatedToSecond() shouldBe
+                    response.contents[0]
+                        .todos
+                        .first { it.title == "todo-1" }
+                        .completedAt
+                        .truncatedToSecond() shouldBe
                         completedAt.truncatedToSecond()
-                    response.contents[0].todos.first { it.title == "todo-2" }.completedAt shouldBe null
+                    response.contents[0]
+                        .todos
+                        .first { it.title == "todo-2" }
+                        .completedAt shouldBe null
                     response.contents[0].countMoreTodos shouldBe 1
                     response.contents[1].id shouldBe firstLink.id
                     response.contents[1].status shouldBe firstLink.status

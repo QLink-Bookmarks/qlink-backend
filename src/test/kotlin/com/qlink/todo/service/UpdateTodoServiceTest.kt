@@ -4,6 +4,9 @@ import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.link.domain.Link
 import com.qlink.link.repository.LinkRepository
+import com.qlink.notification.domain.NotificationContext
+import com.qlink.notification.repository.NotificationRepository
+import com.qlink.notification.service.ScheduleTodoNotificationService
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.LinkFixture
 import com.qlink.support.fixture.RandomFixture
@@ -31,6 +34,8 @@ class UpdateTodoServiceTest :
         val userRepository = koinGet<UserRepository>()
         val linkRepository = koinGet<LinkRepository>()
         val todoRepository = koinGet<TodoRepository>()
+        val notificationRepository = koinGet<NotificationRepository>()
+        val scheduleTodoNotificationService = koinGet<ScheduleTodoNotificationService>()
 
         Given("할 일 수정 서비스 테스트") {
             lateinit var user: User
@@ -64,6 +69,7 @@ class UpdateTodoServiceTest :
                     }
 
                 Then("성공한다") {
+                    scheduleTodoNotificationService.createForTodo(todo)
                     val response = update()
                     val actual = todoRepository.findById(todo.id!!)
 
@@ -77,6 +83,14 @@ class UpdateTodoServiceTest :
                     actual.reminderAt shouldBe request.reminderAt
                     actual.completedAt shouldBe todo.completedAt
                     actual.updatedAt shouldNotBe todo.updatedAt
+
+                    val notifications =
+                        notificationRepository.findPendingByContext(
+                            context = NotificationContext.TODO,
+                            contextId = todo.id!!,
+                        )
+                    notifications.size shouldBe 1
+                    notifications.single().willFireAt shouldBe actual.reminderAt
                 }
             }
 
@@ -119,6 +133,7 @@ class UpdateTodoServiceTest :
                     }
 
                 Then("응답과 저장 데이터에 반복 설정을 반영한다") {
+                    scheduleTodoNotificationService.createForTodo(todo)
                     val response = update()
                     val actual = todoRepository.findById(todo.id!!)
 
@@ -134,6 +149,15 @@ class UpdateTodoServiceTest :
                     actual.repeatDays shouldBe updateRequest.repeatDays
                     actual.repeatTime.toString() shouldBe "09:15"
                     actual.repeatTimezone?.id shouldBe "Asia/Seoul"
+
+                    val notifications =
+                        notificationRepository.findPendingByContext(
+                            context = NotificationContext.TODO,
+                            contextId = todo.id!!,
+                        )
+                    notifications.size shouldBe 1
+                    notifications.single().willFireAt shouldBe actual.reminderAt
+                    notifications.single().willFireAt shouldNotBe ignoredReminderAt
                 }
             }
 

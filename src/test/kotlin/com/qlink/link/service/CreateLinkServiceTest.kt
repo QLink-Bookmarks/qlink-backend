@@ -9,6 +9,8 @@ import com.qlink.link.dto.CreateLinkRequest
 import com.qlink.link.dto.CreateLinkTodoRequest
 import com.qlink.link.repository.LinkRepository
 import com.qlink.link.service.CreateLinkService
+import com.qlink.notification.domain.NotificationContext
+import com.qlink.notification.repository.NotificationRepository
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.FolderFixture
 import com.qlink.support.fixture.RandomFixture
@@ -36,6 +38,7 @@ class CreateLinkServiceTest :
         val linkRepository = koinGet<LinkRepository>()
         val folderRepository = koinGet<FolderRepository>()
         val todoRepository = koinGet<TodoRepository>()
+        val notificationRepository = koinGet<NotificationRepository>()
 
         Given("링크 생성 서비스 테스트") {
             lateinit var user: User
@@ -117,6 +120,20 @@ class CreateLinkServiceTest :
                     actualTodos.first().repeatDays shouldBe listOf(RepeatDay.MON, RepeatDay.FRI)
                     actualTodos.first().repeatTime shouldBe "20:10"
                     actualTodos.last().reminderAt shouldBe null
+
+                    val notification =
+                        notificationRepository
+                            .findPendingByContext(
+                                context = NotificationContext.TODO,
+                                contextId = actualTodos.first().id,
+                            ).single()
+                    notification.willFireAt shouldBe actualTodos.first().reminderAt
+                    notification.willFireAt shouldNotBe ignoredReminderAt
+                    notificationRepository
+                        .findPendingByContext(
+                            context = NotificationContext.TODO,
+                            contextId = actualTodos.last().id,
+                        ).size shouldBe 0
                 }
             }
 
@@ -183,7 +200,7 @@ class CreateLinkServiceTest :
                             listOf(
                                 CreateLinkTodoRequest(
                                     title = " ",
-                                    reminderAt = RandomFixture.randomDateTime().toInstant().toKotlinInstant(),
+                                    reminderAt = RandomFixture.futureDateTime(3, TimeUnit.DAYS).toInstant().toKotlinInstant(),
                                 ),
                             ),
                     )
