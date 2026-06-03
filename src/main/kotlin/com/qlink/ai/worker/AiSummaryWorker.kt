@@ -19,6 +19,7 @@ import com.qlink.common.transaction.TransactionRunner
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.repository.LinkRepository
+import com.qlink.notification.service.ScheduleTodoNotificationService
 import com.qlink.todo.domain.Todo
 import com.qlink.todo.repository.TodoRepository
 import kotlinx.coroutines.CoroutineScope
@@ -43,6 +44,7 @@ class AiSummaryWorker(
     private val folderRepository: FolderRepository,
     private val linkRepository: LinkRepository,
     private val todoRepository: TodoRepository,
+    private val scheduleTodoNotificationService: ScheduleTodoNotificationService,
     private val aiClientRouter: AiClientRouter,
     private val apiKeyCipher: ApiKeyCipher,
     private val channel: Channel<Long>,
@@ -149,47 +151,50 @@ class AiSummaryWorker(
 
         runCatching { summarize(context) }
             .onSuccess { result ->
-                tx.required {
-                    val latestJob = aiJobRepository.findById(context.job.id!!) ?: return@required
-                    val latestLink = linkRepository.findById(latestJob.linkId) ?: return@required
-                    val completedAt = Clock.System.now()
+                val createdTodos =
+                    tx.required {
+                        val latestJob = aiJobRepository.findById(context.job.id!!) ?: return@required emptyList()
+                        val latestLink = linkRepository.findById(latestJob.linkId) ?: return@required emptyList()
+                        val completedAt = Clock.System.now()
 
-                    log.info("[WORKER] Job has been successful for job=$jobId, link=${latestLink.id}")
+                        log.info("[WORKER] Job has been successful for job=$jobId, link=${latestLink.id}")
 
-                    aiJobRepository.update(
-                        latestJob.complete(
-                            responseModelId = result.model.id!!,
-                            response = result.response.rawResponse,
-                            completedAt = completedAt,
-                        ),
-                    )
-                    upsertDailyUsage(context.userProvider, result.model, result.response.usedTokens)
-                    val responseFolderId =
-                        result.response.folderId?.takeIf { it in context.selectableFolderIds }
-                    linkRepository.update(
-                        latestLink
-                            .update(
-                                folderId = context.fixedFolderId ?: responseFolderId,
-                                url = latestLink.url,
-                                title = result.response.title,
-                                summary = result.response.summary,
-                                memo = latestLink.memo,
-                                tags = result.response.tags,
-                                thumbnailUrl = latestLink.thumbnailUrl,
-                                sourceType = latestLink.sourceType,
-                            ).copyAiStatus(status = LinkStatus.A, workModelId = result.model.id),
-                    )
-                    result.response.todos.forEach {
-                        todoRepository.insert(
-                            Todo(
-                                linkId = latestLink.id!!,
-                                ownerId = latestLink.ownerId,
-                                title = it.title,
-                                reminderAt = it.reminderAt,
+                        aiJobRepository.update(
+                            latestJob.complete(
+                                responseModelId = result.model.id!!,
+                                response = result.response.rawResponse,
+                                completedAt = completedAt,
                             ),
                         )
+                        upsertDailyUsage(context.userProvider, result.model, result.response.usedTokens)
+                        val responseFolderId =
+                            result.response.folderId?.takeIf { it in context.selectableFolderIds }
+                        linkRepository.update(
+                            latestLink
+                                .update(
+                                    folderId = context.fixedFolderId ?: responseFolderId,
+                                    url = latestLink.url,
+                                    title = result.response.title,
+                                    summary = result.response.summary,
+                                    memo = latestLink.memo,
+                                    tags = result.response.tags,
+                                    thumbnailUrl = latestLink.thumbnailUrl,
+                                    sourceType = latestLink.sourceType,
+                                ).copyAiStatus(status = LinkStatus.A, workModelId = result.model.id),
+                        )
+                        result.response.todos.map {
+                            todoRepository.insert(
+                                Todo(
+                                    linkId = latestLink.id!!,
+                                    ownerId = latestLink.ownerId,
+                                    title = it.title,
+                                    reminderAt = it.reminderAt,
+                                ),
+                            )
+                        }
                     }
-                }
+
+                createdTodos.forEach { scheduleTodoNotificationService.createForTodo(it) }
             }.onFailure {
                 log.warn("AI summary failed. jobId={}", context.job.id, it)
                 markFailed(jobId = context.job.id!!, reason = it.failureSummary())

@@ -33,6 +33,7 @@ import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.updateReturning
 import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlin.time.toJavaInstant
 
 class DbTodoRepository : TodoRepository {
@@ -65,6 +66,19 @@ class DbTodoRepository : TodoRepository {
             .selectAll()
             .where { Todos.linkId eq linkId }
             .orderBy(Todos.id to SortOrder.ASC)
+            .map { it.toTodoDomain() }
+
+    override suspend fun findAllWithReminderBetween(
+        startInclusive: Instant,
+        endExclusive: Instant,
+    ): List<Todo> =
+        Todos
+            .selectAll()
+            .where {
+                (Todos.reminderAt greaterEq startInclusive.toJavaInstant()) and
+                    (Todos.reminderAt less endExclusive.toJavaInstant()) and
+                    Todos.completedAt.isNull()
+            }.orderBy(Todos.reminderAt to SortOrder.ASC)
             .map { it.toTodoDomain() }
 
     override suspend fun findAllByLinkIdForLinkDetail(linkId: Long): List<LinkDetailTodoQuery> =

@@ -94,6 +94,7 @@ fun aiModule(
             folderRepository = get(),
             linkRepository = get(),
             todoRepository = get(),
+            scheduleTodoNotificationService = get(),
             aiClientRouter = get(),
             apiKeyCipher = get(),
             channel = get(),

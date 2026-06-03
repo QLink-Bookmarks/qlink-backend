@@ -10,6 +10,7 @@ import com.qlink.link.dto.PatchLinkRequest
 import com.qlink.link.dto.PatchLinkResponse
 import com.qlink.link.dto.PatchLinkTodoRequest
 import com.qlink.link.repository.LinkRepository
+import com.qlink.notification.service.ScheduleTodoNotificationService
 import com.qlink.todo.domain.Todo
 import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.repository.UserRepository
@@ -21,56 +22,82 @@ class PatchLinkService(
     private val todoRepository: TodoRepository,
     private val userRepository: UserRepository,
     private val folderRepository: FolderRepository,
+    private val scheduleTodoNotificationService: ScheduleTodoNotificationService,
 ) {
     suspend fun patchLink(
         loginId: Long,
         linkId: Long,
         request: PatchLinkRequest,
-    ): PatchLinkResponse =
-        tx.required {
-            userRepository.emptyById(loginId).requireFalse(ErrorCode.LINK_OWNER_NOT_FOUND)
+    ): PatchLinkResponse {
+        val result =
+            tx.required {
+                userRepository.emptyById(loginId).requireFalse(ErrorCode.LINK_OWNER_NOT_FOUND)
 
-            val link =
-                linkRepository.findById(linkId)?.also { it.validateOwner(loginId) }
-                    ?: throw BusinessException(ErrorCode.LINK_NOT_FOUND)
+                val link =
+                    linkRepository.findById(linkId)?.also { it.validateOwner(loginId) }
+                        ?: throw BusinessException(ErrorCode.LINK_NOT_FOUND)
 
-            val targetFolderId = request.resolveFolderId(link, loginId)
-            val targetMemo = request.resolveMemo(link)
-            val targetTags = request.resolveTags(link)
-            val todoChangeSet = request.resolveTodoChangeSet(linkId, loginId)
+                val targetFolderId = request.resolveFolderId(link, loginId)
+                val targetMemo = request.resolveMemo(link)
+                val targetTags = request.resolveTags(link)
+                val todoChangeSet = request.resolveTodoChangeSet(linkId, loginId)
 
-            val updatedLink =
-                link.update(
-                    folderId = targetFolderId,
-                    url = link.url,
-                    title = link.title,
-                    summary = link.summary,
-                    memo = targetMemo,
-                    tags = targetTags,
-                    thumbnailUrl = link.thumbnailUrl,
-                    sourceType = link.sourceType,
-                )
+                val updatedLink =
+                    link.update(
+                        folderId = targetFolderId,
+                        url = link.url,
+                        title = link.title,
+                        summary = link.summary,
+                        memo = targetMemo,
+                        tags = targetTags,
+                        thumbnailUrl = link.thumbnailUrl,
+                        sourceType = link.sourceType,
+                    )
 
-            val savedLink =
-                if (updatedLink.hasSamePatchFieldsAs(link)) {
-                    link
-                } else {
-                    linkRepository.update(updatedLink)
+                val savedLink =
+                    if (updatedLink.hasSamePatchFieldsAs(link)) {
+                        link
+                    } else {
+                        linkRepository.update(updatedLink)
+                    }
+
+                val deletedTodoIds = mutableListOf<Long>()
+                val updatedTodos = mutableListOf<Todo>()
+                val createdTodos = mutableListOf<Todo>()
+
+                if (todoChangeSet != null) {
+                    todoChangeSet.todoIdsToDelete.forEach {
+                        todoRepository.deleteById(it)
+                        deletedTodoIds += it
+                    }
+                    todoChangeSet.todosToUpdate.forEach {
+                        updatedTodos += todoRepository.update(it)
+                    }
+                    todoChangeSet.todosToCreate.forEach {
+                        createdTodos += todoRepository.insert(it)
+                    }
                 }
 
-            if (todoChangeSet != null) {
-                todoChangeSet.todoIdsToDelete.forEach { todoRepository.deleteById(it) }
-                todoChangeSet.todosToUpdate.forEach { todoRepository.update(it) }
-                todoChangeSet.todosToCreate.forEach { todoRepository.insert(it) }
+                PatchLinkResult(
+                    response =
+                        PatchLinkResponse(
+                            folderId = savedLink.folderId,
+                            memo = savedLink.memo,
+                            tags = savedLink.tags,
+                            todos = todoRepository.findAllByLinkIdForLinkDetail(linkId),
+                        ),
+                    deletedTodoIds = deletedTodoIds,
+                    updatedTodos = updatedTodos,
+                    createdTodos = createdTodos,
+                )
             }
 
-            PatchLinkResponse(
-                folderId = savedLink.folderId,
-                memo = savedLink.memo,
-                tags = savedLink.tags,
-                todos = todoRepository.findAllByLinkIdForLinkDetail(linkId),
-            )
-        }
+        result.deletedTodoIds.forEach { scheduleTodoNotificationService.cancelForTodo(it) }
+        result.updatedTodos.forEach { scheduleTodoNotificationService.replaceForTodo(it) }
+        result.createdTodos.forEach { scheduleTodoNotificationService.createForTodo(it) }
+
+        return result.response
+    }
 
     private suspend fun PatchLinkRequest.resolveFolderId(
         link: Link,
@@ -178,6 +205,13 @@ class PatchLinkService(
         val todosToUpdate: List<Todo>,
         val todosToCreate: List<Todo>,
         val todoIdsToDelete: List<Long>,
+    )
+
+    private data class PatchLinkResult(
+        val response: PatchLinkResponse,
+        val deletedTodoIds: List<Long>,
+        val updatedTodos: List<Todo>,
+        val createdTodos: List<Todo>,
     )
 
     private fun PatchLinkTodoRequest.toTodo(

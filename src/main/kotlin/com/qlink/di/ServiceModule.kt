@@ -13,6 +13,7 @@ import com.qlink.link.service.GetLinkDetailService
 import com.qlink.link.service.GetLinksService
 import com.qlink.link.service.PatchLinkService
 import com.qlink.link.service.UpdateLinkService
+import com.qlink.notification.service.ScheduleTodoNotificationService
 import com.qlink.todo.service.CompleteTodoService
 import com.qlink.todo.service.CreateTodoService
 import com.qlink.todo.service.DeleteTodoService
@@ -111,6 +112,7 @@ fun serviceModule() =
                 todoRepository = get(),
                 userRepository = get(),
                 folderRepository = get(),
+                scheduleTodoNotificationService = get(),
             )
         }
 
@@ -147,6 +149,7 @@ fun serviceModule() =
                 todoRepository = get(),
                 userRepository = get(),
                 folderRepository = get(),
+                scheduleTodoNotificationService = get(),
             )
         }
 
@@ -185,6 +188,7 @@ fun serviceModule() =
                 todoRepository = get(),
                 linkRepository = get(),
                 userRepository = get(),
+                scheduleTodoNotificationService = get(),
             )
         }
 
@@ -194,6 +198,7 @@ fun serviceModule() =
                 todoRepository = get(),
                 linkRepository = get(),
                 userRepository = get(),
+                scheduleTodoNotificationService = get(),
             )
         }
 
@@ -202,6 +207,7 @@ fun serviceModule() =
                 tx = get(),
                 todoRepository = get(),
                 userRepository = get(),
+                scheduleTodoNotificationService = get(),
             )
         }
 
@@ -210,6 +216,15 @@ fun serviceModule() =
                 tx = get(),
                 todoRepository = get(),
                 userRepository = get(),
+                scheduleTodoNotificationService = get(),
+            )
+        }
+
+        single {
+            ScheduleTodoNotificationService(
+                tx = get(),
+                notificationRepository = get(),
+                taskScheduler = get(),
             )
         }
     }

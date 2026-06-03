@@ -11,6 +11,7 @@ fun appModules(
     transactionModule(),
     pluginModule(config),
     repositoryModule(),
+    notificationModule(log),
     aiModule(config = config, log = log),
     serviceModule(),
 )

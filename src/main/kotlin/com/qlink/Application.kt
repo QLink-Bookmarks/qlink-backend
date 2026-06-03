@@ -1,6 +1,7 @@
 package com.qlink
 
 import com.qlink.ai.worker.AiSummaryWorker
+import com.qlink.notification.worker.TaskScheduler
 import com.qlink.plugin.configureDocs
 import com.qlink.plugin.configureHttp
 import com.qlink.plugin.configureKoin
@@ -39,4 +40,7 @@ fun Application.module() {
 
     val aiSummaryWorker by inject<AiSummaryWorker>()
     aiSummaryWorker.start()
+
+    val taskScheduler by inject<TaskScheduler>()
+    taskScheduler.start()
 }
