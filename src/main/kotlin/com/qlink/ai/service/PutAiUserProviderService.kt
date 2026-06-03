@@ -25,34 +25,31 @@ class PutAiUserProviderService(
     suspend fun putAiUserProvider(
         loginId: Long,
         request: PutAiUserProviderRequest,
-    ): PutAiUserProviderResponse {
-        val saved =
-            tx.required {
-                userRepository.emptyById(loginId).requireFalse(ErrorCode.USER_NOT_FOUND)
-                val provider =
-                    aiProviderRepository.findById(request.providerId)
-                        ?: throw BusinessException(ErrorCode.AI_PROVIDER_NOT_FOUND)
+    ): PutAiUserProviderResponse =
+        tx.required {
+            userRepository.emptyById(loginId).requireFalse(ErrorCode.USER_NOT_FOUND)
+            val provider =
+                aiProviderRepository.findById(request.providerId)
+                    ?: throw BusinessException(ErrorCode.AI_PROVIDER_NOT_FOUND)
 
-                runCatching {
-                    aiClientRouter.validateApiKey(
-                        providerType = provider.type,
-                        baseUrl = provider.baseUrl,
-                        apiKey = request.apiKey,
-                    )
-                }.onFailure { throw it.toBusinessException() }
+            runCatching {
+                aiClientRouter.validateApiKey(
+                    providerType = provider.type,
+                    baseUrl = provider.baseUrl,
+                    apiKey = request.apiKey,
+                )
+            }.onFailure { throw it.toBusinessException() }
 
-                val userProvider =
-                    UserProvider(
-                        userId = loginId,
-                        providerId = provider.id!!,
-                        apiKey = apiKeyCipher.encrypt(request.apiKey),
-                    )
+            val userProvider =
+                UserProvider(
+                    userId = loginId,
+                    providerId = provider.id!!,
+                    apiKey = apiKeyCipher.encrypt(request.apiKey),
+                )
 
-                userProviderRepository.save(userProvider)
-            }
-
-        return PutAiUserProviderResponse(id = saved.id!!)
-    }
+            val saved = userProviderRepository.save(userProvider)
+            PutAiUserProviderResponse(id = saved.id!!)
+        }
 
     private fun Throwable.toBusinessException(): BusinessException =
         when (this) {
