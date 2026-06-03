@@ -18,7 +18,7 @@ object UserProviders : Table("user_providers") {
     val userId = reference("user_id", Users.id, onDelete = ReferenceOption.CASCADE)
     val providerId = reference("provider_id", AiProviders.id, onDelete = ReferenceOption.CASCADE)
     val userRole = enumerationByName<Role>("user_role", 20)
-    val apiKey = varchar("api_key", 255)
+    val apiKey = text("api_key")
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
     val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp)
 

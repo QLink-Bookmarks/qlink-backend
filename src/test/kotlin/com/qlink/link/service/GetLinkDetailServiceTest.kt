@@ -19,6 +19,7 @@ import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.TodoFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
+import com.qlink.todo.domain.RepeatDay
 import com.qlink.todo.domain.Todo
 import com.qlink.todo.dto.LinkDetailTodoQuery
 import com.qlink.todo.repository.TodoRepository
@@ -27,6 +28,7 @@ import com.qlink.user.repository.UserRepository
 import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
+import java.time.LocalTime
 import kotlin.time.toKotlinInstant
 
 class GetLinkDetailServiceTest :
@@ -80,6 +82,14 @@ class GetLinkDetailServiceTest :
                             TodoFixture.createRandomTodoOf(
                                 linkId = link.id!!,
                                 ownerId = user.id!!,
+                                repeatUntil =
+                                    RandomFixture
+                                        .futureDateTime(30, java.util.concurrent.TimeUnit.DAYS)
+                                        .toInstant()
+                                        .toKotlinInstant(),
+                                repeatDays = listOf(RepeatDay.FRI),
+                                repeatTime = LocalTime.of(7, 30),
+                                repeatTimezone = java.time.ZoneId.of("Asia/Seoul"),
                             ),
                         ),
                         todoRepository.insert(
@@ -182,4 +192,7 @@ private fun Todo.toExpectedTodo() =
         title = title,
         completedAt = completedAt,
         reminderAt = reminderAt,
+        repeatUntil = repeatUntil,
+        repeatDays = repeatDays,
+        repeatTime = repeatTime?.toString(),
     )

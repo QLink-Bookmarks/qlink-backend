@@ -5,6 +5,7 @@ import com.qlink.link.domain.SourceType
 import com.qlink.link.dto.PatchLinkRequest
 import com.qlink.link.dto.PatchLinkTodoRequest
 import com.qlink.link.dto.UpdateLinkRequest
+import com.qlink.todo.domain.RepeatDay
 import kotlin.random.Random
 import kotlin.time.Instant
 
@@ -66,10 +67,18 @@ object LinkFixture {
         id: Long? = null,
         title: String = RandomFixture.randomSentenceWithMax(50),
         reminderAt: Instant? = null,
+        repeatUntil: Instant? = null,
+        repeatDays: List<RepeatDay>? = null,
+        repeatTime: String? = null,
+        repeatTimezone: String? = null,
     ): PatchLinkTodoRequest =
         PatchLinkTodoRequest(
             id = id,
             title = title,
             reminderAt = reminderAt,
+            repeatUntil = repeatUntil,
+            repeatDays = repeatDays,
+            repeatTime = repeatTime,
+            repeatTimezone = repeatTimezone,
         )
 }

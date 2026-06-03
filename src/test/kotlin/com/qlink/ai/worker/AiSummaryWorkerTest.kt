@@ -105,6 +105,7 @@ class AiSummaryWorkerTest :
                     actualLink.summary shouldBe "AI 요약"
                     actualLink.tags shouldBe listOf("포털", "검색")
                     fakeAiClient.requestedModels shouldBe listOf(model.model)
+                    fakeAiClient.requestedApiKeys shouldBe listOf("api-key")
                     usage!!.requests shouldBe 1
                     usage.tokens shouldBe 831
                     todos.map { it.title } shouldBe listOf("AI 할 일")

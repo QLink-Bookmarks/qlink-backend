@@ -2,6 +2,7 @@
 
 package com.qlink.link.dto
 
+import com.qlink.todo.domain.RepeatDay
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
 
@@ -10,6 +11,10 @@ data class PatchLinkTodoRequest(
     val id: Long? = null,
     val title: String,
     val reminderAt: Instant? = null,
+    val repeatUntil: Instant? = null,
+    val repeatDays: List<RepeatDay>? = null,
+    val repeatTime: String? = null,
+    val repeatTimezone: String? = null,
 )
 
 @Serializable

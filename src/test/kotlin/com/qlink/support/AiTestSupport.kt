@@ -1,10 +1,13 @@
 package com.qlink.support
 
+import com.qlink.ai.client.AiApiKeyValidationException
+import com.qlink.ai.client.AiApiKeyValidationRequest
 import com.qlink.ai.client.AiClient
 import com.qlink.ai.client.AiClientRouter
 import com.qlink.ai.client.AiSummaryClientRequest
 import com.qlink.ai.client.AiSummaryClientResponse
 import com.qlink.ai.client.AiSummaryTodo
+import com.qlink.common.crypto.ApiKeyCipher
 import com.qlink.ai.domain.AiProvider
 import com.qlink.ai.domain.AiProviderType
 import com.qlink.ai.domain.AvailableModel
@@ -21,6 +24,10 @@ import org.slf4j.LoggerFactory
 
 fun aiTestModule() =
     module {
+        single {
+            ApiKeyCipher(keyBase64 = TEST_AI_API_KEY_ENCRYPTION_KEY_BASE64)
+        }
+
         single {
             FakeAiClient()
         }
@@ -51,6 +58,7 @@ fun aiTestModule() =
                 linkRepository = get(),
                 todoRepository = get(),
                 aiClientRouter = get(),
+                apiKeyCipher = get(),
                 channel = get(),
                 log = LoggerFactory.getLogger(AiSummaryWorker::class.java),
             )
@@ -65,9 +73,12 @@ class FakeAiClient : AiClient {
     var usedTokens: Int = 11
     var failuresByModel: Map<String, Throwable> = emptyMap()
     val requestedModels: MutableList<String> = mutableListOf()
+    val requestedApiKeys: MutableList<String> = mutableListOf()
+    var validationStatusCode: Int? = null
 
     override suspend fun summarize(request: AiSummaryClientRequest): AiSummaryClientResponse {
         requestedModels.add(request.model)
+        requestedApiKeys.add(request.apiKey)
         failuresByModel[request.model]?.let { throw it }
 
         return AiSummaryClientResponse(
@@ -82,6 +93,11 @@ class FakeAiClient : AiClient {
         )
     }
 
+    override suspend fun validateApiKey(request: AiApiKeyValidationRequest) {
+        requestedApiKeys.add(request.apiKey)
+        validationStatusCode?.let { throw AiApiKeyValidationException(it) }
+    }
+
     fun reset() {
         linkId = null
         folderId = null
@@ -89,6 +105,8 @@ class FakeAiClient : AiClient {
         usedTokens = 11
         failuresByModel = emptyMap()
         requestedModels.clear()
+        requestedApiKeys.clear()
+        validationStatusCode = null
     }
 }
 
@@ -122,9 +140,11 @@ suspend fun insertAiContext(
                 userId = userId,
                 providerId = provider.id,
                 userRole = role,
-                apiKey = "api-key",
+                apiKey = ApiKeyCipher(TEST_AI_API_KEY_ENCRYPTION_KEY_BASE64).encrypt("api-key"),
             ),
         )
 
     return userProvider to model
 }
+
+const val TEST_AI_API_KEY_ENCRYPTION_KEY_BASE64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="

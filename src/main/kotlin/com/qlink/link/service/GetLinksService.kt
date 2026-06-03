@@ -127,5 +127,8 @@ class GetLinksService(
             title = title,
             completedAt = completedAt,
             reminderAt = reminderAt,
+            repeatUntil = repeatUntil,
+            repeatDays = repeatDays,
+            repeatTime = repeatTime,
         )
 }

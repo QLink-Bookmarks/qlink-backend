@@ -12,12 +12,28 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.updateReturning
+import org.jetbrains.exposed.v1.jdbc.upsertReturning
 
 class DbUserProviderRepository : UserProviderRepository {
     override suspend fun insert(userProvider: UserProvider): UserProvider =
         UserProviders
             .insertReturning { it.fromDomain(userProvider) }
             .single()
+            .toUserProviderDomain()
+
+    override suspend fun save(userProvider: UserProvider): UserProvider =
+        UserProviders
+            .upsertReturning(
+                UserProviders.userId,
+                UserProviders.providerId,
+                onUpdate = {
+                    it[UserProviders.userRole] = userProvider.userRole
+                    it[UserProviders.apiKey] = userProvider.apiKey
+                    it.refreshUserProviderUpdatedAt()
+                },
+            ) {
+                it.fromDomain(userProvider)
+            }.single()
             .toUserProviderDomain()
 
     override suspend fun findByUserIdAndProviderId(

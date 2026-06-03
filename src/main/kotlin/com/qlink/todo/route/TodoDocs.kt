@@ -63,6 +63,10 @@ internal fun createTodoDocs(): RouteConfig.() -> Unit =
                     examples(
                         ErrorCode.TODO_TITLE_BLANK,
                         ErrorCode.TODO_TITLE_OVER_MAX,
+                        ErrorCode.TODO_REPEAT_FIELDS_INCOMPLETE,
+                        ErrorCode.TODO_REPEAT_DAYS_EMPTY,
+                        ErrorCode.TODO_REPEAT_TIME_INVALID,
+                        ErrorCode.TODO_REPEAT_TIMEZONE_INVALID,
                     )
                 }
             }
@@ -134,6 +138,10 @@ internal fun updateTodoDocs(): RouteConfig.() -> Unit =
                     examples(
                         ErrorCode.TODO_TITLE_BLANK,
                         ErrorCode.TODO_TITLE_OVER_MAX,
+                        ErrorCode.TODO_REPEAT_FIELDS_INCOMPLETE,
+                        ErrorCode.TODO_REPEAT_DAYS_EMPTY,
+                        ErrorCode.TODO_REPEAT_TIME_INVALID,
+                        ErrorCode.TODO_REPEAT_TIMEZONE_INVALID,
                     )
                 }
             }

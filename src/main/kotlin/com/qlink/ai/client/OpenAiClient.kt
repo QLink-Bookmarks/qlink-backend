@@ -6,6 +6,7 @@ import com.qlink.common.error.ErrorCode
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.get
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -22,7 +23,7 @@ class OpenAiClient(
     override suspend fun summarize(request: AiSummaryClientRequest): AiSummaryClientResponse {
         val response =
             httpClient
-                .post(request.baseUrl) {
+                .post(request.baseUrl.openAiResponsesUrl()) {
                     bearerAuth(request.apiKey)
                     contentType(ContentType.Application.Json)
                     setBody(OpenAiResponsesRequest.from(request.model, request.prompt))
@@ -39,7 +40,26 @@ class OpenAiClient(
             usedTokens = response.usage?.totalTokens ?: text.length,
         )
     }
+
+    override suspend fun validateApiKey(request: AiApiKeyValidationRequest) {
+        val response =
+            httpClient.get(request.baseUrl.openAiModelsUrl()) {
+                bearerAuth(request.apiKey)
+            }
+
+        if (response.status.value !in 200..299) {
+            throw AiApiKeyValidationException(response.status.value)
+        }
+    }
 }
+
+private fun String.openAiModelsUrl(): String =
+    removeSuffix("/")
+        .let { "$it/models" }
+
+private fun String.openAiResponsesUrl(): String =
+    removeSuffix("/")
+        .let { "$it/responses" }
 
 @Serializable
 private data class OpenAiResponsesRequest(

@@ -24,6 +24,7 @@ import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.TodoFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
+import com.qlink.support.truncatedToSecond
 import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.domain.User
 import com.qlink.user.repository.UserRepository
@@ -31,6 +32,7 @@ import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import kotlin.time.toKotlinInstant
 
 class GetLinksServiceTest :
     BaseServiceTest({
@@ -87,7 +89,15 @@ class GetLinksServiceTest :
                             ),
                         )
                     val secondLinkId = secondLink.id!!
-                    todoRepository.insert(TodoFixture.createRandomTodoOf(linkId = secondLinkId, ownerId = user.id!!, title = "todo-1"))
+                    val completedAt = RandomFixture.randomDateTime().toInstant().toKotlinInstant()
+                    todoRepository.insert(
+                        TodoFixture.createRandomTodoOf(
+                            linkId = secondLinkId,
+                            ownerId = user.id!!,
+                            title = "todo-1",
+                            completedAt = completedAt,
+                        ),
+                    )
                     todoRepository.insert(TodoFixture.createRandomTodoOf(linkId = secondLinkId, ownerId = user.id!!, title = "todo-2"))
                     todoRepository.insert(TodoFixture.createRandomTodoOf(linkId = secondLinkId, ownerId = user.id!!, title = "todo-3"))
                     val response =
@@ -104,6 +114,9 @@ class GetLinksServiceTest :
                     response.contents[0].id shouldBe secondLink.id
                     response.contents[0].folderEmoji shouldBe null
                     response.contents[0].todos.shouldHaveSize(2)
+                    response.contents[0].todos.first { it.title == "todo-1" }.completedAt.truncatedToSecond() shouldBe
+                        completedAt.truncatedToSecond()
+                    response.contents[0].todos.first { it.title == "todo-2" }.completedAt shouldBe null
                     response.contents[0].countMoreTodos shouldBe 1
                     response.contents[1].id shouldBe firstLink.id
                     response.contents[1].folderId shouldBe folder.id

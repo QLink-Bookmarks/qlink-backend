@@ -17,4 +17,18 @@ class AiClientRouter(
 
     fun requireSupported(providerType: AiProviderType): AiClient =
         clientsByProvider[providerType] ?: throw BusinessException(ErrorCode.AI_PROVIDER_NOT_SUPPORTED)
+
+    suspend fun validateApiKey(
+        providerType: AiProviderType,
+        baseUrl: String,
+        apiKey: String,
+    ) {
+        requireSupported(providerType)
+            .validateApiKey(
+                AiApiKeyValidationRequest(
+                    baseUrl = baseUrl,
+                    apiKey = apiKey,
+                ),
+            )
+    }
 }

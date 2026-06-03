@@ -9,13 +9,18 @@ import com.qlink.support.fixture.LinkFixture
 import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
+import com.qlink.support.truncatedToSecond
 import com.qlink.todo.dto.CreateTodoRequest
+import com.qlink.todo.domain.RepeatDay
 import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.domain.User
 import com.qlink.user.repository.UserRepository
 import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import java.util.concurrent.TimeUnit
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
 import kotlin.time.toKotlinInstant
 
 class CreateTodoServiceTest :
@@ -55,6 +60,33 @@ class CreateTodoServiceTest :
                     actual.reminderAt shouldBe request.reminderAt
                     actual.completedAt shouldBe null
                     actual.isCompleted shouldBe false
+                }
+            }
+
+            When("반복 설정이 있는 할 일 생성을") {
+                val ignoredReminderAt = RandomFixture.pastDateTime(3, TimeUnit.DAYS).toInstant().toKotlinInstant()
+                val repeatUntil = Clock.System.now().plus(30.days)
+                val request =
+                    CreateTodoRequest(
+                        linkId = link.id!!,
+                        title = RandomFixture.randomSentenceWithMax(50),
+                        reminderAt = ignoredReminderAt,
+                        repeatUntil = repeatUntil,
+                        repeatDays = RepeatDay.entries.toList(),
+                        repeatTime = "23:59",
+                    )
+                val expected = createTodoService.createTodo(user.id!!, request)
+
+                Then("알림을 다음 반복 시각으로 계산하고 UTC 시간대를 저장한다") {
+                    val actual = todoRepository.findById(expected.id)
+
+                    actual shouldNotBe null
+                    actual!!.reminderAt shouldNotBe ignoredReminderAt
+                    actual.reminderAt shouldNotBe null
+                    actual.repeatUntil.truncatedToSecond() shouldBe repeatUntil.truncatedToSecond()
+                    actual.repeatDays shouldBe RepeatDay.entries.toList()
+                    actual.repeatTime.toString() shouldBe "23:59"
+                    actual.repeatTimezone?.id shouldBe "UTC"
                 }
             }
 

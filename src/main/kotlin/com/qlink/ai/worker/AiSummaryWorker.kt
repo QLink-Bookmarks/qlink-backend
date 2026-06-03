@@ -14,6 +14,7 @@ import com.qlink.ai.repository.DailyUsageRepository
 import com.qlink.ai.repository.UserProviderRepository
 import com.qlink.ai.service.copyAiStatus
 import com.qlink.auth.domain.Role
+import com.qlink.common.crypto.ApiKeyCipher
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.domain.LinkStatus
@@ -43,6 +44,7 @@ class AiSummaryWorker(
     private val linkRepository: LinkRepository,
     private val todoRepository: TodoRepository,
     private val aiClientRouter: AiClientRouter,
+    private val apiKeyCipher: ApiKeyCipher,
     private val channel: Channel<Long>,
     private val log: Logger,
 ) {
@@ -74,6 +76,7 @@ class AiSummaryWorker(
                     job = job,
                     userProvider = userProvider,
                     provider = provider,
+                    apiKey = apiKeyCipher.decrypt(userProvider.apiKey) ?: return@readOnly null,
                     requestModel = requestModel,
                     candidateModels = availableModelRepository.findAllByProviderId(provider.id!!),
                     selectableFolderIds = folderRepository.findAllByOwnerId(link.ownerId).mapNotNull { it.id }.toSet(),
@@ -159,7 +162,7 @@ class AiSummaryWorker(
                             AiSummaryClientRequest(
                                 providerType = context.provider.type,
                                 baseUrl = context.provider.baseUrl,
-                                apiKey = context.userProvider.apiKey,
+                                apiKey = context.apiKey,
                                 model = model.model,
                                 prompt = context.job.prompt,
                             ),
@@ -248,6 +251,7 @@ class AiSummaryWorker(
         val job: AiJob,
         val userProvider: UserProvider,
         val provider: AiProvider,
+        val apiKey: String,
         val requestModel: AvailableModel,
         val candidateModels: List<AvailableModel>,
         val selectableFolderIds: Set<Long>,

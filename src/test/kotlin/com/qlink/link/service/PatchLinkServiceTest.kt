@@ -14,6 +14,8 @@ import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.TodoFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
+import com.qlink.support.truncatedToSecond
+import com.qlink.todo.domain.RepeatDay
 import com.qlink.todo.domain.Todo
 import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.domain.User
@@ -23,6 +25,9 @@ import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import java.util.concurrent.TimeUnit
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
 import kotlin.time.toKotlinInstant
 
 class PatchLinkServiceTest :
@@ -194,7 +199,8 @@ class PatchLinkServiceTest :
 
             When("기존 todo 수정과 신규 todo 생성을 함께 하면") {
                 Then("요청에 없는 기존 todo는 삭제하고 완료 상태는 유지한다") {
-                    val updatedReminderAt = RandomFixture.randomDateTime().toInstant().toKotlinInstant()
+                    val updatedReminderAt = RandomFixture.pastDateTime(3, TimeUnit.DAYS).toInstant().toKotlinInstant()
+                    val repeatUntil = Clock.System.now().plus(30.days)
                     val request =
                         LinkFixture.createPatchLinkRequest(
                             todos =
@@ -203,6 +209,10 @@ class PatchLinkServiceTest :
                                         id = secondTodo.id,
                                         title = "patched-second",
                                         reminderAt = updatedReminderAt,
+                                        repeatUntil = repeatUntil,
+                                        repeatDays = listOf(RepeatDay.TUE),
+                                        repeatTime = "18:20",
+                                        repeatTimezone = "Asia/Seoul",
                                     ),
                                     LinkFixture.createPatchLinkTodoRequest(
                                         title = "new-todo",
@@ -216,9 +226,19 @@ class PatchLinkServiceTest :
                     actualTodos.shouldHaveSize(2)
                     actualTodos.map { it.title } shouldContainExactly listOf("patched-second", "new-todo")
                     actualTodos.first { it.id == secondTodo.id!! }.completedAt shouldBe secondTodo.completedAt
+                    actualTodos.first { it.id == secondTodo.id!! }.reminderAt shouldNotBe updatedReminderAt
+                    actualTodos.first { it.id == secondTodo.id!! }.repeatUntil.truncatedToSecond() shouldBe
+                        repeatUntil.truncatedToSecond()
+                    actualTodos.first { it.id == secondTodo.id!! }.repeatDays shouldBe listOf(RepeatDay.TUE)
+                    actualTodos.first { it.id == secondTodo.id!! }.repeatTime.toString() shouldBe "18:20"
+                    actualTodos.first { it.id == secondTodo.id!! }.repeatTimezone?.id shouldBe "Asia/Seoul"
                     todoRepository.findById(firstTodo.id!!) shouldBe null
 
                     response.todos.map { it.title } shouldContainExactly listOf("patched-second", "new-todo")
+                    response.todos.first { it.id == secondTodo.id!! }.repeatUntil.truncatedToSecond() shouldBe
+                        repeatUntil.truncatedToSecond()
+                    response.todos.first { it.id == secondTodo.id!! }.repeatDays shouldBe listOf(RepeatDay.TUE)
+                    response.todos.first { it.id == secondTodo.id!! }.repeatTime shouldBe "18:20"
                 }
             }
 

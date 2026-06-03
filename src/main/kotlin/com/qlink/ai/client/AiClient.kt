@@ -38,7 +38,18 @@ interface AiClient {
     val providerType: AiProviderType
 
     suspend fun summarize(request: AiSummaryClientRequest): AiSummaryClientResponse
+
+    suspend fun validateApiKey(request: AiApiKeyValidationRequest)
 }
+
+data class AiApiKeyValidationRequest(
+    val baseUrl: String,
+    val apiKey: String,
+)
+
+class AiApiKeyValidationException(
+    val statusCode: Int,
+) : RuntimeException("AI API key validation failed. statusCode=$statusCode")
 
 private val summaryJson = Json { ignoreUnknownKeys = true }
 

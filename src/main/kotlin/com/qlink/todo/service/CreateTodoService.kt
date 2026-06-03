@@ -10,6 +10,7 @@ import com.qlink.todo.dto.CreateTodoRequest
 import com.qlink.todo.dto.CreateTodoResponse
 import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.repository.UserRepository
+import kotlin.time.Clock
 
 class CreateTodoService(
     private val tx: TransactionRunner,
@@ -30,11 +31,16 @@ class CreateTodoService(
                 ?: throw BusinessException(ErrorCode.TODO_LINK_NOT_FOUND)
 
             val todo =
-                Todo(
+                Todo.create(
                     linkId = request.linkId,
                     ownerId = loginId,
                     title = request.title,
                     reminderAt = request.reminderAt,
+                    repeatUntil = request.repeatUntil,
+                    repeatDays = request.repeatDays,
+                    repeatTime = request.repeatTime,
+                    repeatTimezone = request.repeatTimezone,
+                    now = Clock.System.now(),
                 )
 
             CreateTodoResponse(todoRepository.insert(todo).id!!)
