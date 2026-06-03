@@ -13,6 +13,7 @@ import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.TodoFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
+import com.qlink.support.truncatedToSecond
 import com.qlink.todo.domain.RepeatDay
 import com.qlink.todo.dto.TodoSearchCursorValue
 import com.qlink.todo.repository.TodoRepository
@@ -42,7 +43,7 @@ class GetTodosServiceTest :
             repeatUntil: Instant? = null,
             repeatDays: List<RepeatDay>? = null,
             repeatTime: LocalTime? = null,
-            repeatTimezone: String? = null,
+            repeatTimezone: java.time.ZoneId? = null,
             completedAt: Instant? = null,
         ) = todoRepository.insert(
             TodoFixture.createRandomTodoOf(
@@ -129,9 +130,9 @@ class GetTodosServiceTest :
                         ownerId = user.id!!,
                         title = "repeat todo",
                         repeatUntil = repeatUntil,
-                        repeatDays = listOf(RepeatDay.TUESDAY, RepeatDay.THURSDAY),
+                        repeatDays = listOf(RepeatDay.TUE, RepeatDay.THU),
                         repeatTime = LocalTime.of(8, 45),
-                        repeatTimezone = "Asia/Seoul",
+                        repeatTimezone = java.time.ZoneId.of("Asia/Seoul"),
                     )
                 val actual =
                     getTodosService.getTodos(
@@ -145,8 +146,8 @@ class GetTodosServiceTest :
                 Then("반복 종료일, 요일, 시간을 반환한다") {
                     val content = actual.contents.first { it.id == todo.id!! }
 
-                    content.repeatUntil shouldBe repeatUntil
-                    content.repeatDays shouldBe listOf(RepeatDay.TUESDAY, RepeatDay.THURSDAY)
+                    content.repeatUntil.truncatedToSecond() shouldBe repeatUntil.truncatedToSecond()
+                    content.repeatDays shouldBe listOf(RepeatDay.TUE, RepeatDay.THU)
                     content.repeatTime shouldBe "08:45"
                 }
             }

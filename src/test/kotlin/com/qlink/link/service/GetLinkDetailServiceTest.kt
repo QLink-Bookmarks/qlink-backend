@@ -87,9 +87,9 @@ class GetLinkDetailServiceTest :
                                         .futureDateTime(30, java.util.concurrent.TimeUnit.DAYS)
                                         .toInstant()
                                         .toKotlinInstant(),
-                                repeatDays = listOf(RepeatDay.FRIDAY),
+                                repeatDays = listOf(RepeatDay.FRI),
                                 repeatTime = LocalTime.of(7, 30),
-                                repeatTimezone = "Asia/Seoul",
+                                repeatTimezone = java.time.ZoneId.of("Asia/Seoul"),
                             ),
                         ),
                         todoRepository.insert(

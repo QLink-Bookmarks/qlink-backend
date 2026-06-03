@@ -36,23 +36,17 @@ class UpdateTodoService(
                     ?: throw BusinessException(ErrorCode.TODO_LINK_NOT_FOUND)
             }
 
-            val repeatTime = Todo.parseRepeatTime(request.repeatTime)
             val updatedTodo =
                 todo.update(
                     linkId = request.linkId,
                     title = request.title,
-                    reminderAt = request.reminderAt.takeIf { !request.hasCompleteRepeat() },
+                    reminderAt = request.reminderAt,
                     repeatUntil = request.repeatUntil,
                     repeatDays = request.repeatDays,
-                    repeatTime = repeatTime,
-                    repeatTimezone =
-                        Todo.normalizeRepeatTimezone(
-                            repeatUntil = request.repeatUntil,
-                            repeatDays = request.repeatDays,
-                            repeatTime = repeatTime,
-                            repeatTimezone = request.repeatTimezone,
-                        ),
-                ).let { if (it.hasRepeat) it.setNextReminder(Clock.System.now()) else it }
+                    repeatTime = request.repeatTime,
+                    repeatTimezone = request.repeatTimezone,
+                    now = Clock.System.now(),
+                )
 
             todoRepository.update(updatedTodo).toResponse()
         }
@@ -67,6 +61,4 @@ class UpdateTodoService(
             repeatTime = repeatTime?.toString(),
         )
 
-    private fun UpdateTodoRequest.hasCompleteRepeat(): Boolean =
-        repeatUntil != null && repeatDays != null && repeatTime != null
 }

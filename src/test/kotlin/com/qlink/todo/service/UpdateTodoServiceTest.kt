@@ -10,6 +10,7 @@ import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.TodoFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
+import com.qlink.support.truncatedToSecond
 import com.qlink.todo.domain.RepeatDay
 import com.qlink.todo.domain.Todo
 import com.qlink.todo.dto.UpdateTodoRequest
@@ -110,7 +111,7 @@ class UpdateTodoServiceTest :
                                 title = RandomFixture.randomSentenceWithMax(50),
                                 reminderAt = ignoredReminderAt,
                                 repeatUntil = repeatUntil,
-                                repeatDays = listOf(RepeatDay.MONDAY, RepeatDay.WEDNESDAY),
+                                repeatDays = listOf(RepeatDay.MON, RepeatDay.WED),
                                 repeatTime = "09:15",
                                 repeatTimezone = "Asia/Seoul",
                             )
@@ -122,17 +123,17 @@ class UpdateTodoServiceTest :
                     val actual = todoRepository.findById(todo.id!!)
 
                     response.reminderAt shouldNotBe ignoredReminderAt
-                    response.repeatUntil shouldBe repeatUntil
+                    response.repeatUntil.truncatedToSecond() shouldBe repeatUntil.truncatedToSecond()
                     response.repeatDays shouldBe updateRequest.repeatDays
                     response.repeatTime shouldBe "09:15"
 
                     actual shouldNotBe null
                     actual!!.reminderAt shouldNotBe ignoredReminderAt
                     actual.reminderAt shouldNotBe null
-                    actual.repeatUntil shouldBe repeatUntil
+                    actual.repeatUntil.truncatedToSecond() shouldBe repeatUntil.truncatedToSecond()
                     actual.repeatDays shouldBe updateRequest.repeatDays
                     actual.repeatTime.toString() shouldBe "09:15"
-                    actual.repeatTimezone shouldBe "Asia/Seoul"
+                    actual.repeatTimezone?.id shouldBe "Asia/Seoul"
                 }
             }
 

@@ -7,6 +7,7 @@ import com.qlink.user.repository.table.Users
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.VarCharColumnType
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import org.jetbrains.exposed.v1.javatime.CurrentTimestamp
 import org.jetbrains.exposed.v1.javatime.time
@@ -21,7 +22,7 @@ object Todos : Table("todos") {
     val title = varchar("title", 50)
     val reminderAt = timestamp("reminder_at").nullable()
     val repeatUntil = timestamp("repeat_until").nullable()
-    val repeatDays = varchar("repeat_days", 100).nullable()
+    val repeatDays = array("repeat_days", VarCharColumnType(3)).nullable()
     val repeatTime = time("repeat_time").nullable()
     val repeatTimezone = varchar("repeat_timezone", 100).nullable()
     val completedAt = timestamp("completed_at").nullable()
@@ -44,9 +45,9 @@ fun ResultRow.toTodoDomain(): Todo =
         title = this[Todos.title],
         reminderAt = this[Todos.reminderAt]?.toKotlinInstant(),
         repeatUntil = this[Todos.repeatUntil]?.toKotlinInstant(),
-        repeatDays = this[Todos.repeatDays]?.toRepeatDays(),
+        repeatDays = this[Todos.repeatDays]?.map { RepeatDay.valueOf(it) },
         repeatTime = this[Todos.repeatTime],
-        repeatTimezone = this[Todos.repeatTimezone],
+        repeatTimezone = this[Todos.repeatTimezone]?.let(java.time.ZoneId::of),
         completedAt = this[Todos.completedAt]?.toKotlinInstant(),
         createdAt = this[Todos.createdAt].toKotlinInstant(),
         updatedAt = this[Todos.updatedAt].toKotlinInstant(),
@@ -58,19 +59,12 @@ fun UpdateBuilder<*>.fromDomain(todo: Todo) {
     this[Todos.title] = todo.title
     this[Todos.reminderAt] = todo.reminderAt?.toJavaInstant()
     this[Todos.repeatUntil] = todo.repeatUntil?.toJavaInstant()
-    this[Todos.repeatDays] = todo.repeatDays?.toRepeatDaysText()
+    this[Todos.repeatDays] = todo.repeatDays?.map { it.name }
     this[Todos.repeatTime] = todo.repeatTime
-    this[Todos.repeatTimezone] = todo.repeatTimezone
+    this[Todos.repeatTimezone] = todo.repeatTimezone?.id
     this[Todos.completedAt] = todo.completedAt?.toJavaInstant()
 }
 
 fun UpdateBuilder<*>.refreshUpdatedAt() {
     this[Todos.updatedAt] = java.time.Instant.now()
 }
-
-private fun List<RepeatDay>.toRepeatDaysText(): String = joinToString(",") { it.name }
-
-private fun String.toRepeatDays(): List<RepeatDay> =
-    split(",")
-        .filter { it.isNotBlank() }
-        .map { RepeatDay.valueOf(it) }

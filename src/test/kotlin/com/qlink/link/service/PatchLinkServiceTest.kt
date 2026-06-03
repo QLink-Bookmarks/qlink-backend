@@ -14,6 +14,7 @@ import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.TodoFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
+import com.qlink.support.truncatedToSecond
 import com.qlink.todo.domain.RepeatDay
 import com.qlink.todo.domain.Todo
 import com.qlink.todo.repository.TodoRepository
@@ -209,7 +210,7 @@ class PatchLinkServiceTest :
                                         title = "patched-second",
                                         reminderAt = updatedReminderAt,
                                         repeatUntil = repeatUntil,
-                                        repeatDays = listOf(RepeatDay.TUESDAY),
+                                        repeatDays = listOf(RepeatDay.TUE),
                                         repeatTime = "18:20",
                                         repeatTimezone = "Asia/Seoul",
                                     ),
@@ -226,15 +227,17 @@ class PatchLinkServiceTest :
                     actualTodos.map { it.title } shouldContainExactly listOf("patched-second", "new-todo")
                     actualTodos.first { it.id == secondTodo.id!! }.completedAt shouldBe secondTodo.completedAt
                     actualTodos.first { it.id == secondTodo.id!! }.reminderAt shouldNotBe updatedReminderAt
-                    actualTodos.first { it.id == secondTodo.id!! }.repeatUntil shouldBe repeatUntil
-                    actualTodos.first { it.id == secondTodo.id!! }.repeatDays shouldBe listOf(RepeatDay.TUESDAY)
+                    actualTodos.first { it.id == secondTodo.id!! }.repeatUntil.truncatedToSecond() shouldBe
+                        repeatUntil.truncatedToSecond()
+                    actualTodos.first { it.id == secondTodo.id!! }.repeatDays shouldBe listOf(RepeatDay.TUE)
                     actualTodos.first { it.id == secondTodo.id!! }.repeatTime.toString() shouldBe "18:20"
-                    actualTodos.first { it.id == secondTodo.id!! }.repeatTimezone shouldBe "Asia/Seoul"
+                    actualTodos.first { it.id == secondTodo.id!! }.repeatTimezone?.id shouldBe "Asia/Seoul"
                     todoRepository.findById(firstTodo.id!!) shouldBe null
 
                     response.todos.map { it.title } shouldContainExactly listOf("patched-second", "new-todo")
-                    response.todos.first { it.id == secondTodo.id!! }.repeatUntil shouldBe repeatUntil
-                    response.todos.first { it.id == secondTodo.id!! }.repeatDays shouldBe listOf(RepeatDay.TUESDAY)
+                    response.todos.first { it.id == secondTodo.id!! }.repeatUntil.truncatedToSecond() shouldBe
+                        repeatUntil.truncatedToSecond()
+                    response.todos.first { it.id == secondTodo.id!! }.repeatDays shouldBe listOf(RepeatDay.TUE)
                     response.todos.first { it.id == secondTodo.id!! }.repeatTime shouldBe "18:20"
                 }
             }

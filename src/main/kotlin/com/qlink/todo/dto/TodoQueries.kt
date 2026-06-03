@@ -77,7 +77,7 @@ fun ResultRow.toLinkDetailTodoQuery(): LinkDetailTodoQuery =
         completedAt = this[Todos.completedAt]?.toKotlinInstant(),
         reminderAt = this[Todos.reminderAt]?.toKotlinInstant(),
         repeatUntil = this[Todos.repeatUntil]?.toKotlinInstant(),
-        repeatDays = this[Todos.repeatDays]?.toRepeatDays(),
+        repeatDays = this[Todos.repeatDays]?.map { RepeatDay.valueOf(it) },
         repeatTime = this[Todos.repeatTime]?.toString(),
     )
 
@@ -89,7 +89,7 @@ fun ResultRow.toLinkSearchTodoQuery(): LinkSearchTodoQuery =
         completedAt = this[Todos.completedAt]?.toKotlinInstant(),
         reminderAt = this[Todos.reminderAt]?.toKotlinInstant(),
         repeatUntil = this[Todos.repeatUntil]?.toKotlinInstant(),
-        repeatDays = this[Todos.repeatDays]?.toRepeatDays(),
+        repeatDays = this[Todos.repeatDays]?.map { RepeatDay.valueOf(it) },
         repeatTime = this[Todos.repeatTime]?.toString(),
         totalCount = 0,
     )
@@ -100,14 +100,9 @@ fun ResultRow.toSearchTodosQuery(linkTitle: Expression<String>): SearchTodosQuer
         title = this[Todos.title],
         reminderAt = this[Todos.reminderAt]?.toKotlinInstant(),
         repeatUntil = this[Todos.repeatUntil]?.toKotlinInstant(),
-        repeatDays = this[Todos.repeatDays]?.toRepeatDays(),
+        repeatDays = this[Todos.repeatDays]?.map { RepeatDay.valueOf(it) },
         repeatTime = this[Todos.repeatTime]?.toString(),
         linkId = this[Todos.linkId],
         linkUrl = this[Links.url],
         linkTitle = this[linkTitle],
     )
-
-private fun String.toRepeatDays(): List<RepeatDay> =
-    split(",")
-        .filter { it.isNotBlank() }
-        .map { RepeatDay.valueOf(it) }

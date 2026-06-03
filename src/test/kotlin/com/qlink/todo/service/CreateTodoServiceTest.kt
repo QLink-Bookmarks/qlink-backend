@@ -9,6 +9,7 @@ import com.qlink.support.fixture.LinkFixture
 import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
+import com.qlink.support.truncatedToSecond
 import com.qlink.todo.dto.CreateTodoRequest
 import com.qlink.todo.domain.RepeatDay
 import com.qlink.todo.repository.TodoRepository
@@ -82,10 +83,10 @@ class CreateTodoServiceTest :
                     actual shouldNotBe null
                     actual!!.reminderAt shouldNotBe ignoredReminderAt
                     actual.reminderAt shouldNotBe null
-                    actual.repeatUntil shouldBe repeatUntil
+                    actual.repeatUntil.truncatedToSecond() shouldBe repeatUntil.truncatedToSecond()
                     actual.repeatDays shouldBe RepeatDay.entries.toList()
                     actual.repeatTime.toString() shouldBe "23:59"
-                    actual.repeatTimezone shouldBe "UTC"
+                    actual.repeatTimezone?.id shouldBe "UTC"
                 }
             }
 

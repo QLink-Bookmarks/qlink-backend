@@ -13,7 +13,7 @@ import kotlin.time.toJavaInstant
 import kotlin.time.toKotlinInstant
 
 private const val MAX_TITLE_LENGTH = 50
-private const val DEFAULT_REPEAT_TIMEZONE = "UTC"
+private val DEFAULT_REPEAT_TIMEZONE = ZoneId.of("UTC")
 private val REPEAT_TIME_REGEX = Regex("""\d{2}:\d{2}""")
 
 class Todo(
@@ -25,12 +25,12 @@ class Todo(
     val repeatUntil: Instant? = null,
     val repeatDays: List<RepeatDay>? = null,
     val repeatTime: LocalTime? = null,
-    repeatTimezone: String? = null,
+    repeatTimezone: ZoneId? = null,
     val completedAt: Instant? = null,
     val createdAt: Instant? = null,
     val updatedAt: Instant? = null,
 ) {
-    val repeatTimezone: String? =
+    val repeatTimezone: ZoneId? =
         if (repeatUntil != null && repeatDays != null && repeatTime != null) {
             repeatTimezone ?: DEFAULT_REPEAT_TIMEZONE
         } else {
@@ -59,10 +59,11 @@ class Todo(
         reminderAt: Instant?,
         repeatUntil: Instant?,
         repeatDays: List<RepeatDay>?,
-        repeatTime: LocalTime?,
+        repeatTime: String?,
         repeatTimezone: String?,
+        now: Instant,
     ): Todo =
-        Todo(
+        create(
             id = this.id,
             linkId = linkId,
             ownerId = this.ownerId,
@@ -75,6 +76,7 @@ class Todo(
             completedAt = this.completedAt,
             createdAt = this.createdAt,
             updatedAt = this.updatedAt,
+            now = now,
         )
 
     fun setNextReminder(now: Instant): Todo {
@@ -86,7 +88,7 @@ class Todo(
             return copyWith(reminderAt = null)
         }
 
-        val zoneId = ZoneId.of(repeatTimezone!!)
+        val zoneId = repeatTimezone!!
         val localNow = now.toJavaInstant().atZone(zoneId)
         val nextReminder =
             repeatDays!!
@@ -94,8 +96,9 @@ class Todo(
                     val daysUntil = (repeatDay.dayOfWeek.value - localNow.dayOfWeek.value + 7) % 7
                     val candidateDate = localNow.toLocalDate().plusDays(daysUntil.toLong())
                     val candidate = candidateDate.atTime(repeatTime!!).atZone(zoneId)
+                    val candidateInstant = candidate.toInstant().toKotlinInstant()
 
-                    if (candidate.toInstant().isAfter(now.toJavaInstant())) {
+                    if (candidateInstant > now) {
                         candidate
                     } else {
                         candidate.plusWeeks(1)
@@ -162,7 +165,6 @@ class Todo(
         (repeatFieldCount == 0 || repeatFieldCount == 3).requireTrue(ErrorCode.TODO_REPEAT_FIELDS_INCOMPLETE)
 
         repeatDays?.isEmpty()?.requireFalse(ErrorCode.TODO_REPEAT_DAYS_EMPTY)
-        repeatTimezone?.let { validateTimezone(it) }
     }
 
     private fun copyWith(reminderAt: Instant?): Todo =
@@ -182,10 +184,50 @@ class Todo(
         )
 
     companion object {
+        fun create(
+            id: Long? = null,
+            linkId: Long,
+            ownerId: Long,
+            title: String,
+            reminderAt: Instant?,
+            repeatUntil: Instant?,
+            repeatDays: List<RepeatDay>?,
+            repeatTime: String?,
+            repeatTimezone: String?,
+            completedAt: Instant? = null,
+            createdAt: Instant? = null,
+            updatedAt: Instant? = null,
+            now: Instant,
+        ): Todo {
+            val parsedRepeatTime = parseRepeatTime(repeatTime)
+            val parsedRepeatTimezone =
+                parseRepeatTimezone(
+                    repeatUntil = repeatUntil,
+                    repeatDays = repeatDays,
+                    repeatTime = parsedRepeatTime,
+                    repeatTimezone = repeatTimezone,
+                )
+            val todo =
+                Todo(
+                    id = id,
+                    linkId = linkId,
+                    ownerId = ownerId,
+                    title = title,
+                    reminderAt = reminderAt.takeIf { !hasCompleteRepeat(repeatUntil, repeatDays, parsedRepeatTime) },
+                    repeatUntil = repeatUntil,
+                    repeatDays = repeatDays,
+                    repeatTime = parsedRepeatTime,
+                    repeatTimezone = parsedRepeatTimezone,
+                    completedAt = completedAt,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
+                )
+
+            return todo.takeIf { !it.hasRepeat } ?: todo.setNextReminder(now)
+        }
+
         fun parseRepeatTime(repeatTime: String?): LocalTime? {
-            if (repeatTime == null) {
-                return null
-            }
+            if (repeatTime == null) return null
 
             if (!REPEAT_TIME_REGEX.matches(repeatTime)) {
                 throw BusinessException(ErrorCode.TODO_REPEAT_TIME_INVALID)
@@ -193,33 +235,36 @@ class Todo(
 
             return try {
                 LocalTime.parse(repeatTime)
-            } catch (_: DateTimeParseException) {
-                throw BusinessException(ErrorCode.TODO_REPEAT_TIME_INVALID)
+            } catch (exception: DateTimeParseException) {
+                throw BusinessException(ErrorCode.TODO_REPEAT_TIME_INVALID, exception)
             }
         }
 
-        fun normalizeRepeatTimezone(
+        fun parseRepeatTimezone(
             repeatUntil: Instant?,
             repeatDays: List<RepeatDay>?,
             repeatTime: LocalTime?,
             repeatTimezone: String?,
-        ): String? {
+        ): ZoneId? {
             val hasRepeat = repeatUntil != null && repeatDays != null && repeatTime != null
             if (!hasRepeat) {
-                return repeatTimezone
+                return repeatTimezone?.toZoneId()
             }
 
-            val normalizedTimezone = repeatTimezone ?: DEFAULT_REPEAT_TIMEZONE
-            validateTimezone(normalizedTimezone)
-            return normalizedTimezone
+            return repeatTimezone?.toZoneId() ?: DEFAULT_REPEAT_TIMEZONE
         }
 
-        private fun validateTimezone(repeatTimezone: String) {
+        private fun hasCompleteRepeat(
+            repeatUntil: Instant?,
+            repeatDays: List<RepeatDay>?,
+            repeatTime: LocalTime?,
+        ): Boolean = repeatUntil != null && repeatDays != null && repeatTime != null
+
+        private fun String.toZoneId(): ZoneId =
             try {
-                ZoneId.of(repeatTimezone)
-            } catch (_: RuntimeException) {
-                throw BusinessException(ErrorCode.TODO_REPEAT_TIMEZONE_INVALID)
+                ZoneId.of(this)
+            } catch (exception: RuntimeException) {
+                throw BusinessException(ErrorCode.TODO_REPEAT_TIMEZONE_INVALID, exception)
             }
-        }
     }
 }

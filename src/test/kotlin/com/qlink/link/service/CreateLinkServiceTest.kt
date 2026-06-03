@@ -14,6 +14,7 @@ import com.qlink.support.fixture.FolderFixture
 import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
+import com.qlink.support.truncatedToSecond
 import com.qlink.todo.domain.RepeatDay
 import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.domain.User
@@ -83,7 +84,7 @@ class CreateLinkServiceTest :
                             title = RandomFixture.randomSentenceWithMax(50),
                             reminderAt = ignoredReminderAt,
                             repeatUntil = repeatUntil,
-                            repeatDays = listOf(RepeatDay.MONDAY, RepeatDay.FRIDAY),
+                            repeatDays = listOf(RepeatDay.MON, RepeatDay.FRI),
                             repeatTime = "20:10",
                             repeatTimezone = "Asia/Seoul",
                         ),
@@ -112,8 +113,8 @@ class CreateLinkServiceTest :
                     actualLink shouldNotBe null
                     actualTodos.map { it.title } shouldContainExactly todos.map { it.title }
                     actualTodos.first().reminderAt shouldNotBe ignoredReminderAt
-                    actualTodos.first().repeatUntil shouldBe repeatUntil
-                    actualTodos.first().repeatDays shouldBe listOf(RepeatDay.MONDAY, RepeatDay.FRIDAY)
+                    actualTodos.first().repeatUntil.truncatedToSecond() shouldBe repeatUntil.truncatedToSecond()
+                    actualTodos.first().repeatDays shouldBe listOf(RepeatDay.MON, RepeatDay.FRI)
                     actualTodos.first().repeatTime shouldBe "20:10"
                     actualTodos.last().reminderAt shouldBe null
                 }

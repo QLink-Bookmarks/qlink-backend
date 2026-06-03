@@ -137,23 +137,16 @@ class PatchLinkService(
             todos
                 .mapNotNull { todoRequest ->
                     todoRequest.id?.let { todoId ->
-                        val repeatTime = Todo.parseRepeatTime(todoRequest.repeatTime)
-
                         validatedTodosById.getValue(todoId).update(
                             linkId = linkId,
                             title = todoRequest.title,
-                            reminderAt = todoRequest.reminderAt.takeIf { !todoRequest.hasCompleteRepeat() },
+                            reminderAt = todoRequest.reminderAt,
                             repeatUntil = todoRequest.repeatUntil,
                             repeatDays = todoRequest.repeatDays,
-                            repeatTime = repeatTime,
-                            repeatTimezone =
-                                Todo.normalizeRepeatTimezone(
-                                    repeatUntil = todoRequest.repeatUntil,
-                                    repeatDays = todoRequest.repeatDays,
-                                    repeatTime = repeatTime,
-                                    repeatTimezone = todoRequest.repeatTimezone,
-                                ),
-                        ).let { if (it.hasRepeat) it.setNextReminder(Clock.System.now()) else it }
+                            repeatTime = todoRequest.repeatTime,
+                            repeatTimezone = todoRequest.repeatTimezone,
+                            now = Clock.System.now(),
+                        )
                     }
                 }
 
@@ -190,27 +183,16 @@ class PatchLinkService(
     private fun PatchLinkTodoRequest.toTodo(
         linkId: Long,
         ownerId: Long,
-    ): Todo {
-        val repeatTime = Todo.parseRepeatTime(repeatTime)
-
-        return Todo(
+    ): Todo =
+        Todo.create(
             linkId = linkId,
             ownerId = ownerId,
             title = title,
-            reminderAt = reminderAt.takeIf { !hasCompleteRepeat() },
+            reminderAt = reminderAt,
             repeatUntil = repeatUntil,
             repeatDays = repeatDays,
             repeatTime = repeatTime,
-            repeatTimezone =
-                Todo.normalizeRepeatTimezone(
-                    repeatUntil = repeatUntil,
-                    repeatDays = repeatDays,
-                    repeatTime = repeatTime,
-                    repeatTimezone = repeatTimezone,
-                ),
-        ).let { if (it.hasRepeat) it.setNextReminder(Clock.System.now()) else it }
-    }
-
-    private fun PatchLinkTodoRequest.hasCompleteRepeat(): Boolean =
-        repeatUntil != null && repeatDays != null && repeatTime != null
+            repeatTimezone = repeatTimezone,
+            now = Clock.System.now(),
+        )
 }

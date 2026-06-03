@@ -5,11 +5,11 @@ import java.time.DayOfWeek
 enum class RepeatDay(
     val dayOfWeek: DayOfWeek,
 ) {
-    MONDAY(DayOfWeek.MONDAY),
-    TUESDAY(DayOfWeek.TUESDAY),
-    WEDNESDAY(DayOfWeek.WEDNESDAY),
-    THURSDAY(DayOfWeek.THURSDAY),
-    FRIDAY(DayOfWeek.FRIDAY),
-    SATURDAY(DayOfWeek.SATURDAY),
-    SUNDAY(DayOfWeek.SUNDAY),
+    MON(DayOfWeek.MONDAY),
+    TUE(DayOfWeek.TUESDAY),
+    WED(DayOfWeek.WEDNESDAY),
+    THU(DayOfWeek.THURSDAY),
+    FRI(DayOfWeek.FRIDAY),
+    SAT(DayOfWeek.SATURDAY),
+    SUN(DayOfWeek.SUNDAY),
 }

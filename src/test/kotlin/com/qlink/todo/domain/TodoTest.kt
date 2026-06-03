@@ -10,6 +10,7 @@ import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import java.time.LocalTime
+import java.time.ZoneId
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -138,6 +139,7 @@ class TodoTest :
                         repeatDays = null,
                         repeatTime = null,
                         repeatTimezone = null,
+                        now = Clock.System.now(),
                     )
 
                 Then("성공한다") {
@@ -168,8 +170,9 @@ class TodoTest :
                         reminderAt = todo.reminderAt,
                         repeatUntil = todo.repeatUntil,
                         repeatDays = todo.repeatDays,
-                        repeatTime = todo.repeatTime,
-                        repeatTimezone = todo.repeatTimezone,
+                        repeatTime = todo.repeatTime?.toString(),
+                        repeatTimezone = todo.repeatTimezone?.id,
+                        now = Clock.System.now(),
                     )
                 }
 
@@ -261,9 +264,9 @@ class TodoTest :
                         ownerId = ownerId,
                         reminderAt = null,
                         repeatUntil = Instant.parse("2026-06-30T00:00:00Z"),
-                        repeatDays = listOf(RepeatDay.MONDAY),
+                        repeatDays = listOf(RepeatDay.MON),
                         repeatTime = LocalTime.of(10, 30),
-                        repeatTimezone = "Asia/Seoul",
+                        repeatTimezone = ZoneId.of("Asia/Seoul"),
                     )
                 val actual = todo.setNextReminder(now)
 
@@ -280,9 +283,9 @@ class TodoTest :
                         ownerId = ownerId,
                         reminderAt = null,
                         repeatUntil = Instant.parse("2026-06-30T00:00:00Z"),
-                        repeatDays = listOf(RepeatDay.MONDAY),
+                        repeatDays = listOf(RepeatDay.MON),
                         repeatTime = LocalTime.of(10, 30),
-                        repeatTimezone = "Asia/Seoul",
+                        repeatTimezone = ZoneId.of("Asia/Seoul"),
                     )
                 val actual = todo.setNextReminder(now)
 
@@ -299,9 +302,9 @@ class TodoTest :
                         ownerId = ownerId,
                         reminderAt = null,
                         repeatUntil = Instant.parse("2026-06-01T01:00:00Z"),
-                        repeatDays = listOf(RepeatDay.MONDAY),
+                        repeatDays = listOf(RepeatDay.MON),
                         repeatTime = LocalTime.of(10, 30),
-                        repeatTimezone = "Asia/Seoul",
+                        repeatTimezone = ZoneId.of("Asia/Seoul"),
                     )
                 val actual = todo.setNextReminder(now)
 
@@ -322,7 +325,7 @@ class TodoTest :
                         ownerId = ownerId,
                         title = RandomFixture.randomSentenceWithMax(50),
                         repeatUntil = Instant.parse("2026-06-30T00:00:00Z"),
-                        repeatDays = listOf(RepeatDay.MONDAY),
+                        repeatDays = listOf(RepeatDay.MON),
                     )
                 }
 
@@ -335,14 +338,16 @@ class TodoTest :
 
             When("시간대가 올바르지 않으면") {
                 val create = {
-                    Todo(
+                    Todo.create(
                         linkId = linkId,
                         ownerId = ownerId,
                         title = RandomFixture.randomSentenceWithMax(50),
+                        reminderAt = null,
                         repeatUntil = Instant.parse("2026-06-30T00:00:00Z"),
-                        repeatDays = listOf(RepeatDay.MONDAY),
-                        repeatTime = LocalTime.of(10, 30),
+                        repeatDays = listOf(RepeatDay.MON),
+                        repeatTime = "10:30",
                         repeatTimezone = "Mars/Seoul",
+                        now = Clock.System.now(),
                     )
                 }
 

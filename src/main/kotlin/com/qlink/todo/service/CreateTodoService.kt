@@ -30,28 +30,19 @@ class CreateTodoService(
                 ?.also { it.validateOwner(loginId) }
                 ?: throw BusinessException(ErrorCode.TODO_LINK_NOT_FOUND)
 
-            val repeatTime = Todo.parseRepeatTime(request.repeatTime)
             val todo =
-                Todo(
+                Todo.create(
                     linkId = request.linkId,
                     ownerId = loginId,
                     title = request.title,
-                    reminderAt = request.reminderAt.takeIf { !request.hasCompleteRepeat() },
+                    reminderAt = request.reminderAt,
                     repeatUntil = request.repeatUntil,
                     repeatDays = request.repeatDays,
-                    repeatTime = repeatTime,
-                    repeatTimezone =
-                        Todo.normalizeRepeatTimezone(
-                            repeatUntil = request.repeatUntil,
-                            repeatDays = request.repeatDays,
-                            repeatTime = repeatTime,
-                            repeatTimezone = request.repeatTimezone,
-                        ),
-                ).let { if (it.hasRepeat) it.setNextReminder(Clock.System.now()) else it }
+                    repeatTime = request.repeatTime,
+                    repeatTimezone = request.repeatTimezone,
+                    now = Clock.System.now(),
+                )
 
             CreateTodoResponse(todoRepository.insert(todo).id!!)
         }
-
-    private fun CreateTodoRequest.hasCompleteRepeat(): Boolean =
-        repeatUntil != null && repeatDays != null && repeatTime != null
 }

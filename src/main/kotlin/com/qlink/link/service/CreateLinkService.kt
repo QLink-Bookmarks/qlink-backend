@@ -65,27 +65,16 @@ class CreateLinkService(
     private fun CreateLinkTodoRequest.toTodo(
         linkId: Long,
         ownerId: Long,
-    ): Todo {
-        val repeatTime = Todo.parseRepeatTime(repeatTime)
-
-        return Todo(
+    ): Todo =
+        Todo.create(
             linkId = linkId,
             ownerId = ownerId,
             title = title,
-            reminderAt = reminderAt.takeIf { !hasCompleteRepeat() },
+            reminderAt = reminderAt,
             repeatUntil = repeatUntil,
             repeatDays = repeatDays,
             repeatTime = repeatTime,
-            repeatTimezone =
-                Todo.normalizeRepeatTimezone(
-                    repeatUntil = repeatUntil,
-                    repeatDays = repeatDays,
-                    repeatTime = repeatTime,
-                    repeatTimezone = repeatTimezone,
-                ),
-        ).let { if (it.hasRepeat) it.setNextReminder(Clock.System.now()) else it }
-    }
-
-    private fun CreateLinkTodoRequest.hasCompleteRepeat(): Boolean =
-        repeatUntil != null && repeatDays != null && repeatTime != null
+            repeatTimezone = repeatTimezone,
+            now = Clock.System.now(),
+        )
 }

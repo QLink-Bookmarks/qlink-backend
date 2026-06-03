@@ -5,6 +5,7 @@ import com.qlink.todo.domain.RepeatDay
 import com.qlink.todo.dto.CompleteTodoRequest
 import com.qlink.todo.dto.UpdateTodoRequest
 import java.time.LocalTime
+import java.time.ZoneId
 import kotlin.time.Instant
 import kotlin.time.toKotlinInstant
 
@@ -17,7 +18,7 @@ object TodoFixture {
         repeatUntil: Instant? = null,
         repeatDays: List<RepeatDay>? = null,
         repeatTime: LocalTime? = null,
-        repeatTimezone: String? = null,
+        repeatTimezone: ZoneId? = null,
         completedAt: Instant? = null,
     ): Todo =
         Todo(
