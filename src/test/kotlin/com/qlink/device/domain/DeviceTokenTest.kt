@@ -17,12 +17,12 @@ class DeviceTokenTest :
                     val deviceToken =
                         DeviceToken(
                             userId = RandomFixture.randomId(),
-                            platform = DevicePlatform.IOS,
+                            platform = DevicePlatform.WEB,
                             token = token,
                         )
 
                     deviceToken.token shouldBe token
-                    deviceToken.platform shouldBe DevicePlatform.IOS
+                    deviceToken.platform shouldBe DevicePlatform.WEB
                 }
             }
 

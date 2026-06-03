@@ -6,7 +6,7 @@ import com.qlink.device.domain.DeviceToken
 object DeviceTokenFixture {
     fun createRandomValidDeviceToken(
         userId: Long = RandomFixture.randomId(),
-        platform: DevicePlatform = DevicePlatform.ANDROID,
+        platform: DevicePlatform = DevicePlatform.NATIVE,
         token: String = randomDeviceToken(),
     ): DeviceToken =
         DeviceToken(

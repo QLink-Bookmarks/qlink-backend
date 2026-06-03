@@ -33,7 +33,7 @@ class PutDeviceServiceTest :
                 Then("토큰을 저장하고 등록 ID를 반환한다") {
                     val request =
                         PutDeviceRequest(
-                            platform = DevicePlatform.ANDROID.requestName,
+                            platform = DevicePlatform.NATIVE.requestName,
                             token = DeviceTokenFixture.randomDeviceToken(),
                         )
 
@@ -42,7 +42,7 @@ class PutDeviceServiceTest :
                     val actual = deviceTokenRepository.findByToken(request.token)!!
                     response.id shouldBe actual.id
                     actual.userId shouldBe user.id
-                    actual.platform shouldBe DevicePlatform.ANDROID
+                    actual.platform shouldBe DevicePlatform.NATIVE
                     actual.token shouldBe request.token
                 }
             }
@@ -52,12 +52,12 @@ class PutDeviceServiceTest :
                     val token = DeviceTokenFixture.randomDeviceToken()
                     val firstRequest =
                         PutDeviceRequest(
-                            platform = DevicePlatform.ANDROID.requestName,
+                            platform = DevicePlatform.NATIVE.requestName,
                             token = token,
                         )
                     val secondRequest =
                         PutDeviceRequest(
-                            platform = DevicePlatform.IOS.requestName,
+                            platform = DevicePlatform.WEB.requestName,
                             token = token,
                         )
 
@@ -67,7 +67,7 @@ class PutDeviceServiceTest :
                     val actual = deviceTokenRepository.findByToken(token)!!
                     firstResponse.id shouldBe secondResponse.id
                     secondResponse.id shouldBe actual.id
-                    actual.platform shouldBe DevicePlatform.IOS
+                    actual.platform shouldBe DevicePlatform.WEB
                     deviceTokenRepository.findAllByUserId(user.id!!) shouldHaveSize 1
                 }
             }
@@ -81,7 +81,7 @@ class PutDeviceServiceTest :
                         loginId = user.id!!,
                         request =
                             PutDeviceRequest(
-                                platform = DevicePlatform.ANDROID.requestName,
+                                platform = DevicePlatform.NATIVE.requestName,
                                 token = token,
                             ),
                     )
@@ -90,7 +90,7 @@ class PutDeviceServiceTest :
                             loginId = otherUser.id!!,
                             request =
                                 PutDeviceRequest(
-                                    platform = DevicePlatform.ANDROID.requestName,
+                                    platform = DevicePlatform.NATIVE.requestName,
                                     token = token,
                                 ),
                         )
@@ -110,7 +110,7 @@ class PutDeviceServiceTest :
                             loginId = RandomFixture.randomId(),
                             request =
                                 PutDeviceRequest(
-                                    platform = DevicePlatform.ANDROID.requestName,
+                                    platform = DevicePlatform.NATIVE.requestName,
                                     token = DeviceTokenFixture.randomDeviceToken(),
                                 ),
                         )
@@ -130,7 +130,7 @@ class PutDeviceServiceTest :
                             loginId = user.id!!,
                             request =
                                 PutDeviceRequest(
-                                    platform = "web",
+                                    platform = "IOS",
                                     token = DeviceTokenFixture.randomDeviceToken(),
                                 ),
                         )

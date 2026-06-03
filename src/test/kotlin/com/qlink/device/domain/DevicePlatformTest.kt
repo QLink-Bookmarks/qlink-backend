@@ -11,14 +11,14 @@ class DevicePlatformTest :
         Given("DevicePlatform 요청 이름 변환 테스트") {
             When("지원하는 플랫폼 이름이면") {
                 Then("DevicePlatform으로 변환한다") {
-                    DevicePlatform.fromRequestName("ios") shouldBe DevicePlatform.IOS
-                    DevicePlatform.fromRequestName("android") shouldBe DevicePlatform.ANDROID
+                    DevicePlatform.fromRequestName("WEB") shouldBe DevicePlatform.WEB
+                    DevicePlatform.fromRequestName("NATIVE") shouldBe DevicePlatform.NATIVE
                 }
             }
 
             When("지원하지 않는 플랫폼 이름이면") {
                 val convert = {
-                    DevicePlatform.fromRequestName("web")
+                    DevicePlatform.fromRequestName("IOS")
                 }
 
                 Then("DEVICE_PLATFORM_NOT_SUPPORTED 예외를 반환한다") {

@@ -32,7 +32,7 @@ CREATE TABLE device_tokens (
     token TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT now(),
     updated_at TIMESTAMP NOT NULL DEFAULT now(),
-    CONSTRAINT device_tokens_platform_check CHECK (platform IN ('IOS', 'ANDROID')),
+    CONSTRAINT device_tokens_platform_check CHECK (platform IN ('WEB', 'NATIVE')),
     CONSTRAINT device_tokens_token_unique UNIQUE (token)
 );
 

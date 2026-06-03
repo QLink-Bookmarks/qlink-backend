@@ -6,8 +6,8 @@ import com.qlink.common.error.ErrorCode
 enum class DevicePlatform(
     val requestName: String,
 ) {
-    IOS("ios"),
-    ANDROID("android"),
+    WEB("WEB"),
+    NATIVE("NATIVE"),
     ;
 
     companion object {
