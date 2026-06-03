@@ -12,6 +12,7 @@ import com.qlink.common.scroll.ScrollRequest
 import com.qlink.folder.domain.Folder
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.domain.Link
+import com.qlink.link.domain.LinkStatus
 import com.qlink.link.dto.LinkSearchCursor
 import com.qlink.link.dto.LinkSearchCursorValue
 import com.qlink.link.dto.LinkSearchOrder
@@ -77,6 +78,7 @@ class GetLinksServiceTest :
                                 url = "https://example.com/first",
                                 tags = listOf("검색", "첫번째"),
                                 workModelId = model.id,
+                                status = LinkStatus.A,
                             ),
                         )
                     val secondLink =
@@ -86,6 +88,7 @@ class GetLinksServiceTest :
                                 title = "검색 대상 둘째 링크",
                                 url = "https://example.com/second",
                                 tags = listOf("검색", "둘째"),
+                                status = LinkStatus.G,
                             ),
                         )
                     val secondLinkId = secondLink.id!!
@@ -112,6 +115,7 @@ class GetLinksServiceTest :
                     response.isEmpty shouldBe false
                     response.contents.shouldHaveSize(2)
                     response.contents[0].id shouldBe secondLink.id
+                    response.contents[0].status shouldBe secondLink.status
                     response.contents[0].folderEmoji shouldBe null
                     response.contents[0].todos.shouldHaveSize(2)
                     response.contents[0].todos.first { it.title == "todo-1" }.completedAt.truncatedToSecond() shouldBe
@@ -119,6 +123,7 @@ class GetLinksServiceTest :
                     response.contents[0].todos.first { it.title == "todo-2" }.completedAt shouldBe null
                     response.contents[0].countMoreTodos shouldBe 1
                     response.contents[1].id shouldBe firstLink.id
+                    response.contents[1].status shouldBe firstLink.status
                     response.contents[1].folderId shouldBe folder.id
                     response.contents[1].folderName shouldBe folder.name
                     response.contents[1].folderEmoji shouldBe folder.emoji

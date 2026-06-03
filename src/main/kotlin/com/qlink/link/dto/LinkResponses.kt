@@ -2,6 +2,7 @@
 
 package com.qlink.link.dto
 
+import com.qlink.link.domain.LinkStatus
 import com.qlink.link.domain.SourceType
 import com.qlink.todo.domain.RepeatDay
 import com.qlink.todo.dto.LinkDetailTodoQuery
@@ -22,6 +23,7 @@ data class GetLinkDetailResponse(
     val tags: List<String>,
     val memo: String?,
     val sourceType: SourceType,
+    val status: LinkStatus,
     val createdAt: Instant,
     val folderId: Long?,
     val folderName: String?,
@@ -38,6 +40,7 @@ data class GetLinksContentResponse(
     val folderEmoji: String?,
     val url: String,
     val title: String,
+    val status: LinkStatus,
     val tags: List<String>,
     val createdAt: Instant,
     val workModel: String?,

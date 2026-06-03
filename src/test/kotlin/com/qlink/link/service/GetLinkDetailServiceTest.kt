@@ -10,6 +10,7 @@ import com.qlink.common.error.ErrorCode
 import com.qlink.folder.domain.Folder
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.domain.Link
+import com.qlink.link.domain.LinkStatus
 import com.qlink.link.repository.LinkRepository
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.AiFixture
@@ -72,6 +73,7 @@ class GetLinkDetailServiceTest :
                             ownerId = user.id!!,
                             folderId = folder.id,
                             workModelId = model.id,
+                            status = LinkStatus.A,
                         ),
                     )
                 val otherLink =
@@ -123,6 +125,7 @@ class GetLinkDetailServiceTest :
                     actual.tags shouldBe link.tags
                     actual.memo shouldBe link.memo
                     actual.sourceType shouldBe link.sourceType
+                    actual.status shouldBe link.status
                     actual.createdAt shouldBe link.createdAt
                     actual.folderId shouldBe expectedFolderId
                     actual.folderName shouldBe expectedFolderName

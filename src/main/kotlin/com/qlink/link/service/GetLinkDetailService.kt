@@ -41,6 +41,7 @@ class GetLinkDetailService(
             tags = tags,
             memo = memo,
             sourceType = sourceType,
+            status = status,
             createdAt = createdAt,
             folderId = folderId,
             folderName = folderName,

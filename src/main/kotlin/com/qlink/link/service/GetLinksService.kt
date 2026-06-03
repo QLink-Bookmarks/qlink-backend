@@ -70,6 +70,7 @@ class GetLinksService(
                             workModel = queryRow.workModel,
                             url = queryRow.url,
                             title = queryRow.title,
+                            status = queryRow.status,
                             tags = queryRow.tags,
                             createdAt = queryRow.createdAt,
                             todos = todoQueries.map { it.toResponse() },

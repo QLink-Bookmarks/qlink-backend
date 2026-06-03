@@ -19,6 +19,7 @@ data class SearchLinksQuery(
     val workModel: String?,
     val url: String,
     val title: String,
+    val status: LinkStatus,
     val tags: List<String>,
     val createdAt: Instant,
     val score: Double,
