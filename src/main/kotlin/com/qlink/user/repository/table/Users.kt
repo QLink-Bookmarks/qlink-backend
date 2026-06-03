@@ -71,3 +71,7 @@ fun UpdateBuilder<*>.fromDomain(user: User) {
     this[Users.defaultAiProviderId] = user.defaultAiProviderId
     this[Users.defaultModelId] = user.defaultModelId
 }
+
+fun UpdateBuilder<*>.refreshUserUpdatedAt() {
+    this[Users.updatedAt] = Clock.System.now().toJavaInstant()
+}
