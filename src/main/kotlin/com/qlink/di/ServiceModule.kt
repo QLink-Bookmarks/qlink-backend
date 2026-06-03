@@ -3,6 +3,7 @@ package com.qlink.di
 import com.qlink.ai.service.GetAiProviderModelsService
 import com.qlink.ai.service.PutAiUserProviderService
 import com.qlink.ai.service.UpdateLinkAiSummaryService
+import com.qlink.device.service.PutDeviceService
 import com.qlink.folder.service.CreateFolderService
 import com.qlink.folder.service.DeleteFolderService
 import com.qlink.folder.service.GetFoldersService
@@ -69,6 +70,14 @@ fun serviceModule() =
                 userProviderRepository = get(),
                 aiClientRouter = get(),
                 apiKeyCipher = get(),
+            )
+        }
+
+        single {
+            PutDeviceService(
+                tx = get(),
+                userRepository = get(),
+                deviceTokenRepository = get(),
             )
         }
 
