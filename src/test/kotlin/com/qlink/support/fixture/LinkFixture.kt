@@ -1,6 +1,7 @@
 package com.qlink.support.fixture
 
 import com.qlink.link.domain.Link
+import com.qlink.link.domain.LinkStatus
 import com.qlink.link.domain.SourceType
 import com.qlink.link.dto.PatchLinkRequest
 import com.qlink.link.dto.PatchLinkTodoRequest
@@ -22,6 +23,7 @@ object LinkFixture {
         tags: List<String> = randomDistinctTags(),
         thumbnailUrl: String? = RandomFixture.randomUrl(),
         sourceType: SourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
+        status: LinkStatus = LinkStatus.C,
         workModelId: Long? = null,
     ): Link =
         Link(
@@ -34,6 +36,7 @@ object LinkFixture {
             memo = memo,
             thumbnailUrl = thumbnailUrl,
             sourceType = sourceType,
+            status = status,
             workModelId = workModelId,
             tags = tags,
         )

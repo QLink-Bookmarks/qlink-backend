@@ -66,17 +66,76 @@ class AiSummaryWorker(
     suspend fun proceed(jobId: Long) {
         val context =
             tx.readOnly {
-                val job = aiJobRepository.findById(jobId) ?: return@readOnly null
-                val userProvider = userProviderRepository.findById(job.userProviderId) ?: return@readOnly null
-                val requestModel = availableModelRepository.findById(job.requestModelId) ?: return@readOnly null
-                val provider = aiProviderRepository.findById(userProvider.providerId) ?: return@readOnly null
-                val link = linkRepository.findById(job.linkId) ?: return@readOnly null
+                val job =
+                    aiJobRepository
+                        .findById(jobId)
+                        ?.also { log.info("[WORKER] Job has been loaded. jobId=$jobId") }
+                        ?: run {
+                            log.warn("[WORKER] Job load failed. jobId=$jobId")
+                            return@readOnly null
+                        }
+                val userProvider =
+                    userProviderRepository
+                        .findById(job.userProviderId)
+                        ?.also {
+                            log.info(
+                                "[WORKER] User provider has been loaded. jobId=$jobId, userProviderId=${job.userProviderId}",
+                            )
+                        }
+                        ?: run {
+                            log.warn("[WORKER] User provider load failed. jobId=$jobId, userProviderId=${job.userProviderId}")
+                            return@readOnly null
+                        }
+                val requestModel =
+                    availableModelRepository
+                        .findById(job.requestModelId)
+                        ?.also {
+                            log.info(
+                                "[WORKER] Request model has been loaded. jobId=$jobId, requestModelId=${job.requestModelId}",
+                            )
+                        }
+                        ?: run {
+                            log.warn("[WORKER] Request model load failed. jobId=$jobId, requestModelId=${job.requestModelId}")
+                            return@readOnly null
+                        }
+                val provider =
+                    aiProviderRepository
+                        .findById(userProvider.providerId)
+                        ?.also {
+                            log.info(
+                                "[WORKER] AI provider has been loaded. jobId=$jobId, providerId=${userProvider.providerId}",
+                            )
+                        }
+                        ?: run {
+                            log.warn("[WORKER] AI provider load failed. jobId=$jobId, providerId=${userProvider.providerId}")
+                            return@readOnly null
+                        }
+                val link =
+                    linkRepository
+                        .findById(job.linkId)
+                        ?.also { log.info("[WORKER] Link has been loaded. jobId=$jobId, linkId=${job.linkId}") }
+                        ?: run {
+                            log.warn("[WORKER] Link load failed. jobId=$jobId, linkId=${job.linkId}")
+                            return@readOnly null
+                        }
+                val apiKey =
+                    apiKeyCipher
+                        .decrypt(userProvider.apiKey)
+                        ?.also {
+                            log.info(
+                                "[WORKER] User provider API key has been decrypted. jobId=$jobId, userProviderId=${userProvider.id}",
+                            )
+                        }
+                        ?: run {
+                            log.warn("[WORKER] User provider API key decrypt failed. jobId=$jobId, userProviderId=${userProvider.id}")
+                            return@readOnly null
+                        }
 
                 AiSummaryContext(
                     job = job,
                     userProvider = userProvider,
                     provider = provider,
-                    apiKey = apiKeyCipher.decrypt(userProvider.apiKey) ?: return@readOnly null,
+                    apiKey = apiKey,
                     requestModel = requestModel,
                     candidateModels = availableModelRepository.findAllByProviderId(provider.id!!),
                     selectableFolderIds = folderRepository.findAllByOwnerId(link.ownerId).mapNotNull { it.id }.toSet(),
