@@ -13,6 +13,7 @@ import com.qlink.plugin.configureSecurity
 import com.qlink.plugin.configureSerialization
 import com.qlink.plugin.configureStatusPages
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationStopping
 import org.flywaydb.core.Flyway
 import org.koin.ktor.ext.inject
 
@@ -43,4 +44,7 @@ fun Application.module() {
 
     val taskScheduler by inject<TaskScheduler>()
     taskScheduler.start()
+    monitor.subscribe(ApplicationStopping) {
+        taskScheduler.stop()
+    }
 }
