@@ -1,5 +1,7 @@
 package com.qlink.notification.worker
 
+import com.qlink.common.error.BusinessException
+import com.qlink.common.error.ErrorCode
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.notification.domain.Notification
 import com.qlink.notification.domain.NotificationContext
@@ -56,26 +58,26 @@ class TaskScheduler(
 
     fun scheduleIfToday(notification: Notification) {
         if (notification.isPending && notification.willFireAt.isInUtcDate(utcToday())) {
-            schedule(notification.id!!)
+            schedule(notification.requireId())
         }
     }
 
     fun schedule(notificationId: Long) {
         cancel(notificationId)
 
-        val job =
+        notificationJobs[notificationId] =
             scope.launch {
                 val notification =
                     tx.required {
-                        val pending = notificationRepository.findPendingById(notificationId) ?: return@required null
+                        val pending =
+                            notificationRepository.findPendingById(notificationId)
+                                ?: throw BusinessException(ErrorCode.NOTIFICATION_NOT_FOUND)
                         notificationRepository.update(pending.markScheduled(Clock.System.now()))
-                    } ?: return@launch
+                    }
 
                 delay(notification.delayFromNow())
-                fire(notification.id!!)
+                fire(notification.requireId())
             }
-
-        notificationJobs[notificationId] = job
     }
 
     fun cancel(notificationId: Long) {
@@ -116,27 +118,30 @@ class TaskScheduler(
                 endExclusive = endExclusive,
             ).forEach { todo ->
                 val todoId = todo.id ?: return@forEach
-                val exists =
-                    notificationRepository
-                        .findPendingByContext(
-                            context = NotificationContext.TODO,
-                            contextId = todoId,
-                        ).any { it.willFireAt == todo.reminderAt }
-
-                if (!exists) {
-                    Notification.todo(todo)?.let { notificationRepository.insert(it) }
-                }
+                Notification
+                    .todo(todo)
+                    ?.takeUnless { nextNotification ->
+                        notificationRepository
+                            .findPendingByContext(
+                                context = NotificationContext.TODO,
+                                contextId = todoId,
+                            ).any { it.willFireAt == nextNotification.willFireAt }
+                    }?.let { notificationRepository.insert(it) }
             }
     }
 
     private suspend fun fire(notificationId: Long) {
         runCatching {
             tx.required {
-                val notification = notificationRepository.findPendingById(notificationId) ?: return@required
+                val notification =
+                    notificationRepository.findPendingById(notificationId)
+                        ?: throw BusinessException(ErrorCode.NOTIFICATION_NOT_FOUND)
                 notificationRepository.update(notification.markFired(Clock.System.now()))
 
-                if (notification.context == NotificationContext.TODO) {
-                    val todo = todoRepository.findById(notification.contextId) ?: return@required
+                if (notification.isTodo) {
+                    val todo =
+                        todoRepository.findById(notification.contextId)
+                            ?: throw BusinessException(ErrorCode.TODO_NOT_FOUND)
                     if (!todo.hasRepeat) {
                         return@required
                     }
@@ -144,18 +149,15 @@ class TaskScheduler(
                     val nextTodo = todo.setNextReminder(Clock.System.now())
                     val savedTodo = todoRepository.update(nextTodo)
 
-                    Notification.todo(savedTodo)?.let { nextNotification ->
-                        val exists =
+                    Notification
+                        .todo(savedTodo)
+                        ?.takeUnless { nextNotification ->
                             notificationRepository
                                 .findPendingByContext(
                                     context = NotificationContext.TODO,
                                     contextId = savedTodo.id!!,
                                 ).any { it.willFireAt == nextNotification.willFireAt }
-
-                        if (!exists) {
-                            notificationRepository.insert(nextNotification)
-                        }
-                    }
+                        }?.let { notificationRepository.insert(it) }
                 }
             }
         }.onFailure { exception ->
@@ -195,6 +197,8 @@ class TaskScheduler(
     }
 
     private fun Notification.delayFromNow(): Duration = (willFireAt - Clock.System.now()).coerceAtLeast(ZERO)
+
+    private fun Notification.requireId(): Long = id ?: throw BusinessException(ErrorCode.NOTIFICATION_NOT_FOUND)
 
     private fun utcToday(): LocalDate =
         Clock.System

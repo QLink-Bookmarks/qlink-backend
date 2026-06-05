@@ -17,17 +17,21 @@ class DeleteTodoService(
         loginId: Long,
         todoId: Long,
     ) {
-        val targetTodoId =
+        val exists =
             tx.required {
                 userRepository.emptyById(loginId).requireFalse(ErrorCode.TODO_OWNER_NOT_FOUND)
 
-                val todo = todoRepository.findById(todoId) ?: return@required null
+                val todo = todoRepository.findById(todoId) ?: return@required false
 
                 todo.validateOwner(loginId)
-                todo.id
-            } ?: return
+                true
+            }
 
-        scheduleTodoNotificationService.cancelForTodo(targetTodoId)
+        if (!exists) {
+            return
+        }
+
+        scheduleTodoNotificationService.cancelForTodo(todoId)
 
         tx.required {
             todoRepository.deleteById(todoId)

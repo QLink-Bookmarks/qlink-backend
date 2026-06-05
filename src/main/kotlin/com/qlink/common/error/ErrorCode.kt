@@ -68,6 +68,7 @@ enum class ErrorCode(
     NOTIFICATION_TITLE_OVER_MAX("NOTI_400_0002", 400, "알림 제목은 최대 50자에요"),
     NOTIFICATION_MESSAGE_OVER_MAX("NOTI_400_0003", 400, "알림 메시지는 최대 200자에요"),
     NOTIFICATION_COUNT_INVALID("NOTI_400_0004", 400, "알림 처리 건수가 올바르지 않아요"),
+    NOTIFICATION_NOT_FOUND("NOTI_404_0001", 404, "알림을 찾을 수 없어요"),
 
     // Folder
     FOLDER_NAME_BLANK("FOLDER_400_0001", 400, "폴더 이름이 입력되지 않았어요"),

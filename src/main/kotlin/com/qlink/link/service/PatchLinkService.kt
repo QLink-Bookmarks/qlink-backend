@@ -61,22 +61,13 @@ class PatchLinkService(
                         linkRepository.update(updatedLink)
                     }
 
-                val deletedTodoIds = mutableListOf<Long>()
-                val updatedTodos = mutableListOf<Todo>()
-                val createdTodos = mutableListOf<Todo>()
-
-                if (todoChangeSet != null) {
-                    todoChangeSet.todoIdsToDelete.forEach {
-                        todoRepository.deleteById(it)
-                        deletedTodoIds += it
-                    }
-                    todoChangeSet.todosToUpdate.forEach {
-                        updatedTodos += todoRepository.update(it)
-                    }
-                    todoChangeSet.todosToCreate.forEach {
-                        createdTodos += todoRepository.insert(it)
-                    }
-                }
+                val deletedTodoIds =
+                    todoChangeSet
+                        ?.todoIdsToDelete
+                        ?.onEach { todoRepository.deleteById(it) }
+                        .orEmpty()
+                val updatedTodos = todoChangeSet?.todosToUpdate?.map { todoRepository.update(it) }.orEmpty()
+                val createdTodos = todoChangeSet?.todosToCreate?.map { todoRepository.insert(it) }.orEmpty()
 
                 PatchLinkResult(
                     response =

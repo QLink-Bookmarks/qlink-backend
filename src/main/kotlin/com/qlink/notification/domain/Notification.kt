@@ -37,6 +37,9 @@ class Notification(
     val isPending: Boolean
         get() = firedAt == null && failedAt == null
 
+    val isTodo: Boolean
+        get() = context == NotificationContext.TODO
+
     fun markScheduled(scheduledAt: Instant): Notification =
         copy(
             scheduledAt = scheduledAt,
