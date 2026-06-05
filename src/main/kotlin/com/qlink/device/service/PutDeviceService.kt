@@ -23,13 +23,13 @@ class PutDeviceService(
             userRepository.emptyById(loginId).requireFalse(ErrorCode.USER_NOT_FOUND)
 
             val deviceToken =
-                DeviceToken(
-                    userId = loginId,
-                    platform = DevicePlatform.fromRequestName(request.platform),
-                    token = request.token,
-                )
+                deviceTokenRepository.findByToken(request.token)
+                    ?: DeviceToken(
+                        userId = loginId,
+                        platform = DevicePlatform.fromName(request.platform),
+                        token = request.token,
+                    ).let { deviceTokenRepository.insert(it) }
 
-            val saved = deviceTokenRepository.save(deviceToken)
-            PutDeviceResponse(id = saved.id!!)
+            PutDeviceResponse(id = deviceToken.id!!)
         }
 }

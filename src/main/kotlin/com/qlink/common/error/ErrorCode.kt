@@ -73,7 +73,6 @@ enum class ErrorCode(
     // Device
     DEVICE_PLATFORM_NOT_SUPPORTED("DEVICE_400_0001", 400, "지원하지 않는 디바이스 플랫폼이에요"),
     DEVICE_TOKEN_BLANK("DEVICE_400_0002", 400, "디바이스 토큰이 입력되지 않았어요"),
-    DEVICE_TOKEN_OVER_MAX("DEVICE_400_0003", 400, "디바이스 토큰은 최대 4096자에요"),
 
     // Folder
     FOLDER_NAME_BLANK("FOLDER_400_0001", 400, "폴더 이름이 입력되지 않았어요"),

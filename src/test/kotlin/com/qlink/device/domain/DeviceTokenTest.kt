@@ -39,19 +39,5 @@ class DeviceTokenTest :
                     }
                 }
             }
-
-            When("토큰이 최대 길이를 초과하면") {
-                val create = {
-                    DeviceTokenFixture.createRandomValidDeviceToken(
-                        token = RandomFixture.randomFixedSentence(DEVICE_TOKEN_MAX_LENGTH + 1),
-                    )
-                }
-
-                Then("DEVICE_TOKEN_OVER_MAX 예외를 반환한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.DEVICE_TOKEN_OVER_MAX.message) {
-                        create()
-                    }
-                }
-            }
         }
     })

@@ -25,7 +25,6 @@ internal fun putDeviceDocs(): RouteConfig.() -> Unit =
                     examples(
                         ErrorCode.DEVICE_PLATFORM_NOT_SUPPORTED,
                         ErrorCode.DEVICE_TOKEN_BLANK,
-                        ErrorCode.DEVICE_TOKEN_OVER_MAX,
                     )
                 }
             }

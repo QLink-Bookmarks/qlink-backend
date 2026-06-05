@@ -33,7 +33,7 @@ class PutDeviceServiceTest :
                 Then("토큰을 저장하고 등록 ID를 반환한다") {
                     val request =
                         PutDeviceRequest(
-                            platform = DevicePlatform.NATIVE.requestName,
+                            platform = DevicePlatform.NATIVE.name,
                             token = DeviceTokenFixture.randomDeviceToken(),
                         )
 
@@ -48,16 +48,16 @@ class PutDeviceServiceTest :
             }
 
             When("이미 등록된 토큰을 다시 등록하면") {
-                Then("같은 디바이스 토큰을 갱신한다") {
+                Then("기존 디바이스 토큰을 그대로 반환한다") {
                     val token = DeviceTokenFixture.randomDeviceToken()
                     val firstRequest =
                         PutDeviceRequest(
-                            platform = DevicePlatform.NATIVE.requestName,
+                            platform = DevicePlatform.NATIVE.name,
                             token = token,
                         )
                     val secondRequest =
                         PutDeviceRequest(
-                            platform = DevicePlatform.WEB.requestName,
+                            platform = DevicePlatform.WEB.name,
                             token = token,
                         )
 
@@ -67,13 +67,14 @@ class PutDeviceServiceTest :
                     val actual = deviceTokenRepository.findByToken(token)!!
                     firstResponse.id shouldBe secondResponse.id
                     secondResponse.id shouldBe actual.id
-                    actual.platform shouldBe DevicePlatform.WEB
+                    actual.userId shouldBe user.id
+                    actual.platform shouldBe DevicePlatform.NATIVE
                     deviceTokenRepository.findAllByUserId(user.id!!) shouldHaveSize 1
                 }
             }
 
             When("기존 토큰을 다른 사용자가 등록하면") {
-                Then("토큰 소유 사용자를 새 로그인 사용자로 갱신한다") {
+                Then("기존 디바이스 토큰을 그대로 반환한다") {
                     val otherUser = userRepository.insert(UserFixture.createRandomValidUser())
                     val token = DeviceTokenFixture.randomDeviceToken()
 
@@ -81,7 +82,7 @@ class PutDeviceServiceTest :
                         loginId = user.id!!,
                         request =
                             PutDeviceRequest(
-                                platform = DevicePlatform.NATIVE.requestName,
+                                platform = DevicePlatform.NATIVE.name,
                                 token = token,
                             ),
                     )
@@ -90,16 +91,16 @@ class PutDeviceServiceTest :
                             loginId = otherUser.id!!,
                             request =
                                 PutDeviceRequest(
-                                    platform = DevicePlatform.NATIVE.requestName,
+                                    platform = DevicePlatform.NATIVE.name,
                                     token = token,
                                 ),
                         )
 
                     val actual = deviceTokenRepository.findByToken(token)!!
                     response.id shouldBe actual.id
-                    actual.userId shouldBe otherUser.id
-                    deviceTokenRepository.findAllByUserId(user.id!!) shouldHaveSize 0
-                    deviceTokenRepository.findAllByUserId(otherUser.id) shouldHaveSize 1
+                    actual.userId shouldBe user.id
+                    deviceTokenRepository.findAllByUserId(user.id!!) shouldHaveSize 1
+                    deviceTokenRepository.findAllByUserId(otherUser.id) shouldHaveSize 0
                 }
             }
 
@@ -110,7 +111,7 @@ class PutDeviceServiceTest :
                             loginId = RandomFixture.randomId(),
                             request =
                                 PutDeviceRequest(
-                                    platform = DevicePlatform.NATIVE.requestName,
+                                    platform = DevicePlatform.NATIVE.name,
                                     token = DeviceTokenFixture.randomDeviceToken(),
                                 ),
                         )
