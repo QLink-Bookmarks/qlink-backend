@@ -66,7 +66,7 @@ class Notification(
     ): Notification =
         copy(
             firedAt = handledAt.takeIf { successCount > 0 },
-            failedAt = handledAt.takeIf { successCount == 0 },
+            failedAt = handledAt.takeIf { failureCount > 0 },
             successCount = successCount,
             failureCount = failureCount,
         )

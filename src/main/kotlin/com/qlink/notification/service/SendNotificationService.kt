@@ -20,36 +20,8 @@ class SendNotificationService(
     private val senderRouter: PushNotificationSenderRouter,
 ) {
     suspend fun send(notificationId: Long): SendNotificationResult {
-        val target =
-            tx.readOnly {
-                val notification =
-                    notificationRepository.findPendingById(notificationId)
-                        ?: throw BusinessException(ErrorCode.NOTIFICATION_NOT_FOUND)
-                val user = userRepository.findById(notification.userId) ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
-                val deviceTokens =
-                    if (user.allowsReminder) {
-                        deviceTokenRepository.findAllByUserId(user.id!!)
-                    } else {
-                        emptyList()
-                    }
-
-                SendNotificationTarget(
-                    notification = notification,
-                    allowsReminder = user.allowsReminder,
-                    deviceTokens = deviceTokens,
-                )
-            }
-
-        val sentResults =
-            if (target.allowsReminder) {
-                target.deviceTokens.map { deviceToken ->
-                    senderRouter
-                        .findByPlatform(deviceToken.platform)
-                        .send(target.notification.toSendRequest(deviceToken))
-                }
-            } else {
-                emptyList()
-            }
+        val target = findSendTarget(notificationId)
+        val sentResults = sendOutsideTransaction(target)
 
         val successCount = sentResults.count { it.success }
         val failureCount = sentResults.count { !it.success }
@@ -71,6 +43,37 @@ class SendNotificationService(
             failureCount = updatedNotification.failureCount,
         )
     }
+
+    private suspend fun findSendTarget(notificationId: Long): SendNotificationTarget =
+        tx.readOnly {
+            val notification =
+                notificationRepository.findPendingById(notificationId)
+                    ?: throw BusinessException(ErrorCode.NOTIFICATION_NOT_FOUND)
+            val user = userRepository.findById(notification.userId) ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
+            val deviceTokens =
+                if (user.allowsReminder) {
+                    deviceTokenRepository.findAllByUserId(user.id!!)
+                } else {
+                    emptyList()
+                }
+
+            SendNotificationTarget(
+                notification = notification,
+                allowsReminder = user.allowsReminder,
+                deviceTokens = deviceTokens,
+            )
+        }
+
+    private suspend fun sendOutsideTransaction(target: SendNotificationTarget) =
+        if (target.allowsReminder) {
+            target.deviceTokens.map { deviceToken ->
+                senderRouter
+                    .findByPlatform(deviceToken.platform)
+                    .send(target.notification.toSendRequest(deviceToken))
+            }
+        } else {
+            emptyList()
+        }
 
     private fun Notification.toSendRequest(deviceToken: DeviceToken): PushNotificationSendRequest =
         PushNotificationSendRequest(

@@ -54,14 +54,14 @@ class SendNotificationServiceTest :
                 lateinit var notificationId: Number
 
                 beforeTest {
-                    deviceTokenRepository.save(
+                    deviceTokenRepository.insert(
                         DeviceTokenFixture.createRandomValidDeviceToken(
                             userId = user.id!!,
                             platform = DevicePlatform.WEB,
                             token = "fcm-success-token",
                         ),
                     )
-                    deviceTokenRepository.save(
+                    deviceTokenRepository.insert(
                         DeviceTokenFixture.createRandomValidDeviceToken(
                             userId = user.id!!,
                             platform = DevicePlatform.NATIVE,
@@ -94,14 +94,14 @@ class SendNotificationServiceTest :
 
                 beforeTest {
                     fcmSender.failTokens = setOf("fcm-failed-token")
-                    deviceTokenRepository.save(
+                    deviceTokenRepository.insert(
                         DeviceTokenFixture.createRandomValidDeviceToken(
                             userId = user.id!!,
                             platform = DevicePlatform.WEB,
                             token = "fcm-failed-token",
                         ),
                     )
-                    deviceTokenRepository.save(
+                    deviceTokenRepository.insert(
                         DeviceTokenFixture.createRandomValidDeviceToken(
                             userId = user.id!!,
                             platform = DevicePlatform.NATIVE,
@@ -111,7 +111,7 @@ class SendNotificationServiceTest :
                     notificationId = notificationRepository.insert(NotificationFixture.createRandomNotificationOf(user.id!!)).id!!
                 }
 
-                Then("성공과 실패 건수를 함께 기록한다") {
+                Then("성공과 실패 건수와 실패 시간을 함께 기록한다") {
                     val result = service.send(notificationId.toLong())
 
                     result.successCount shouldBe 1
@@ -120,7 +120,7 @@ class SendNotificationServiceTest :
                     val saved = notificationRepository.findById(notificationId.toLong())
                     saved shouldNotBe null
                     saved!!.firedAt shouldNotBe null
-                    saved.failedAt shouldBe null
+                    saved.failedAt shouldNotBe null
                     saved.successCount shouldBe 1
                     saved.failureCount shouldBe 1
                 }
@@ -131,7 +131,7 @@ class SendNotificationServiceTest :
 
                 beforeTest {
                     user = userRepository.insert(UserFixture.createRandomValidUser(allowsReminder = false))
-                    deviceTokenRepository.save(
+                    deviceTokenRepository.insert(
                         DeviceTokenFixture.createRandomValidDeviceToken(
                             userId = user.id!!,
                             token = "not-called-token",
@@ -151,7 +151,7 @@ class SendNotificationServiceTest :
                     val saved = notificationRepository.findById(notificationId.toLong())
                     saved shouldNotBe null
                     saved!!.firedAt shouldBe null
-                    saved.failedAt shouldNotBe null
+                    saved.failedAt shouldBe null
                 }
             }
 
@@ -171,7 +171,7 @@ class SendNotificationServiceTest :
                     val saved = notificationRepository.findById(notificationId.toLong())
                     saved shouldNotBe null
                     saved!!.firedAt shouldBe null
-                    saved.failedAt shouldNotBe null
+                    saved.failedAt shouldBe null
                 }
             }
 

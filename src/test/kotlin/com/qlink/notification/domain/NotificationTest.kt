@@ -100,7 +100,7 @@ class NotificationTest :
                 }
             }
 
-            When("일부 성공한 발송 결과를 기록하면") {
+            When("일부 실패한 발송 결과를 기록하면") {
                 val handledAt = Clock.System.now()
                 val actual =
                     notification.recordSendResult(
@@ -109,9 +109,9 @@ class NotificationTest :
                         failureCount = 1,
                     )
 
-                Then("발송 시간과 결과 건수를 저장한다") {
+                Then("발송 시간과 실패 시간을 모두 저장한다") {
                     actual.firedAt shouldBe handledAt
-                    actual.failedAt shouldBe null
+                    actual.failedAt shouldBe handledAt
                     actual.successCount shouldBe 2
                     actual.failureCount shouldBe 1
                     actual.isPending shouldBe false

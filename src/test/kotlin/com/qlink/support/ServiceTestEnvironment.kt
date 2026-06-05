@@ -2,6 +2,7 @@ package com.qlink.support
 
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.config.DataSourceConfig
+import com.qlink.config.NotificationConfig
 import com.qlink.di.dataModule
 import com.qlink.di.notificationModule
 import com.qlink.di.repositoryModule
@@ -116,7 +117,10 @@ object ServiceTestEnvironment {
                 dataModule(testApplicationConfig(), testDataSourceConfig()),
                 transactionModule(),
                 repositoryModule(),
-                notificationModule(LoggerFactory.getLogger("TestTaskScheduler")),
+                notificationModule(
+                    config = testNotificationConfig(),
+                    log = LoggerFactory.getLogger("TestTaskScheduler"),
+                ),
                 aiTestModule(),
                 serviceModule(),
             )
@@ -141,6 +145,19 @@ object ServiceTestEnvironment {
             put("flyway.schema", SCHEMA)
             put("flyway.locations", listOf("db/migration"))
         }
+
+    private fun testNotificationConfig(): NotificationConfig =
+        NotificationConfig(
+            expo =
+                NotificationConfig.ExpoConfig(
+                    sendUrl = "https://example.com/push/send",
+                    accessToken = null,
+                ),
+            fcm =
+                NotificationConfig.FcmConfig(
+                    serviceAccountJson = null,
+                ),
+        )
 
     private fun ServicePostgreSQLContainer.currentSchemaJdbcUrl(): String {
         val separator = if (jdbcUrl.contains("?")) "&" else "?"
