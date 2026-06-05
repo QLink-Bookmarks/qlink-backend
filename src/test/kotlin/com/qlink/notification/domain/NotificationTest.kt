@@ -99,6 +99,42 @@ class NotificationTest :
                     actual.isPending shouldBe false
                 }
             }
+
+            When("일부 실패한 발송 결과를 기록하면") {
+                val handledAt = Clock.System.now()
+                val actual =
+                    notification.recordSendResult(
+                        handledAt = handledAt,
+                        successCount = 2,
+                        failureCount = 1,
+                    )
+
+                Then("발송 시간과 실패 시간을 모두 저장한다") {
+                    actual.firedAt shouldBe handledAt
+                    actual.failedAt shouldBe handledAt
+                    actual.successCount shouldBe 2
+                    actual.failureCount shouldBe 1
+                    actual.isPending shouldBe false
+                }
+            }
+
+            When("성공 없는 발송 결과를 기록하면") {
+                val handledAt = Clock.System.now()
+                val actual =
+                    notification.recordSendResult(
+                        handledAt = handledAt,
+                        successCount = 0,
+                        failureCount = 2,
+                    )
+
+                Then("실패 시간과 결과 건수를 저장한다") {
+                    actual.firedAt shouldBe null
+                    actual.failedAt shouldBe handledAt
+                    actual.successCount shouldBe 0
+                    actual.failureCount shouldBe 2
+                    actual.isPending shouldBe false
+                }
+            }
         }
 
         Given("알림 검증 테스트") {

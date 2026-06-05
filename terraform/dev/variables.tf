@@ -278,6 +278,16 @@ variable "ecs_image_tag" {
   type = string
 }
 
+variable "fcm_service_account_json" {
+  type      = string
+  sensitive = true
+}
+
+variable "expo_access_token" {
+  type      = string
+  sensitive = true
+}
+
 variable "ecs_task_healthcheck_command" {
   type = string
 }

@@ -51,6 +51,13 @@ http:
 monitoring:
   metricsPath: /metrics-micrometer
 
+notification:
+  expo:
+    sendUrl: https://exp.host/--/api/v2/push/send
+    accessToken: ""
+  fcm:
+    serviceAccountJson: ""
+
 logging:
   http:
     slowThresholdMs: 1000
