@@ -86,4 +86,7 @@ enum class ErrorCode(
     FOLDER_OWNER_NOT_FOUND("FOLDER_404_0001", 404, "로그인 사용자를 찾을 수 없어요"),
     FOLDER_NOT_FOUND("FOLDER_404_0002", 404, "폴더를 찾을 수 없어요"),
     FOLDER_DUPLICATE_NAME("FOLDER_409_0001", 409, "같은 이름의 폴더가 이미 있어요"),
+    FOLDER_INVITATION_INVALID("FOLDER_400_0005", 400, "폴더 초대 정보가 올바르지 않아요"),
+    FOLDER_NOT_SHARED("FOLDER_422_0001", 422, "공유 폴더가 아니에요"),
+    FOLDER_INVITATION_EXPIRED("FOLDER_422_0002", 422, "폴더 초대가 만료되었어요"),
 }

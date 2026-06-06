@@ -24,7 +24,6 @@ VALUES (
     'dev-admin',
     '개발용 관리자',
     'SUPER_ADMIN',
-    '개발용 관리자',
     null,
     null,
     'L',
@@ -44,7 +43,7 @@ VALUES (1, 1, '개발용 폴더', '👨🏻‍💻', null, '2026-05-16T23:55:55Z
 INSERT INTO ai_providers (id, type, base_url, created_at, updated_at)
 VALUES
     (1, 'GEMINI', 'https://generativelanguage.googleapis.com/v1beta', '2026-05-16T23:55:55Z', '2026-05-16T23:55:55Z'),
-    (2, 'OPENAI', 'https://api.openai.com/v1/responses', '2026-05-16T23:55:55Z', '2026-05-16T23:55:55Z');
+    (2, 'OPENAI', 'https://api.openai.com/v1', '2026-05-16T23:55:55Z', '2026-05-16T23:55:55Z');
 
 -- Available Models
 INSERT INTO available_models (id, provider_id, model, priority, rpd_limit, tpd_limit, created_at, updated_at)
@@ -59,5 +58,5 @@ VALUES
 -- User Providers
 INSERT INTO user_providers (id, user_id, provider_id, user_role, api_key, created_at, updated_at)
 VALUES
-    (1, 1, 1, 'SUPER_ADMIN', 'GEMINI_API_KEY_PLACEHOLDER', '2026-05-16T23:55:55Z', '2026-05-16T23:55:55Z'),
-    (2, 1, 2, 'SUPER_ADMIN', 'OPENAI_API_KEY_PLACEHOLDER', '2026-05-16T23:55:55Z', '2026-05-16T23:55:55Z');
+    (1, 1, 1, 'SUPER_ADMIN', 'v1:W7+F1lcrEb0xVfYD:Uvy5FM1Wvd3xte0Aurm3+8aB9n/l/kiC5qOH2F47mLIjHSzkkPRWIkM1+rBjqusplSvRameNvQ==', '2026-05-16T23:55:55Z', '2026-05-16T23:55:55Z'),
+    (2, 1, 2, 'SUPER_ADMIN', 'v1:jwJzx4sq513gGlpP:1VqGQ5gHbjUI7vHZFyf+jsVdeN+QA9MTi+4IzMiQQ/gMJTUargBHiTCj5i+Md27XDsfyvMfO34X1CyrcdkXiVBkE0NvHD+7t7XBfwi5FkCrQOJyY7QkyedqYEnCSYRcQvjcbZdFZvV8MFZ5W/op6fFhAuFkR5GEctknn2T66XNjong+QexqPVKqv6EuQbIs5FPFHGLVAi2b/w2zn5rJU3BQVB3gLt5PqYtF1lt8lI8Zbzmzn', '2026-05-16T23:55:55Z', '2026-05-16T23:55:55Z');
