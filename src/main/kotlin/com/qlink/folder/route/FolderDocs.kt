@@ -7,7 +7,11 @@ import com.qlink.common.response.ApiResponse
 import com.qlink.common.response.EmptySuccessResponse
 import com.qlink.common.response.ErrorDetail
 import com.qlink.common.scroll.ScrollResponse
+import com.qlink.folder.dto.AcceptFolderInvitationRequest
+import com.qlink.folder.dto.AcceptFolderInvitationResponse
 import com.qlink.folder.dto.CreateFolderRequest
+import com.qlink.folder.dto.CreateFolderInvitationRequest
+import com.qlink.folder.dto.CreateFolderInvitationResponse
 import com.qlink.folder.dto.CreateFolderResponse
 import com.qlink.folder.dto.GetFoldersContentResponse
 import com.qlink.folder.dto.UpdateFolderRequest
@@ -187,6 +191,80 @@ internal fun deleteFolderMemberDocs(): RouteConfig.() -> Unit =
                 description = "공유 멤버 삭제에 필요한 리소스 조회 실패"
                 body<ApiResponse<ErrorDetail>> {
                     examples(ErrorCode.FOLDER_OWNER_NOT_FOUND)
+                }
+            }
+        }
+    }
+
+internal fun createFolderInvitationDocs(): RouteConfig.() -> Unit =
+    {
+        summary = "공유 폴더 초대 토큰 생성 API"
+        request {
+            pathParameter<Long>("id") { description = "폴더 ID" }
+            body<CreateFolderInvitationRequest>()
+        }
+        response {
+            code(HttpStatusCode.Created) {
+                description = "공유 폴더 초대 생성 성공"
+                body<ApiResponse<CreateFolderInvitationResponse>>()
+            }
+            authErrorResponse()
+            code(HttpStatusCode.Forbidden) {
+                description = "공유 폴더 초대 생성 권한 검증 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.FOLDER_DIFFERENT_OWNER)
+                }
+            }
+            code(HttpStatusCode.NotFound) {
+                description = "공유 폴더 초대 생성 대상 리소스 조회 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(
+                        ErrorCode.FOLDER_OWNER_NOT_FOUND,
+                        ErrorCode.FOLDER_NOT_FOUND,
+                    )
+                }
+            }
+            code(HttpStatusCode.UnprocessableEntity) {
+                description = "공유 폴더가 아님"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.FOLDER_NOT_SHARED)
+                }
+            }
+        }
+    }
+
+internal fun acceptFolderInvitationDocs(): RouteConfig.() -> Unit =
+    {
+        summary = "공유 폴더 초대 수락 API"
+        request {
+            pathParameter<Long>("id") { description = "폴더 ID" }
+            body<AcceptFolderInvitationRequest>()
+        }
+        response {
+            code(HttpStatusCode.Created) {
+                description = "공유 폴더 초대 수락 성공"
+                body<ApiResponse<AcceptFolderInvitationResponse>>()
+            }
+            code(HttpStatusCode.BadRequest) {
+                description = "공유 폴더 초대 수락 요청이 올바르지 않음"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(
+                        ErrorCode.COMMON_BAD_REQUEST,
+                        ErrorCode.FOLDER_INVITATION_INVALID,
+                    )
+                }
+            }
+            authErrorResponse()
+            code(HttpStatusCode.NotFound) {
+                description = "공유 폴더 초대 수락 대상 리소스 조회 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.FOLDER_NOT_FOUND)
+                }
+            }
+            code(HttpStatusCode.UnprocessableEntity) {
+                description = "공유 폴더 초대가 만료됨"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.FOLDER_INVITATION_EXPIRED)
                 }
             }
         }

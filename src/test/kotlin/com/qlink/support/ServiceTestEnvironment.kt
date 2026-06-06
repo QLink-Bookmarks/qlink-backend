@@ -2,6 +2,7 @@ package com.qlink.support
 
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.config.DataSourceConfig
+import com.qlink.config.SecurityConfig
 import com.qlink.di.dataModule
 import com.qlink.di.repositoryModule
 import com.qlink.di.serviceModule
@@ -118,6 +119,7 @@ object ServiceTestEnvironment {
                 dataModule(testApplicationConfig(), testDataSourceConfig()),
                 transactionModule(),
                 repositoryModule(),
+                securityTestModule(),
                 notificationTestModule(),
                 aiTestModule(),
                 serviceModule(),
@@ -158,6 +160,13 @@ object ServiceTestEnvironment {
                     sendNotificationService = get(),
                     log = LoggerFactory.getLogger("TestTaskScheduler"),
                 )
+            }
+        }
+
+    private fun securityTestModule() =
+        module {
+            single {
+                SecurityConfig(jwtSecret = "test-jwt-secret")
             }
         }
 
