@@ -12,6 +12,12 @@ fun Boolean.requireFalse(errorCode: ErrorCode) {
     }
 }
 
+fun String.requireNotBlank(errorCode: ErrorCode) {
+    if (this.isBlank()) {
+        throw BusinessException(errorCode)
+    }
+}
+
 fun String.requireNotOver(
     length: Int,
     errorCode: ErrorCode,

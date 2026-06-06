@@ -24,3 +24,16 @@ CREATE INDEX notifications_context_idx ON notifications(context, context_id);
 CREATE INDEX notifications_pending_will_fire_at_idx
 ON notifications(will_fire_at)
 WHERE fired_at IS NULL AND failed_at IS NULL;
+
+CREATE TABLE device_tokens (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    platform VARCHAR(20) NOT NULL,
+    token TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP NOT NULL DEFAULT now(),
+    CONSTRAINT device_tokens_platform_check CHECK (platform IN ('WEB', 'NATIVE')),
+    CONSTRAINT device_tokens_token_unique UNIQUE (token)
+);
+
+CREATE INDEX device_tokens_user_id_idx ON device_tokens(user_id);

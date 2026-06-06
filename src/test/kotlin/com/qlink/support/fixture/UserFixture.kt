@@ -4,13 +4,14 @@ import com.qlink.auth.domain.Role
 import com.qlink.user.domain.User
 
 object UserFixture {
-    fun createRandomValidUser(): User =
+    fun createRandomValidUser(allowsReminder: Boolean = true): User =
         User(
             id = RandomFixture.randomId(),
             username = "user-${RandomFixture.randomId()}",
             nickname = RandomFixture.randomSentenceWithMax(50),
             avatarUrl = RandomFixture.randomUrl(),
             avatarEmoji = RandomFixture.randomEmoji(),
+            allowsReminder = allowsReminder,
         )
 
     fun createRandomValidSuperAdmin(): User = createRandomValidUser().copyForRole(role = Role.SUPER_ADMIN)

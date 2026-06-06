@@ -6,6 +6,7 @@ import com.qlink.common.transaction.TransactionRunner
 import com.qlink.notification.domain.Notification
 import com.qlink.notification.domain.NotificationContext
 import com.qlink.notification.repository.NotificationRepository
+import com.qlink.notification.service.SendNotificationService
 import com.qlink.todo.repository.TodoRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -35,6 +36,7 @@ class TaskScheduler(
     private val tx: TransactionRunner,
     private val notificationRepository: NotificationRepository,
     private val todoRepository: TodoRepository,
+    private val sendNotificationService: SendNotificationService,
     private val log: Logger,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -132,40 +134,35 @@ class TaskScheduler(
 
     private suspend fun fire(notificationId: Long) {
         runCatching {
-            tx.required {
-                val notification =
-                    notificationRepository.findPendingById(notificationId)
-                        ?: throw BusinessException(ErrorCode.NOTIFICATION_NOT_FOUND)
-                notificationRepository.update(notification.markFired(Clock.System.now()))
-
-                if (notification.isTodo) {
-                    val todo =
-                        todoRepository.findById(notification.contextId)
-                            ?: throw BusinessException(ErrorCode.TODO_NOT_FOUND)
-                    if (!todo.hasRepeat) {
-                        return@required
-                    }
-
-                    val nextTodo = todo.setNextReminder(Clock.System.now())
-                    val savedTodo = todoRepository.update(nextTodo)
-
-                    Notification
-                        .todo(savedTodo)
-                        ?.takeUnless { nextNotification ->
-                            notificationRepository
-                                .findPendingByContext(
-                                    context = NotificationContext.TODO,
-                                    contextId = savedTodo.id!!,
-                                ).any { it.willFireAt == nextNotification.willFireAt }
-                        }?.let { notificationRepository.insert(it) }
-                }
-            }
+            sendNotificationService.send(notificationId)
         }.onFailure { exception ->
-            log.warn("[TASK_SCHEDULER] Failed to fire notification. notificationId=$notificationId", exception)
+            logSendFailure(notificationId, exception)
             markFailed(notificationId)
         }
 
         notificationJobs.remove(notificationId)
+    }
+
+    private fun logSendFailure(
+        notificationId: Long,
+        exception: Throwable,
+    ) {
+        when (exception) {
+            is BusinessException -> {
+                log.warn(
+                    "[TASK_SCHEDULER] Failed to send notification by business exception. notificationId=$notificationId, " +
+                        "errorCode=${exception.errorCode.code}",
+                    exception,
+                )
+            }
+
+            else -> {
+                log.warn(
+                    "[TASK_SCHEDULER] Failed to send notification. notificationId=$notificationId",
+                    exception,
+                )
+            }
+        }
     }
 
     private suspend fun markFailed(notificationId: Long) {

@@ -70,6 +70,13 @@ enum class ErrorCode(
     NOTIFICATION_COUNT_INVALID("NOTI_400_0004", 400, "알림 처리 건수가 올바르지 않아요"),
     NOTIFICATION_NOT_FOUND("NOTI_404_0001", 404, "알림을 찾을 수 없어요"),
 
+    // Device
+    DEVICE_PLATFORM_NOT_SUPPORTED("DEVICE_400_0001", 400, "지원하지 않는 디바이스 플랫폼이에요"),
+    DEVICE_TOKEN_BLANK("DEVICE_400_0002", 400, "디바이스 토큰이 입력되지 않았어요"),
+
+    // Push
+    PUSH_PLATFORM_NOT_SUPPORTED("PUSH_400_0001", 400, "지원하지 않는 푸시 플랫폼이에요"),
+
     // Folder
     FOLDER_NAME_BLANK("FOLDER_400_0001", 400, "폴더 이름이 입력되지 않았어요"),
     FOLDER_NAME_OVER_MAX("FOLDER_400_0002", 400, "폴더 이름은 최대 100자에요"),
