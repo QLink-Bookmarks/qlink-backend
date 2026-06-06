@@ -5,6 +5,7 @@ import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireFalse
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.link.repository.LinkRepository
+import com.qlink.notification.service.ScheduleTodoNotificationService
 import com.qlink.todo.domain.Todo
 import com.qlink.todo.dto.UpdateTodoRequest
 import com.qlink.todo.dto.UpdateTodoResponse
@@ -17,39 +18,46 @@ class UpdateTodoService(
     private val todoRepository: TodoRepository,
     private val linkRepository: LinkRepository,
     private val userRepository: UserRepository,
+    private val scheduleTodoNotificationService: ScheduleTodoNotificationService,
 ) {
     suspend fun updateTodo(
         loginId: Long,
         todoId: Long,
         request: UpdateTodoRequest,
-    ): UpdateTodoResponse =
-        tx.required {
-            userRepository.emptyById(loginId).requireFalse(ErrorCode.TODO_OWNER_NOT_FOUND)
+    ): UpdateTodoResponse {
+        val updatedTodo =
+            tx.required {
+                userRepository.emptyById(loginId).requireFalse(ErrorCode.TODO_OWNER_NOT_FOUND)
 
-            val todo = todoRepository.findById(todoId) ?: throw BusinessException(ErrorCode.TODO_NOT_FOUND)
-            todo.validateOwner(loginId)
+                val todo = todoRepository.findById(todoId) ?: throw BusinessException(ErrorCode.TODO_NOT_FOUND)
+                todo.validateOwner(loginId)
 
-            if (todo.isDifferentLink(request.linkId)) {
-                linkRepository
-                    .findById(request.linkId)
-                    ?.also { it.validateOwner(loginId) }
-                    ?: throw BusinessException(ErrorCode.TODO_LINK_NOT_FOUND)
+                if (todo.isDifferentLink(request.linkId)) {
+                    linkRepository
+                        .findById(request.linkId)
+                        ?.also { it.validateOwner(loginId) }
+                        ?: throw BusinessException(ErrorCode.TODO_LINK_NOT_FOUND)
+                }
+
+                val updatedTodo =
+                    todo.update(
+                        linkId = request.linkId,
+                        title = request.title,
+                        reminderAt = request.reminderAt,
+                        repeatUntil = request.repeatUntil,
+                        repeatDays = request.repeatDays,
+                        repeatTime = request.repeatTime,
+                        repeatTimezone = request.repeatTimezone,
+                        now = Clock.System.now(),
+                    )
+
+                todoRepository.update(updatedTodo)
             }
 
-            val updatedTodo =
-                todo.update(
-                    linkId = request.linkId,
-                    title = request.title,
-                    reminderAt = request.reminderAt,
-                    repeatUntil = request.repeatUntil,
-                    repeatDays = request.repeatDays,
-                    repeatTime = request.repeatTime,
-                    repeatTimezone = request.repeatTimezone,
-                    now = Clock.System.now(),
-                )
+        scheduleTodoNotificationService.replaceForTodo(updatedTodo)
 
-            todoRepository.update(updatedTodo).toResponse()
-        }
+        return updatedTodo.toResponse()
+    }
 
     private fun Todo.toResponse(): UpdateTodoResponse =
         UpdateTodoResponse(
@@ -60,5 +68,4 @@ class UpdateTodoService(
             repeatDays = repeatDays,
             repeatTime = repeatTime?.toString(),
         )
-
 }

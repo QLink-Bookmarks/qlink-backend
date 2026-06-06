@@ -7,10 +7,11 @@ import com.qlink.common.transaction.TransactionRunner
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
-import com.qlink.link.dto.CreateLinkTodoRequest
 import com.qlink.link.dto.CreateLinkRequest
 import com.qlink.link.dto.CreateLinkResponse
+import com.qlink.link.dto.CreateLinkTodoRequest
 import com.qlink.link.repository.LinkRepository
+import com.qlink.notification.service.ScheduleTodoNotificationService
 import com.qlink.todo.domain.Todo
 import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.repository.UserRepository
@@ -22,45 +23,61 @@ class CreateLinkService(
     private val todoRepository: TodoRepository,
     private val userRepository: UserRepository,
     private val folderRepository: FolderRepository,
+    private val scheduleTodoNotificationService: ScheduleTodoNotificationService,
 ) {
     suspend fun createLink(
         loginId: Long,
         request: CreateLinkRequest,
-    ): CreateLinkResponse =
-        tx.required {
-            userRepository.emptyById(loginId).requireFalse(ErrorCode.LINK_OWNER_NOT_FOUND)
-            request.folderId?.let {
-                folderRepository.findById(it)?.also { it.validateOwner(loginId) }
-                    ?: throw BusinessException(ErrorCode.LINK_FOLDER_NOT_FOUND)
-            }
+    ): CreateLinkResponse {
+        val result =
+            tx.required {
+                userRepository.emptyById(loginId).requireFalse(ErrorCode.LINK_OWNER_NOT_FOUND)
+                request.folderId?.let {
+                    folderRepository.findById(it)?.also { it.validateOwner(loginId) }
+                        ?: throw BusinessException(ErrorCode.LINK_FOLDER_NOT_FOUND)
+                }
 
-            val link =
-                Link(
-                    ownerId = loginId,
-                    folderId = request.folderId,
-                    url = request.url,
-                    title = request.title,
-                    summary = request.summary,
-                    memo = request.memo,
-                    tags = request.tags,
-                    thumbnailUrl = request.thumbnailUrl,
-                    sourceType = request.sourceType,
-                    status = LinkStatus.C,
-                )
-
-            val createdLink = linkRepository.insert(link)
-
-            request.todos.forEach { todoRequest ->
-                todoRepository.insert(
-                    todoRequest.toTodo(
-                        linkId = createdLink.id!!,
+                val link =
+                    Link(
                         ownerId = loginId,
-                    ),
+                        folderId = request.folderId,
+                        url = request.url,
+                        title = request.title,
+                        summary = request.summary,
+                        memo = request.memo,
+                        tags = request.tags,
+                        thumbnailUrl = request.thumbnailUrl,
+                        sourceType = request.sourceType,
+                        status = LinkStatus.C,
+                    )
+
+                val createdLink = linkRepository.insert(link)
+
+                val createdTodos =
+                    request.todos.map { todoRequest ->
+                        todoRepository.insert(
+                            todoRequest.toTodo(
+                                linkId = createdLink.id!!,
+                                ownerId = loginId,
+                            ),
+                        )
+                    }
+
+                CreateLinkResult(
+                    response = CreateLinkResponse(createdLink.id!!),
+                    createdTodos = createdTodos,
                 )
             }
 
-            CreateLinkResponse(createdLink.id!!)
-        }
+        result.createdTodos.forEach { scheduleTodoNotificationService.createForTodo(it) }
+
+        return result.response
+    }
+
+    private data class CreateLinkResult(
+        val response: CreateLinkResponse,
+        val createdTodos: List<Todo>,
+    )
 
     private fun CreateLinkTodoRequest.toTodo(
         linkId: Long,

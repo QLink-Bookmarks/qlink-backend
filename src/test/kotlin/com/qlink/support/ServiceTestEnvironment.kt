@@ -6,6 +6,8 @@ import com.qlink.di.dataModule
 import com.qlink.di.repositoryModule
 import com.qlink.di.serviceModule
 import com.qlink.di.transactionModule
+import com.qlink.notification.worker.TaskScheduler
+import com.qlink.push.client.PushNotificationSenderRouter
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.config.ApplicationConfig
 import io.ktor.server.config.MapApplicationConfig
@@ -18,6 +20,8 @@ import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
+import org.koin.dsl.module
+import org.slf4j.LoggerFactory
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.utility.DockerImageName
 import javax.sql.DataSource
@@ -114,6 +118,7 @@ object ServiceTestEnvironment {
                 dataModule(testApplicationConfig(), testDataSourceConfig()),
                 transactionModule(),
                 repositoryModule(),
+                notificationTestModule(),
                 aiTestModule(),
                 serviceModule(),
             )
@@ -137,6 +142,23 @@ object ServiceTestEnvironment {
         MapApplicationConfig().apply {
             put("flyway.schema", SCHEMA)
             put("flyway.locations", listOf("db/migration"))
+        }
+
+    private fun notificationTestModule() =
+        module {
+            single {
+                PushNotificationSenderRouter(senders = emptyList())
+            }
+
+            single {
+                TaskScheduler(
+                    tx = get(),
+                    notificationRepository = get(),
+                    todoRepository = get(),
+                    sendNotificationService = get(),
+                    log = LoggerFactory.getLogger("TestTaskScheduler"),
+                )
+            }
         }
 
     private fun ServicePostgreSQLContainer.currentSchemaJdbcUrl(): String {

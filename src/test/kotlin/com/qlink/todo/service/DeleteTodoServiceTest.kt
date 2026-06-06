@@ -4,6 +4,9 @@ import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.link.domain.Link
 import com.qlink.link.repository.LinkRepository
+import com.qlink.notification.domain.NotificationContext
+import com.qlink.notification.repository.NotificationRepository
+import com.qlink.notification.service.ScheduleTodoNotificationService
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.LinkFixture
 import com.qlink.support.fixture.RandomFixture
@@ -24,6 +27,8 @@ class DeleteTodoServiceTest :
         val userRepository = koinGet<UserRepository>()
         val linkRepository = koinGet<LinkRepository>()
         val todoRepository = koinGet<TodoRepository>()
+        val notificationRepository = koinGet<NotificationRepository>()
+        val scheduleTodoNotificationService = koinGet<ScheduleTodoNotificationService>()
 
         Given("할 일 삭제 서비스 테스트") {
             lateinit var user: User
@@ -62,12 +67,18 @@ class DeleteTodoServiceTest :
 
                 Then("성공하고 조회에서 제외된다") {
                     val todoId = todo.id!!
+                    scheduleTodoNotificationService.createForTodo(todo)
 
                     shouldNotThrow<BusinessException> {
                         delete()
                     }
 
                     todoRepository.findById(todoId) shouldBe null
+                    notificationRepository
+                        .findPendingByContext(
+                            context = NotificationContext.TODO,
+                            contextId = todoId,
+                        ).size shouldBe 0
                 }
             }
 

@@ -4,6 +4,9 @@ import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.link.domain.Link
 import com.qlink.link.repository.LinkRepository
+import com.qlink.notification.domain.NotificationContext
+import com.qlink.notification.repository.NotificationRepository
+import com.qlink.notification.service.ScheduleTodoNotificationService
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.LinkFixture
 import com.qlink.support.fixture.RandomFixture
@@ -25,6 +28,8 @@ class CompleteTodoServiceTest :
         val userRepository = koinGet<UserRepository>()
         val linkRepository = koinGet<LinkRepository>()
         val todoRepository = koinGet<TodoRepository>()
+        val notificationRepository = koinGet<NotificationRepository>()
+        val scheduleTodoNotificationService = koinGet<ScheduleTodoNotificationService>()
 
         Given("할 일 완료 상태 변경 서비스 테스트") {
             lateinit var user: User
@@ -73,6 +78,7 @@ class CompleteTodoServiceTest :
                     }
 
                 Then("완료 시간이 저장된다") {
+                    scheduleTodoNotificationService.createForTodo(incompleteTodo)
                     val response = complete()
                     val actual = todoRepository.findById(incompleteTodo.id!!)
 
@@ -80,6 +86,11 @@ class CompleteTodoServiceTest :
                     actual shouldNotBe null
                     actual!!.completedAt shouldBe response.completeAt
                     actual.isCompleted shouldBe true
+                    notificationRepository
+                        .findPendingByContext(
+                            context = NotificationContext.TODO,
+                            contextId = incompleteTodo.id!!,
+                        ).size shouldBe 0
                 }
             }
 
@@ -114,6 +125,12 @@ class CompleteTodoServiceTest :
                     response.completeAt shouldBe null
                     actual!!.completedAt shouldBe null
                     actual.isCompleted shouldBe false
+                    notificationRepository
+                        .findPendingByContext(
+                            context = NotificationContext.TODO,
+                            contextId = completedTodo.id!!,
+                        ).single()
+                        .willFireAt shouldBe actual.reminderAt
                 }
             }
 

@@ -7,6 +7,7 @@ import com.qlink.todo.dto.SearchTodosQuery
 import com.qlink.todo.dto.TodoReminderFilter
 import com.qlink.todo.dto.TodoSearchCursor
 import com.qlink.todo.dto.TodoSearchOrder
+import kotlin.time.Instant
 
 interface TodoRepository {
     suspend fun insert(todo: Todo): Todo
@@ -16,6 +17,11 @@ interface TodoRepository {
     suspend fun findAllByIds(todoIds: List<Long>): List<Todo>
 
     suspend fun findAllByLinkId(linkId: Long): List<Todo>
+
+    suspend fun findAllWithReminderBetween(
+        startInclusive: Instant,
+        endExclusive: Instant,
+    ): List<Todo>
 
     suspend fun findAllByLinkIdForLinkDetail(linkId: Long): List<LinkDetailTodoQuery>
 

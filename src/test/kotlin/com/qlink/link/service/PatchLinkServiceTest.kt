@@ -7,6 +7,9 @@ import com.qlink.folder.domain.Folder
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.domain.Link
 import com.qlink.link.repository.LinkRepository
+import com.qlink.notification.domain.NotificationContext
+import com.qlink.notification.repository.NotificationRepository
+import com.qlink.notification.service.ScheduleTodoNotificationService
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.FolderFixture
 import com.qlink.support.fixture.LinkFixture
@@ -38,6 +41,8 @@ class PatchLinkServiceTest :
         val linkRepository = koinGet<LinkRepository>()
         val folderRepository = koinGet<FolderRepository>()
         val todoRepository = koinGet<TodoRepository>()
+        val notificationRepository = koinGet<NotificationRepository>()
+        val scheduleTodoNotificationService = koinGet<ScheduleTodoNotificationService>()
 
         Given("링크 부분 수정 서비스 테스트") {
             lateinit var user: User
@@ -199,7 +204,9 @@ class PatchLinkServiceTest :
 
             When("기존 todo 수정과 신규 todo 생성을 함께 하면") {
                 Then("요청에 없는 기존 todo는 삭제하고 완료 상태는 유지한다") {
+                    scheduleTodoNotificationService.createForTodo(firstTodo)
                     val updatedReminderAt = RandomFixture.pastDateTime(3, TimeUnit.DAYS).toInstant().toKotlinInstant()
+                    val newReminderAt = RandomFixture.futureDateTime(3, TimeUnit.DAYS).toInstant().toKotlinInstant()
                     val repeatUntil = Clock.System.now().plus(30.days)
                     val request =
                         LinkFixture.createPatchLinkRequest(
@@ -216,7 +223,7 @@ class PatchLinkServiceTest :
                                     ),
                                     LinkFixture.createPatchLinkTodoRequest(
                                         title = "new-todo",
-                                        reminderAt = null,
+                                        reminderAt = newReminderAt,
                                     ),
                                 ),
                         )
@@ -233,9 +240,25 @@ class PatchLinkServiceTest :
                     actualTodos.first { it.id == secondTodo.id!! }.repeatTime.toString() shouldBe "18:20"
                     actualTodos.first { it.id == secondTodo.id!! }.repeatTimezone?.id shouldBe "Asia/Seoul"
                     todoRepository.findById(firstTodo.id!!) shouldBe null
+                    notificationRepository
+                        .findPendingByContext(
+                            context = NotificationContext.TODO,
+                            contextId = firstTodo.id!!,
+                        ).size shouldBe 0
+
+                    val newTodo = actualTodos.first { it.title == "new-todo" }
+                    notificationRepository
+                        .findPendingByContext(
+                            context = NotificationContext.TODO,
+                            contextId = newTodo.id!!,
+                        ).single()
+                        .willFireAt shouldBe newReminderAt
 
                     response.todos.map { it.title } shouldContainExactly listOf("patched-second", "new-todo")
-                    response.todos.first { it.id == secondTodo.id!! }.repeatUntil.truncatedToSecond() shouldBe
+                    response.todos
+                        .first { it.id == secondTodo.id!! }
+                        .repeatUntil
+                        .truncatedToSecond() shouldBe
                         repeatUntil.truncatedToSecond()
                     response.todos.first { it.id == secondTodo.id!! }.repeatDays shouldBe listOf(RepeatDay.TUE)
                     response.todos.first { it.id == secondTodo.id!! }.repeatTime shouldBe "18:20"

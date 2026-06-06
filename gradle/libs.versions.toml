@@ -13,12 +13,16 @@ openapi = "5.7.0"
 schema = "2.7.2"
 testcontainers = "1.21.4"
 datafaker = "2.5.4"
+expoServerSdk = "3.1.6"
+firebaseAdmin = "9.9.0"
 ktor = "3.4.0"
 
 [libraries]
 exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed" }
 exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "exposed" }
 exposed-java-time = { module = "org.jetbrains.exposed:exposed-java-time", version.ref = "exposed" }
+expo-server-sdk = { module = "io.github.hlspablo:expo-server-sdk-java", version.ref = "expoServerSdk" }
+firebase-admin = { module = "com.google.firebase:firebase-admin", version.ref = "firebaseAdmin" }
 flyway-core = { module = "org.flywaydb:flyway-core", version.ref = "flyway" }
 flyway-database-postgresql = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
 hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
@@ -39,6 +43,7 @@ testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter", ve
 testcontainers-postgresql = { module = "org.testcontainers:postgresql", version.ref = "testcontainers" }
 datafaker = { module = "net.datafaker:datafaker", version.ref = "datafaker" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
+ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

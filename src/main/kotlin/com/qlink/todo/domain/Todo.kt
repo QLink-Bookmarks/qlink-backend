@@ -200,6 +200,10 @@ class Todo(
             now: Instant,
         ): Todo {
             val parsedRepeatTime = parseRepeatTime(repeatTime)
+            val hasCompleteRepeat = hasCompleteRepeat(repeatUntil, repeatDays, parsedRepeatTime)
+            if (!hasCompleteRepeat && reminderAt != null) {
+                (reminderAt > now).requireTrue(ErrorCode.TODO_REMINDER_AT_INVALID)
+            }
             val parsedRepeatTimezone =
                 parseRepeatTimezone(
                     repeatUntil = repeatUntil,
@@ -213,7 +217,7 @@ class Todo(
                     linkId = linkId,
                     ownerId = ownerId,
                     title = title,
-                    reminderAt = reminderAt.takeIf { !hasCompleteRepeat(repeatUntil, repeatDays, parsedRepeatTime) },
+                    reminderAt = reminderAt.takeIf { !hasCompleteRepeat },
                     repeatUntil = repeatUntil,
                     repeatDays = repeatDays,
                     repeatTime = parsedRepeatTime,

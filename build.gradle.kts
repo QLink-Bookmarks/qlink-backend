@@ -134,6 +134,8 @@ dependencies {
     implementation(ktorLibs.client.core)
     implementation(ktorLibs.client.contentNegotiation)
     implementation(libs.ktor.client.cio)
+    implementation(libs.firebase.admin)
+    implementation(libs.expo.server.sdk)
 
     // Auth
     implementation(ktorLibs.server.auth)
@@ -173,6 +175,7 @@ dependencies {
     testImplementation(libs.kotest.assertions.core)
     testImplementation(libs.kotest.runner.junit5)
     testImplementation(ktorLibs.server.testHost)
+    testImplementation(libs.ktor.client.mock)
     testImplementation(libs.testcontainers.junit.jupiter)
     testImplementation(libs.testcontainers.postgresql)
     testImplementation(libs.datafaker)

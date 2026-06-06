@@ -1,11 +1,12 @@
 package com.qlink.support.fixture
 
-import com.qlink.todo.domain.Todo
 import com.qlink.todo.domain.RepeatDay
+import com.qlink.todo.domain.Todo
 import com.qlink.todo.dto.CompleteTodoRequest
 import com.qlink.todo.dto.UpdateTodoRequest
 import java.time.LocalTime
 import java.time.ZoneId
+import java.util.concurrent.TimeUnit
 import kotlin.time.Instant
 import kotlin.time.toKotlinInstant
 
@@ -37,7 +38,7 @@ object TodoFixture {
     fun createValidUpdateTodoRequest(
         linkId: Long,
         title: String = RandomFixture.randomSentenceWithMax(50),
-        reminderAt: Instant? = RandomFixture.randomDateTime().toInstant().toKotlinInstant(),
+        reminderAt: Instant? = RandomFixture.futureDateTime(3, TimeUnit.DAYS).toInstant().toKotlinInstant(),
         repeatUntil: Instant? = null,
         repeatDays: List<RepeatDay>? = null,
         repeatTime: String? = null,
