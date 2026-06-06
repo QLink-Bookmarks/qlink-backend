@@ -89,6 +89,7 @@ fun serviceModule() =
             CreateFolderService(
                 tx = get(),
                 folderRepository = get(),
+                folderMemberRepository = get(),
                 userRepository = get(),
             )
         }
@@ -105,6 +106,7 @@ fun serviceModule() =
             UpdateFolderService(
                 tx = get(),
                 folderRepository = get(),
+                folderMemberRepository = get(),
                 userRepository = get(),
             )
         }

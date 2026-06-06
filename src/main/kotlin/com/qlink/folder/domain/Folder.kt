@@ -36,6 +36,7 @@ class Folder(
     fun update(
         name: String,
         emoji: String?,
+        sharedAt: Instant? = this.sharedAt,
     ): Folder =
         Folder(
             id = id,

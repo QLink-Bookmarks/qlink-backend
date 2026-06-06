@@ -15,4 +15,5 @@ data class CreateFolderRequest(
 data class UpdateFolderRequest(
     val name: String,
     val emoji: String? = null,
+    val isShared: Boolean? = null,
 )

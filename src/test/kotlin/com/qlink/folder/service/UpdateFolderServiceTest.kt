@@ -5,6 +5,7 @@ import com.qlink.common.error.ErrorCode
 import com.qlink.folder.domain.Folder
 import com.qlink.folder.dto.UpdateFolderRequest
 import com.qlink.folder.repository.FolderRepository
+import com.qlink.foldermember.repository.FolderMemberRepository
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.FolderFixture
 import com.qlink.support.fixture.RandomFixture
@@ -20,6 +21,7 @@ class UpdateFolderServiceTest :
     BaseServiceTest({
         val updateFolderService = koinGet<UpdateFolderService>()
         val folderRepository = koinGet<FolderRepository>()
+        val folderMemberRepository = koinGet<FolderMemberRepository>()
         val userRepository = koinGet<UserRepository>()
 
         Given("폴더 수정 서비스 테스트") {
@@ -59,6 +61,31 @@ class UpdateFolderServiceTest :
                     actual!!.name shouldBe result.request.name
                     actual.emoji shouldBe result.request.emoji
                     actual.updatedAt shouldNotBe result.previous.updatedAt
+                }
+            }
+
+            When("소유자가 폴더를 공유 상태로 전환하면") {
+                val request =
+                    UpdateFolderRequest(
+                        name = RandomFixture.randomSentenceWithMax(100),
+                        emoji = RandomFixture.randomEmoji(),
+                        isShared = true,
+                    )
+                val update =
+                    suspend {
+                        updateFolderService.updateFolder(user.id!!, folder.id!!, request)
+                    }
+
+                Then("공유 시각과 소유자 멤버가 저장된다") {
+                    val response = update()
+                    val actual = folderRepository.findById(response.id)
+                    val member = folderMemberRepository.findByFolderIdAndUserId(response.id, user.id!!)
+
+                    actual shouldNotBe null
+                    actual!!.sharedAt shouldNotBe null
+                    member shouldNotBe null
+                    member!!.userName shouldBe user.nickname
+                    member.role shouldBe "OWNER"
                 }
             }
 
@@ -103,6 +130,25 @@ class UpdateFolderServiceTest :
                     UpdateFolderRequest(
                         name = RandomFixture.randomSentenceWithMax(100),
                         emoji = RandomFixture.randomEmoji(),
+                    )
+                val update =
+                    suspend {
+                        updateFolderService.updateFolder(user.id!!, otherUserFolder.id!!, request)
+                    }
+
+                Then("예외를 반환한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.FOLDER_DIFFERENT_OWNER.message) {
+                        update()
+                    }
+                }
+            }
+
+            When("다른 사용자의 폴더를 공유 상태로 전환하면") {
+                val request =
+                    UpdateFolderRequest(
+                        name = RandomFixture.randomSentenceWithMax(100),
+                        emoji = RandomFixture.randomEmoji(),
+                        isShared = true,
                     )
                 val update =
                     suspend {
