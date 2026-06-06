@@ -19,9 +19,13 @@ class GetLinkDetailService(
         linkId: Long,
     ): GetLinkDetailResponse =
         tx.readOnly {
-            val link = linkRepository.findDetailById(linkId) ?: throw BusinessException(ErrorCode.LINK_NOT_FOUND)
+            val link =
+                linkRepository.findDetailById(
+                    linkId = linkId,
+                    loginId = loginId,
+                ) ?: throw BusinessException(ErrorCode.LINK_NOT_FOUND)
 
-            if (link.ownerId != loginId) {
+            if (link.isAccessibleBy(loginId).not()) {
                 throw BusinessException(ErrorCode.LINK_DIFFERENT_OWNER)
             }
 
@@ -49,4 +53,8 @@ class GetLinkDetailService(
             todos = todos,
             workModel = workModel,
         )
+
+    private fun LinkDetailQuery.isAccessibleBy(loginId: Long): Boolean =
+        ownerId == loginId ||
+            (folderSharedAt != null && folderMemberUserId == loginId)
 }
