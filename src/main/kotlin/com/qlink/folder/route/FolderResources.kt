@@ -15,5 +15,16 @@ class FolderResources(
         val parent: FolderResources = FolderResources(),
         val id: Long,
         val onDelete: String? = null,
-    )
+    ) {
+        @Resource("members")
+        class Members(
+            val parent: FolderResources.ById,
+        ) {
+            @Resource("{memberId}")
+            class MemberById(
+                val parent: Members,
+                val memberId: Long,
+            )
+        }
+    }
 }

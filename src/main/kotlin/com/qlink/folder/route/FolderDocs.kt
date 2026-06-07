@@ -163,3 +163,31 @@ internal fun deleteFolderDocs(): RouteConfig.() -> Unit =
             }
         }
     }
+
+internal fun deleteFolderMemberDocs(): RouteConfig.() -> Unit =
+    {
+        summary = "공유 멤버 삭제 API"
+        request {
+            pathParameter<Long>("id") { description = "폴더 ID" }
+            pathParameter<Long>("memberId") { description = "삭제할 멤버 사용자 ID" }
+        }
+        response {
+            code(HttpStatusCode.OK) {
+                description = "공유 멤버 삭제 성공"
+                body<EmptySuccessResponse>()
+            }
+            authErrorResponse()
+            code(HttpStatusCode.Forbidden) {
+                description = "공유 멤버 삭제 권한 검증 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.FOLDER_DIFFERENT_OWNER)
+                }
+            }
+            code(HttpStatusCode.NotFound) {
+                description = "공유 멤버 삭제에 필요한 리소스 조회 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.FOLDER_OWNER_NOT_FOUND)
+                }
+            }
+        }
+    }

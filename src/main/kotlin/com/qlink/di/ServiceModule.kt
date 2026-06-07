@@ -5,6 +5,7 @@ import com.qlink.ai.service.PutAiUserProviderService
 import com.qlink.ai.service.UpdateLinkAiSummaryService
 import com.qlink.device.service.PutDeviceService
 import com.qlink.folder.service.CreateFolderService
+import com.qlink.folder.service.DeleteFolderMemberService
 import com.qlink.folder.service.DeleteFolderService
 import com.qlink.folder.service.GetFoldersService
 import com.qlink.folder.service.UpdateFolderService
@@ -111,6 +112,15 @@ fun serviceModule() =
                 tx = get(),
                 folderRepository = get(),
                 linkRepository = get(),
+                userRepository = get(),
+            )
+        }
+
+        single {
+            DeleteFolderMemberService(
+                tx = get(),
+                folderRepository = get(),
+                folderMemberRepository = get(),
                 userRepository = get(),
             )
         }

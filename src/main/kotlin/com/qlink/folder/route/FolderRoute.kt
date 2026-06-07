@@ -6,6 +6,7 @@ import com.qlink.common.scroll.ScrollRequest
 import com.qlink.folder.dto.CreateFolderRequest
 import com.qlink.folder.dto.UpdateFolderRequest
 import com.qlink.folder.service.CreateFolderService
+import com.qlink.folder.service.DeleteFolderMemberService
 import com.qlink.folder.service.DeleteFolderService
 import com.qlink.folder.service.GetFoldersService
 import com.qlink.folder.service.UpdateFolderService
@@ -22,6 +23,7 @@ import org.koin.ktor.ext.inject
 
 fun Route.folderRoutes() {
     val createFolderService by inject<CreateFolderService>()
+    val deleteFolderMemberService by inject<DeleteFolderMemberService>()
     val deleteFolderService by inject<DeleteFolderService>()
     val getFoldersService by inject<GetFoldersService>()
     val updateFolderService by inject<UpdateFolderService>()
@@ -50,6 +52,17 @@ fun Route.folderRoutes() {
             val response = createFolderService.createFolder(principal.userId, request)
 
             call.respondSuccess(HttpStatusCode.Created, response)
+        }
+
+        delete<FolderResources.ById.Members.MemberById>(deleteFolderMemberDocs()) { resource ->
+            val principal = call.principal<JwtPrincipal>()!!
+            deleteFolderMemberService.deleteMember(
+                loginId = principal.userId,
+                folderId = resource.parent.parent.id,
+                memberId = resource.memberId,
+            )
+
+            call.respondSuccess(HttpStatusCode.OK)
         }
 
         put<FolderResources.ById>(updateFolderDocs()) { resource ->
