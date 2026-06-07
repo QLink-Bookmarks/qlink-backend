@@ -60,7 +60,6 @@ fun Route.folderRoutes() {
             call.respondSuccess(HttpStatusCode.Created, response)
         }
 
-        delete<FolderResources.ById.Members.MemberById>(deleteFolderMemberDocs()) { resource ->
         post<FolderResources.ById>(createFolderInvitationDocs()) { resource ->
             val principal = call.principal<JwtPrincipal>()!!
             val request = call.receive<CreateFolderInvitationRequest>()
