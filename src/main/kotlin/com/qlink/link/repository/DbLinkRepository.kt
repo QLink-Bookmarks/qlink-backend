@@ -8,6 +8,7 @@ import com.qlink.common.search.doubleLiteral
 import com.qlink.common.search.longLiteral
 import com.qlink.common.search.lowerText
 import com.qlink.folder.repository.table.Folders
+import com.qlink.foldermember.repository.table.FolderMembers
 import com.qlink.link.domain.Link
 import com.qlink.link.dto.LinkDetailQuery
 import com.qlink.link.dto.LinkSearchCursor
@@ -28,6 +29,7 @@ import org.jetbrains.exposed.v1.core.alias
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greater
+import org.jetbrains.exposed.v1.core.isNotNull
 import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.core.less
 import org.jetbrains.exposed.v1.core.like
@@ -57,13 +59,23 @@ class DbLinkRepository : LinkRepository {
             .singleOrNull()
             ?.toLinkDomain()
 
-    override suspend fun findDetailById(linkId: Long): LinkDetailQuery? {
+    override suspend fun findDetailById(
+        linkId: Long,
+        loginId: Long,
+    ): LinkDetailQuery? {
         val joined =
             Links
                 .join(
                     otherTable = Folders,
                     joinType = JoinType.LEFT,
                     additionalConstraint = { Links.folderId eq Folders.id },
+                ).join(
+                    otherTable = FolderMembers,
+                    joinType = JoinType.LEFT,
+                    additionalConstraint = {
+                        (Folders.id eq FolderMembers.folderId) and
+                            (FolderMembers.userId eq loginId)
+                    },
                 ).join(
                     otherTable = AvailableModels,
                     joinType = JoinType.LEFT,
@@ -78,6 +90,8 @@ class DbLinkRepository : LinkRepository {
                 Links.id,
                 Links.ownerId,
                 Links.folderId,
+                Folders.sharedAt,
+                FolderMembers.userId,
                 folderName,
                 folderEmoji,
                 Links.url,
@@ -115,6 +129,13 @@ class DbLinkRepository : LinkRepository {
                     otherTable = Folders,
                     joinType = JoinType.LEFT,
                     additionalConstraint = { Links.folderId eq Folders.id },
+                ).join(
+                    otherTable = FolderMembers,
+                    joinType = JoinType.LEFT,
+                    additionalConstraint = {
+                        (Folders.id eq FolderMembers.folderId) and
+                            (FolderMembers.userId eq ownerId)
+                    },
                 ).join(
                     otherTable = AvailableModels,
                     joinType = JoinType.LEFT,
@@ -176,7 +197,13 @@ class DbLinkRepository : LinkRepository {
                     tagsScore,
                     summaryScore,
                     memoScore,
-                ).where { Links.ownerId eq ownerId }
+                ).where {
+                    (Links.ownerId eq ownerId) or
+                        (
+                            (FolderMembers.userId eq ownerId) and
+                                Folders.sharedAt.isNotNull()
+                        )
+                }
                 .apply {
                     folderId?.let { requestedFolderId ->
                         when (requestedFolderId) {
@@ -480,6 +507,8 @@ class DbLinkRepository : LinkRepository {
             id = this[Links.id],
             ownerId = this[Links.ownerId],
             folderId = this[Links.folderId],
+            folderSharedAt = this[Folders.sharedAt]?.toKotlinInstant(),
+            folderMemberUserId = this[FolderMembers.userId],
             folderName = this[folderName],
             folderEmoji = this[folderEmoji],
             url = this[Links.url],

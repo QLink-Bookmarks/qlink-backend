@@ -11,6 +11,8 @@ const val DEFAULT_FOLDER_SEARCH_ORDER = "latest"
 
 data class SearchFoldersQuery(
     val id: Long,
+    val ownerId: Long,
+    val ownerNickname: String?,
     val name: String,
     val emoji: String?,
     val sharedAt: Instant?,

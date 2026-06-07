@@ -34,6 +34,7 @@ enum class ErrorCode(
     LINK_NOT_FOUND("LINK_404_0001", 404, "링크를 찾을 수 없어요"),
     LINK_OWNER_NOT_FOUND("LINK_404_0002", 404, "로그인 사용자를 찾을 수 없어요"),
     LINK_FOLDER_NOT_FOUND("LINK_404_0003", 404, "폴더를 찾을 수 없어요"),
+    LINK_SHARED_FOLDER_ACCESS_DENIED("LINK_403_0002", 403, "공유 폴더 링크에 대한 권한이 없어요"),
 
     // AI
     AI_PROVIDER_NOT_SUPPORTED("AI_400_0001", 400, "지원하지 않는 AI 제공자에요"),

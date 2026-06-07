@@ -12,6 +12,8 @@ data class CreateFolderResponse(
 @Serializable
 data class GetFoldersContentResponse(
     val id: Long,
+    val ownerId: Long,
+    val ownerNickname: String?,
     val name: String,
     val emoji: String?,
     val isShared: Boolean,

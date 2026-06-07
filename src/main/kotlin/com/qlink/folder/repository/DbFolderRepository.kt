@@ -15,6 +15,8 @@ import com.qlink.folder.repository.table.refreshUpdatedAt
 import com.qlink.folder.repository.table.toFolderDomain
 import com.qlink.foldermember.repository.table.FolderMembers
 import com.qlink.link.repository.table.Links
+import com.qlink.user.repository.table.Users
+import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
@@ -23,6 +25,7 @@ import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greater
 import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.isNotNull
 import org.jetbrains.exposed.v1.core.less
 import org.jetbrains.exposed.v1.core.like
 import org.jetbrains.exposed.v1.core.neq
@@ -86,17 +89,41 @@ class DbFolderRepository : FolderRepository {
         val normalizedQuery = query?.trim()?.takeIf { it.isNotEmpty() }
         val loweredQuery = normalizedQuery?.lowercase()
         val score = (normalizedQuery?.let { bigmSimilarity(Folders.name, it) } ?: doubleLiteral(0.0)).alias("score")
+        val ownerUsers = Users.alias("owner_users")
+        val ownerNickname = ownerUsers[Users.nickname].alias("owner_nickname")
+        val joined =
+            Folders
+                .join(
+                    otherTable = FolderMembers,
+                    joinType = JoinType.LEFT,
+                    additionalConstraint = {
+                        (Folders.id eq FolderMembers.folderId) and
+                            (FolderMembers.userId eq ownerId)
+                    },
+                ).join(
+                    otherTable = ownerUsers,
+                    joinType = JoinType.INNER,
+                    additionalConstraint = { Folders.ownerId eq ownerUsers[Users.id] },
+                )
 
         val folders =
-            Folders
+            joined
                 .select(
                     Folders.id,
+                    Folders.ownerId,
+                    ownerNickname,
                     Folders.name,
                     Folders.emoji,
                     Folders.sharedAt,
                     Folders.createdAt,
                     score,
-                ).where { Folders.ownerId eq ownerId }
+                ).where {
+                    (Folders.ownerId eq ownerId) or
+                        (
+                            (FolderMembers.userId eq ownerId) and
+                                Folders.sharedAt.isNotNull()
+                        )
+                }
                 .apply {
                     loweredQuery?.let { keyword ->
                         andWhere { lowerText(Folders.name) like "%$keyword%" }
@@ -106,7 +133,7 @@ class DbFolderRepository : FolderRepository {
                     }
                 }.orderBy(*orderBy(order, score))
                 .limit(size + 1)
-                .map { it.toSearchFoldersQuery(score) }
+                .map { it.toSearchFoldersQuery(score, ownerNickname, ownerId) }
 
         if (folders.isEmpty()) {
             return emptyList()
@@ -190,9 +217,13 @@ class DbFolderRepository : FolderRepository {
 
     private fun ResultRow.toSearchFoldersQuery(
         score: org.jetbrains.exposed.v1.core.ExpressionWithColumnTypeAlias<Double>,
+        ownerNickname: org.jetbrains.exposed.v1.core.ExpressionWithColumnTypeAlias<String>,
+        loginId: Long,
     ): SearchFoldersQuery =
         SearchFoldersQuery(
             id = this[Folders.id],
+            ownerId = this[Folders.ownerId],
+            ownerNickname = this[ownerNickname].takeIf { this[Folders.ownerId] != loginId },
             name = this[Folders.name],
             emoji = this[Folders.emoji],
             sharedAt = this[Folders.sharedAt]?.toKotlinInstant(),

@@ -11,7 +11,10 @@ interface LinkRepository {
 
     suspend fun findById(linkId: Long): Link?
 
-    suspend fun findDetailById(linkId: Long): LinkDetailQuery?
+    suspend fun findDetailById(
+        linkId: Long,
+        loginId: Long,
+    ): LinkDetailQuery?
 
     suspend fun search(
         ownerId: Long,

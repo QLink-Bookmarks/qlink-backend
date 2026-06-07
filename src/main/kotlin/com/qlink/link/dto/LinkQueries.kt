@@ -34,6 +34,8 @@ data class LinkDetailQuery(
     val id: Long,
     val ownerId: Long,
     val folderId: Long?,
+    val folderSharedAt: Instant?,
+    val folderMemberUserId: Long?,
     val folderName: String?,
     val folderEmoji: String?,
     val url: String,
