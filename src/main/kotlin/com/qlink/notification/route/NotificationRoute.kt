@@ -5,7 +5,9 @@ import com.qlink.common.response.respondSuccess
 import com.qlink.common.scroll.ScrollRequest
 import com.qlink.notification.service.GetNotificationsService
 import com.qlink.notification.service.GetUnreadNotificationCountService
+import com.qlink.notification.service.ReadNotificationService
 import io.github.smiley4.ktoropenapi.resources.get
+import io.github.smiley4.ktoropenapi.resources.put
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.principal
@@ -15,6 +17,7 @@ import org.koin.ktor.ext.inject
 fun Route.notificationRoutes() {
     val getNotificationsService by inject<GetNotificationsService>()
     val getUnreadNotificationCountService by inject<GetUnreadNotificationCountService>()
+    val readNotificationService by inject<ReadNotificationService>()
 
     authenticate {
         get<NotificationResources>(getNotificationsDocs()) { resource ->
@@ -39,6 +42,16 @@ fun Route.notificationRoutes() {
             val response = getUnreadNotificationCountService.getUnreadCount(principal.userId)
 
             call.respondSuccess(HttpStatusCode.OK, response)
+        }
+
+        put<NotificationResources.ById.Read>(readNotificationDocs()) { resource ->
+            val principal = call.principal<JwtPrincipal>()!!
+            readNotificationService.readNotification(
+                loginId = principal.userId,
+                notificationId = resource.parent.id,
+            )
+
+            call.respondSuccess(HttpStatusCode.OK)
         }
     }
 }

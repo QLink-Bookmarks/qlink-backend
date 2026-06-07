@@ -19,6 +19,7 @@ import com.qlink.link.service.PatchLinkService
 import com.qlink.link.service.UpdateLinkService
 import com.qlink.notification.service.GetNotificationsService
 import com.qlink.notification.service.GetUnreadNotificationCountService
+import com.qlink.notification.service.ReadNotificationService
 import com.qlink.notification.service.ScheduleTodoNotificationService
 import com.qlink.notification.service.SendNotificationService
 import com.qlink.todo.service.CompleteTodoService
@@ -216,6 +217,14 @@ fun serviceModule() =
 
         single {
             GetUnreadNotificationCountService(
+                tx = get(),
+                notificationRepository = get(),
+                userRepository = get(),
+            )
+        }
+
+        single {
+            ReadNotificationService(
                 tx = get(),
                 notificationRepository = get(),
                 userRepository = get(),
