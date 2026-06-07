@@ -157,4 +157,23 @@ class NotificationTest :
                 }
             }
         }
+
+        Given("알림 읽음 처리 테스트") {
+            When("읽음 시간을 기록하면") {
+                val readAt = Clock.System.now()
+                val notification =
+                    Notification(
+                        userId = RandomFixture.randomId(),
+                        title = RandomFixture.randomSentenceWithMax(50),
+                        message = RandomFixture.randomSentenceWithMax(200),
+                        context = NotificationContext.TODO,
+                        contextId = RandomFixture.randomId(),
+                        willFireAt = Clock.System.now(),
+                    )
+
+                Then("읽음 시간이 반영된 알림을 반환한다") {
+                    notification.markRead(readAt).readAt shouldBe readAt
+                }
+            }
+        }
     })

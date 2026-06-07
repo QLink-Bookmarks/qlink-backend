@@ -24,6 +24,7 @@ object Notifications : Table("notifications") {
     val scheduledAt = timestamp("scheduled_at").nullable()
     val firedAt = timestamp("fired_at").nullable()
     val failedAt = timestamp("failed_at").nullable()
+    val readAt = timestamp("read_at").nullable()
     val successCount = integer("success_count").default(0)
     val failureCount = integer("failure_count").default(0)
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
@@ -36,6 +37,7 @@ object Notifications : Table("notifications") {
         index("notifications_user_id_idx", false, userId)
         index("notifications_will_fire_at_idx", false, willFireAt)
         index("notifications_context_idx", false, context, contextId)
+        index("notifications_user_read_idx", false, userId, id)
     }
 }
 
@@ -51,6 +53,7 @@ fun ResultRow.toNotificationDomain(): Notification =
         scheduledAt = this[Notifications.scheduledAt]?.toKotlinInstant(),
         firedAt = this[Notifications.firedAt]?.toKotlinInstant(),
         failedAt = this[Notifications.failedAt]?.toKotlinInstant(),
+        readAt = this[Notifications.readAt]?.toKotlinInstant(),
         successCount = this[Notifications.successCount],
         failureCount = this[Notifications.failureCount],
         createdAt = this[Notifications.createdAt].toKotlinInstant(),
@@ -67,6 +70,7 @@ fun UpdateBuilder<*>.fromDomain(notification: Notification) {
     this[Notifications.scheduledAt] = notification.scheduledAt?.toJavaInstant()
     this[Notifications.firedAt] = notification.firedAt?.toJavaInstant()
     this[Notifications.failedAt] = notification.failedAt?.toJavaInstant()
+    this[Notifications.readAt] = notification.readAt?.toJavaInstant()
     this[Notifications.successCount] = notification.successCount
     this[Notifications.failureCount] = notification.failureCount
 }

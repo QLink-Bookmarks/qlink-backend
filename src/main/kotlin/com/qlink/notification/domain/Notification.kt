@@ -21,6 +21,7 @@ class Notification(
     val scheduledAt: Instant? = null,
     val firedAt: Instant? = null,
     val failedAt: Instant? = null,
+    val readAt: Instant? = null,
     val successCount: Int = 0,
     val failureCount: Int = 0,
     val createdAt: Instant? = null,
@@ -59,6 +60,11 @@ class Notification(
             failureCount = 1,
         )
 
+    fun markRead(readAt: Instant): Notification =
+        copy(
+            readAt = readAt,
+        )
+
     fun recordSendResult(
         handledAt: Instant,
         successCount: Int,
@@ -75,6 +81,7 @@ class Notification(
         scheduledAt: Instant? = this.scheduledAt,
         firedAt: Instant? = this.firedAt,
         failedAt: Instant? = this.failedAt,
+        readAt: Instant? = this.readAt,
         successCount: Int = this.successCount,
         failureCount: Int = this.failureCount,
     ): Notification =
@@ -89,6 +96,7 @@ class Notification(
             scheduledAt = scheduledAt,
             firedAt = firedAt,
             failedAt = failedAt,
+            readAt = readAt,
             successCount = successCount,
             failureCount = failureCount,
             createdAt = createdAt,
