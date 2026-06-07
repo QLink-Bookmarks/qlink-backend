@@ -3,10 +3,14 @@ package com.qlink.folder.route
 import com.qlink.auth.domain.JwtPrincipal
 import com.qlink.common.response.respondSuccess
 import com.qlink.common.scroll.ScrollRequest
+import com.qlink.folder.dto.AcceptFolderInvitationRequest
 import com.qlink.folder.dto.CreateFolderRequest
+import com.qlink.folder.dto.CreateFolderInvitationRequest
 import com.qlink.folder.dto.UpdateFolderRequest
+import com.qlink.folder.service.AcceptFolderInvitationService
 import com.qlink.folder.service.CreateFolderService
 import com.qlink.folder.service.DeleteFolderMemberService
+import com.qlink.folder.service.CreateFolderInvitationService
 import com.qlink.folder.service.DeleteFolderService
 import com.qlink.folder.service.GetFoldersService
 import com.qlink.folder.service.UpdateFolderService
@@ -24,6 +28,8 @@ import org.koin.ktor.ext.inject
 fun Route.folderRoutes() {
     val createFolderService by inject<CreateFolderService>()
     val deleteFolderMemberService by inject<DeleteFolderMemberService>()
+    val createFolderInvitationService by inject<CreateFolderInvitationService>()
+    val acceptFolderInvitationService by inject<AcceptFolderInvitationService>()
     val deleteFolderService by inject<DeleteFolderService>()
     val getFoldersService by inject<GetFoldersService>()
     val updateFolderService by inject<UpdateFolderService>()
@@ -52,6 +58,22 @@ fun Route.folderRoutes() {
             val response = createFolderService.createFolder(principal.userId, request)
 
             call.respondSuccess(HttpStatusCode.Created, response)
+        }
+
+        post<FolderResources.ById>(createFolderInvitationDocs()) { resource ->
+            val principal = call.principal<JwtPrincipal>()!!
+            val request = call.receive<CreateFolderInvitationRequest>()
+            val response = createFolderInvitationService.createInvitation(principal.userId, resource.id, request)
+
+            call.respondSuccess(HttpStatusCode.Created, response)
+        }
+
+        put<FolderResources.ById.Members>(acceptFolderInvitationDocs()) { resource ->
+            val principal = call.principal<JwtPrincipal>()!!
+            val request = call.receive<AcceptFolderInvitationRequest>()
+            val response = acceptFolderInvitationService.acceptInvitation(principal.userId, resource.parent.id, request)
+
+            call.respondSuccess(HttpStatusCode.OK, response)
         }
 
         delete<FolderResources.ById.Members.MemberById>(deleteFolderMemberDocs()) { resource ->

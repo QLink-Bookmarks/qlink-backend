@@ -4,6 +4,8 @@ import com.qlink.ai.service.GetAiProviderModelsService
 import com.qlink.ai.service.PutAiUserProviderService
 import com.qlink.ai.service.UpdateLinkAiSummaryService
 import com.qlink.device.service.PutDeviceService
+import com.qlink.folder.service.AcceptFolderInvitationService
+import com.qlink.folder.service.CreateFolderInvitationService
 import com.qlink.folder.service.CreateFolderService
 import com.qlink.folder.service.DeleteFolderMemberService
 import com.qlink.folder.service.DeleteFolderService
@@ -122,6 +124,25 @@ fun serviceModule() =
                 folderRepository = get(),
                 folderMemberRepository = get(),
                 userRepository = get(),
+            )
+        }
+
+        single {
+            CreateFolderInvitationService(
+                tx = get(),
+                folderRepository = get(),
+                userRepository = get(),
+                securityConfig = get(),
+            )
+        }
+
+        single {
+            AcceptFolderInvitationService(
+                tx = get(),
+                folderRepository = get(),
+                folderMemberRepository = get(),
+                userRepository = get(),
+                securityConfig = get(),
             )
         }
 
