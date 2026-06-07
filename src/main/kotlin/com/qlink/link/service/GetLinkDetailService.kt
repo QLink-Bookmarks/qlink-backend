@@ -19,11 +19,13 @@ class GetLinkDetailService(
         linkId: Long,
     ): GetLinkDetailResponse =
         tx.readOnly {
-            val link = linkRepository.findDetailById(linkId) ?: throw BusinessException(ErrorCode.LINK_NOT_FOUND)
+            val link =
+                linkRepository.findDetailById(
+                    linkId = linkId,
+                    loginId = loginId,
+                ) ?: throw BusinessException(ErrorCode.LINK_NOT_FOUND)
 
-            if (link.ownerId != loginId) {
-                throw BusinessException(ErrorCode.LINK_DIFFERENT_OWNER)
-            }
+            validateAccess(link = link, loginId = loginId)
 
             val todos = todoRepository.findAllByLinkIdForLinkDetail(link.id)
 
@@ -49,4 +51,23 @@ class GetLinkDetailService(
             todos = todos,
             workModel = workModel,
         )
+
+    private fun validateAccess(
+        link: LinkDetailQuery,
+        loginId: Long,
+    ) {
+        if (link.ownerId == loginId) {
+            return
+        }
+
+        if (link.folderSharedAt != null) {
+            if (link.folderMemberUserId == loginId) {
+                return
+            }
+
+            throw BusinessException(ErrorCode.LINK_SHARED_FOLDER_ACCESS_DENIED)
+        }
+
+        throw BusinessException(ErrorCode.LINK_DIFFERENT_OWNER)
+    }
 }

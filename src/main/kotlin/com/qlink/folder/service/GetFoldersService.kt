@@ -53,6 +53,8 @@ class GetFoldersService(
                     contents.map { folder ->
                         GetFoldersContentResponse(
                             id = folder.id,
+                            ownerId = folder.ownerId,
+                            ownerNickname = folder.ownerNickname,
                             name = folder.name,
                             emoji = folder.emoji,
                             isShared = folder.sharedAt != null,

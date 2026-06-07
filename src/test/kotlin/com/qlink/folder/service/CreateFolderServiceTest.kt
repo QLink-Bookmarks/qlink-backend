@@ -4,6 +4,7 @@ import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.folder.dto.CreateFolderRequest
 import com.qlink.folder.repository.FolderRepository
+import com.qlink.foldermember.repository.FolderMemberRepository
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.FolderFixture
 import com.qlink.support.fixture.RandomFixture
@@ -19,6 +20,7 @@ class CreateFolderServiceTest :
     BaseServiceTest({
         val createFolderService = koinGet<CreateFolderService>()
         val folderRepository = koinGet<FolderRepository>()
+        val folderMemberRepository = koinGet<FolderMemberRepository>()
         val userRepository = koinGet<UserRepository>()
 
         Given("폴더 생성 서비스 테스트") {
@@ -46,6 +48,11 @@ class CreateFolderServiceTest :
                     actual.name shouldBe request.name
                     actual.emoji shouldBe request.emoji
                     actual.sharedAt shouldNotBe null
+
+                    val member = folderMemberRepository.findByFolderIdAndUserId(response.id, user.id!!)
+                    member shouldNotBe null
+                    member!!.userName shouldBe user.nickname
+                    member.role shouldBe "OWNER"
                 }
             }
 

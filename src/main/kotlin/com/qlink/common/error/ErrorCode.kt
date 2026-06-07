@@ -34,6 +34,7 @@ enum class ErrorCode(
     LINK_NOT_FOUND("LINK_404_0001", 404, "링크를 찾을 수 없어요"),
     LINK_OWNER_NOT_FOUND("LINK_404_0002", 404, "로그인 사용자를 찾을 수 없어요"),
     LINK_FOLDER_NOT_FOUND("LINK_404_0003", 404, "폴더를 찾을 수 없어요"),
+    LINK_SHARED_FOLDER_ACCESS_DENIED("LINK_403_0002", 403, "공유 폴더 링크에 대한 권한이 없어요"),
 
     // AI
     AI_PROVIDER_NOT_SUPPORTED("AI_400_0001", 400, "지원하지 않는 AI 제공자에요"),
@@ -86,4 +87,7 @@ enum class ErrorCode(
     FOLDER_OWNER_NOT_FOUND("FOLDER_404_0001", 404, "로그인 사용자를 찾을 수 없어요"),
     FOLDER_NOT_FOUND("FOLDER_404_0002", 404, "폴더를 찾을 수 없어요"),
     FOLDER_DUPLICATE_NAME("FOLDER_409_0001", 409, "같은 이름의 폴더가 이미 있어요"),
+    FOLDER_INVITATION_INVALID("FOLDER_400_0005", 400, "폴더 초대 정보가 올바르지 않아요"),
+    FOLDER_NOT_SHARED("FOLDER_422_0001", 422, "공유 폴더가 아니에요"),
+    FOLDER_INVITATION_EXPIRED("FOLDER_422_0002", 422, "폴더 초대가 만료되었어요"),
 }

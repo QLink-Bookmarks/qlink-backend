@@ -62,11 +62,13 @@ class GetFoldersServiceTest :
                         FolderMembers.insert {
                             it[folderId] = sharedFolder.id!!
                             it[userId] = memberOne.id!!
+                            it[userName] = memberOne.nickname
                             it[role] = "member"
                         }
                         FolderMembers.insert {
                             it[folderId] = sharedFolder.id!!
                             it[userId] = memberTwo.id!!
+                            it[userName] = memberTwo.nickname
                             it[role] = "member"
                         }
                     }

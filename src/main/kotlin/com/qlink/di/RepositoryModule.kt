@@ -14,6 +14,8 @@ import com.qlink.device.repository.DbDeviceTokenRepository
 import com.qlink.device.repository.DeviceTokenRepository
 import com.qlink.folder.repository.DbFolderRepository
 import com.qlink.folder.repository.FolderRepository
+import com.qlink.foldermember.repository.DbFolderMemberRepository
+import com.qlink.foldermember.repository.FolderMemberRepository
 import com.qlink.link.repository.DbLinkRepository
 import com.qlink.link.repository.LinkRepository
 import com.qlink.notification.repository.DbNotificationRepository
@@ -32,6 +34,10 @@ fun repositoryModule() =
 
         single<FolderRepository> {
             DbFolderRepository()
+        }
+
+        single<FolderMemberRepository> {
+            DbFolderMemberRepository()
         }
 
         single<UserRepository> {

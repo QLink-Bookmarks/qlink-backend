@@ -4,7 +4,10 @@ import com.qlink.ai.service.GetAiProviderModelsService
 import com.qlink.ai.service.PutAiUserProviderService
 import com.qlink.ai.service.UpdateLinkAiSummaryService
 import com.qlink.device.service.PutDeviceService
+import com.qlink.folder.service.AcceptFolderInvitationService
+import com.qlink.folder.service.CreateFolderInvitationService
 import com.qlink.folder.service.CreateFolderService
+import com.qlink.folder.service.DeleteFolderMemberService
 import com.qlink.folder.service.DeleteFolderService
 import com.qlink.folder.service.GetFoldersService
 import com.qlink.folder.service.UpdateFolderService
@@ -86,6 +89,7 @@ fun serviceModule() =
             CreateFolderService(
                 tx = get(),
                 folderRepository = get(),
+                folderMemberRepository = get(),
                 userRepository = get(),
             )
         }
@@ -102,6 +106,7 @@ fun serviceModule() =
             UpdateFolderService(
                 tx = get(),
                 folderRepository = get(),
+                folderMemberRepository = get(),
                 userRepository = get(),
             )
         }
@@ -112,6 +117,34 @@ fun serviceModule() =
                 folderRepository = get(),
                 linkRepository = get(),
                 userRepository = get(),
+            )
+        }
+
+        single {
+            DeleteFolderMemberService(
+                tx = get(),
+                folderRepository = get(),
+                folderMemberRepository = get(),
+                userRepository = get(),
+            )
+        }
+
+        single {
+            CreateFolderInvitationService(
+                tx = get(),
+                folderRepository = get(),
+                userRepository = get(),
+                securityConfig = get(),
+            )
+        }
+
+        single {
+            AcceptFolderInvitationService(
+                tx = get(),
+                folderRepository = get(),
+                folderMemberRepository = get(),
+                userRepository = get(),
+                securityConfig = get(),
             )
         }
 
