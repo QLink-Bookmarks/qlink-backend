@@ -74,7 +74,7 @@ fun Route.folderRoutes() {
             val request = call.receive<AcceptFolderInvitationRequest>()
             val response = acceptFolderInvitationService.acceptInvitation(principal.userId, resource.parent.id, request)
 
-            call.respondSuccess(HttpStatusCode.Created, response)
+            call.respondSuccess(HttpStatusCode.OK, response)
         }
 
         delete<FolderResources.ById.Members.MemberById>(deleteFolderMemberDocs()) { resource ->

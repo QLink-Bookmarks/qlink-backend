@@ -57,9 +57,9 @@ class AcceptFolderInvitationService(
                     .build()
                     .verify(invitation)
             } catch (exception: TokenExpiredException) {
-                throw BusinessException(ErrorCode.FOLDER_INVITATION_EXPIRED)
+                throw BusinessException(ErrorCode.FOLDER_INVITATION_EXPIRED, exception)
             } catch (exception: JWTVerificationException) {
-                throw BusinessException(ErrorCode.FOLDER_INVITATION_INVALID)
+                throw BusinessException(ErrorCode.FOLDER_INVITATION_INVALID, exception)
             }
 
         return payload.subject?.toLongOrNull() ?: throw BusinessException(ErrorCode.FOLDER_INVITATION_INVALID)

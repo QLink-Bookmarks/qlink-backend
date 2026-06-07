@@ -241,7 +241,7 @@ internal fun acceptFolderInvitationDocs(): RouteConfig.() -> Unit =
             body<AcceptFolderInvitationRequest>()
         }
         response {
-            code(HttpStatusCode.Created) {
+            code(HttpStatusCode.OK) {
                 description = "공유 폴더 초대 수락 성공"
                 body<ApiResponse<AcceptFolderInvitationResponse>>()
             }

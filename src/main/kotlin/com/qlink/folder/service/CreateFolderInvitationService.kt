@@ -10,8 +10,10 @@ import com.qlink.folder.dto.CreateFolderInvitationRequest
 import com.qlink.folder.dto.CreateFolderInvitationResponse
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.user.repository.UserRepository
-import java.time.Instant
 import java.util.Date
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
+import kotlin.time.toJavaInstant
 
 class CreateFolderInvitationService(
     private val tx: TransactionRunner,
@@ -29,9 +31,7 @@ class CreateFolderInvitationService(
 
             val folder = folderRepository.findById(folderId) ?: throw BusinessException(ErrorCode.FOLDER_NOT_FOUND)
             folder.validateOwner(loginId)
-            if (folder.sharedAt == null) {
-                throw BusinessException(ErrorCode.FOLDER_NOT_SHARED)
-            }
+            folder.sharedAt ?: throw BusinessException(ErrorCode.FOLDER_NOT_SHARED)
 
             val builder =
                 JWT
@@ -41,7 +41,7 @@ class CreateFolderInvitationService(
             request.durationDays
                 ?.takeIf { it > 0 }
                 ?.let { days ->
-                    builder.withExpiresAt(Date.from(Instant.now().plusSeconds(days * 24L * 60L * 60L)))
+                    builder.withExpiresAt(Date.from((Clock.System.now() + days.days).toJavaInstant()))
                 }
 
             CreateFolderInvitationResponse(
