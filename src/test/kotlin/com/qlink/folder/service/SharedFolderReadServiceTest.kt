@@ -1,5 +1,7 @@
 package com.qlink.folder.service
 
+import com.qlink.common.error.BusinessException
+import com.qlink.common.error.ErrorCode
 import com.qlink.common.scroll.ScrollRequest
 import com.qlink.folder.domain.Folder
 import com.qlink.folder.repository.FolderRepository
@@ -15,6 +17,7 @@ import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
 import com.qlink.user.domain.User
 import com.qlink.user.repository.UserRepository
+import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.matchers.shouldBe
 import kotlin.time.Clock
 
@@ -110,6 +113,36 @@ class SharedFolderReadServiceTest :
 
                     response.id shouldBe link.id
                     response.folderId shouldBe folder.id
+                }
+            }
+
+            When("공유 폴더 멤버가 아닌 사용자가 링크 상세를 조회하면") {
+                lateinit var folder: Folder
+                lateinit var link: Link
+
+                beforeTest {
+                    folder =
+                        folderRepository.insert(
+                            FolderFixture.createFolderWith(
+                                ownerId = owner.id!!,
+                                sharedAt = Clock.System.now(),
+                            ),
+                        )
+                    link =
+                        linkRepository.insert(
+                            LinkFixture.createRandomLinkOf(
+                                ownerId = owner.id!!,
+                                folderId = folder.id,
+                            ),
+                        )
+                }
+
+                val get = suspend { getLinkDetailService.getLinkDetail(member.id!!, link.id!!) }
+
+                Then("공유 폴더 링크 권한 예외를 반환한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_SHARED_FOLDER_ACCESS_DENIED.message) {
+                        get()
+                    }
                 }
             }
         }
