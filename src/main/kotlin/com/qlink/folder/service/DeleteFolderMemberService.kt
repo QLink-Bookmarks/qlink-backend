@@ -20,7 +20,7 @@ class DeleteFolderMemberService(
     ) {
         tx.required {
             userRepository.findById(loginId) ?: throw BusinessException(ErrorCode.FOLDER_OWNER_NOT_FOUND)
-            val folder = folderRepository.findById(folderId) ?: throw BusinessException(ErrorCode.FOLDER_DIFFERENT_OWNER)
+            val folder = folderRepository.findById(folderId) ?: throw BusinessException(ErrorCode.FOLDER_NOT_FOUND)
 
             if (loginId != memberId && folder.ownerId != loginId) {
                 throw BusinessException(ErrorCode.FOLDER_DIFFERENT_OWNER)
