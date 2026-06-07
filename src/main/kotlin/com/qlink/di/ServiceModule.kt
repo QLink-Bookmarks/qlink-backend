@@ -17,6 +17,7 @@ import com.qlink.link.service.GetLinkDetailService
 import com.qlink.link.service.GetLinksService
 import com.qlink.link.service.PatchLinkService
 import com.qlink.link.service.UpdateLinkService
+import com.qlink.notification.service.GetNotificationsService
 import com.qlink.notification.service.GetUnreadNotificationCountService
 import com.qlink.notification.service.ScheduleTodoNotificationService
 import com.qlink.notification.service.SendNotificationService
@@ -201,6 +202,14 @@ fun serviceModule() =
             DeleteLinkService(
                 tx = get(),
                 linkRepository = get(),
+                userRepository = get(),
+            )
+        }
+
+        single {
+            GetNotificationsService(
+                tx = get(),
+                notificationRepository = get(),
                 userRepository = get(),
             )
         }
