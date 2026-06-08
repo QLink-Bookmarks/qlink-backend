@@ -20,9 +20,11 @@ class ReadNotificationService(
             userRepository.emptyById(loginId).requireFalse(ErrorCode.USER_NOT_FOUND)
 
             val notification = notificationRepository.findById(notificationId) ?: return@required
-            if (notification.userId != loginId) return@required
 
-            val readNotification = notification.markRead(Clock.System.now())
+            val readNotification = notification.markRead(
+                loginId = loginId,
+                readAt = Clock.System.now(),
+            )
             if (readNotification !== notification) {
                 notificationRepository.update(readNotification)
             }
