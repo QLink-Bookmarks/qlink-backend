@@ -59,14 +59,15 @@ class SharedFolderReadServiceTest :
                     )
                 }
 
-                val get = suspend {
-                    getFoldersService.getFolders(
-                        loginId = member.id!!,
-                        query = null,
-                        order = "latest",
-                        scrollRequest = ScrollRequest(size = 10),
-                    )
-                }
+                val get =
+                    suspend {
+                        getFoldersService.getFolders(
+                            loginId = member.id!!,
+                            query = null,
+                            order = "latest",
+                            scrollRequest = ScrollRequest(size = 10),
+                        )
+                    }
 
                 Then("본인이 소유하지 않은 공유 폴더가 소유자 정보와 함께 반환된다") {
                     val response = get()

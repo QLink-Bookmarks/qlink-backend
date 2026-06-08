@@ -71,5 +71,9 @@ logging:
 
 security:
   aiApiKeyEncryptionKeyBase64: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+  access:
+    duration: 900
+  refresh:
+    duration: 1209600
   jwt:
     secret: Y1d4cGJtc3RZbTl2YTIxaGNtdHo=

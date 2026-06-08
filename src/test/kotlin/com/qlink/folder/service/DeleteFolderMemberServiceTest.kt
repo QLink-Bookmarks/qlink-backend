@@ -51,13 +51,14 @@ class DeleteFolderMemberServiceTest :
             }
 
             When("소유자가 멤버를 삭제하면") {
-                val delete = suspend {
-                    deleteFolderMemberService.deleteMember(
-                        loginId = owner.id!!,
-                        folderId = folder.id!!,
-                        memberId = member.id!!,
-                    )
-                }
+                val delete =
+                    suspend {
+                        deleteFolderMemberService.deleteMember(
+                            loginId = owner.id!!,
+                            folderId = folder.id!!,
+                            memberId = member.id!!,
+                        )
+                    }
 
                 Then("멤버가 삭제된다") {
                     delete()
@@ -67,13 +68,14 @@ class DeleteFolderMemberServiceTest :
             }
 
             When("멤버 본인이 자신을 삭제하면") {
-                val delete = suspend {
-                    deleteFolderMemberService.deleteMember(
-                        loginId = member.id!!,
-                        folderId = folder.id!!,
-                        memberId = member.id!!,
-                    )
-                }
+                val delete =
+                    suspend {
+                        deleteFolderMemberService.deleteMember(
+                            loginId = member.id!!,
+                            folderId = folder.id!!,
+                            memberId = member.id!!,
+                        )
+                    }
 
                 Then("멤버가 삭제된다") {
                     delete()
@@ -84,13 +86,14 @@ class DeleteFolderMemberServiceTest :
 
             When("삭제 대상 멤버가 이미 없으면") {
                 val missingMemberId = otherUser.id!!
-                val delete = suspend {
-                    deleteFolderMemberService.deleteMember(
-                        loginId = owner.id!!,
-                        folderId = folder.id!!,
-                        memberId = missingMemberId,
-                    )
-                }
+                val delete =
+                    suspend {
+                        deleteFolderMemberService.deleteMember(
+                            loginId = owner.id!!,
+                            folderId = folder.id!!,
+                            memberId = missingMemberId,
+                        )
+                    }
 
                 Then("성공 응답처럼 처리한다") {
                     delete()
@@ -100,13 +103,14 @@ class DeleteFolderMemberServiceTest :
             }
 
             When("로그인 사용자가 없으면") {
-                val delete = suspend {
-                    deleteFolderMemberService.deleteMember(
-                        loginId = RandomFixture.randomId(),
-                        folderId = folder.id!!,
-                        memberId = member.id!!,
-                    )
-                }
+                val delete =
+                    suspend {
+                        deleteFolderMemberService.deleteMember(
+                            loginId = RandomFixture.randomId(),
+                            folderId = folder.id!!,
+                            memberId = member.id!!,
+                        )
+                    }
 
                 Then("예외를 반환한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.FOLDER_OWNER_NOT_FOUND.message) {
@@ -116,13 +120,14 @@ class DeleteFolderMemberServiceTest :
             }
 
             When("폴더가 없으면") {
-                val delete = suspend {
-                    deleteFolderMemberService.deleteMember(
-                        loginId = owner.id!!,
-                        folderId = RandomFixture.randomId(),
-                        memberId = member.id!!,
-                    )
-                }
+                val delete =
+                    suspend {
+                        deleteFolderMemberService.deleteMember(
+                            loginId = owner.id!!,
+                            folderId = RandomFixture.randomId(),
+                            memberId = member.id!!,
+                        )
+                    }
 
                 Then("예외를 반환한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.FOLDER_NOT_FOUND.message) {
@@ -132,13 +137,14 @@ class DeleteFolderMemberServiceTest :
             }
 
             When("소유자도 삭제 대상 멤버 본인도 아니면") {
-                val delete = suspend {
-                    deleteFolderMemberService.deleteMember(
-                        loginId = otherUser.id!!,
-                        folderId = folder.id!!,
-                        memberId = member.id!!,
-                    )
-                }
+                val delete =
+                    suspend {
+                        deleteFolderMemberService.deleteMember(
+                            loginId = otherUser.id!!,
+                            folderId = folder.id!!,
+                            memberId = member.id!!,
+                        )
+                    }
 
                 Then("예외를 반환한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.FOLDER_DIFFERENT_OWNER.message) {

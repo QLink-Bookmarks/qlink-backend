@@ -123,8 +123,7 @@ class DbFolderRepository : FolderRepository {
                             (FolderMembers.userId eq ownerId) and
                                 Folders.sharedAt.isNotNull()
                         )
-                }
-                .apply {
+                }.apply {
                     loweredQuery?.let { keyword ->
                         andWhere { lowerText(Folders.name) like "%$keyword%" }
                     }
