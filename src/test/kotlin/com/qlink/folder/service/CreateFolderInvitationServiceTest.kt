@@ -48,13 +48,14 @@ class CreateFolderInvitationServiceTest :
             }
 
             When("권한 있는 사용자가 초대를 생성하면") {
-                val create = suspend {
-                    createFolderInvitationService.createInvitation(
-                        loginId = owner.id!!,
-                        folderId = sharedFolder.id!!,
-                        request = CreateFolderInvitationRequest(durationDays = 1),
-                    )
-                }
+                val create =
+                    suspend {
+                        createFolderInvitationService.createInvitation(
+                            loginId = owner.id!!,
+                            folderId = sharedFolder.id!!,
+                            request = CreateFolderInvitationRequest(durationDays = 1),
+                        )
+                    }
 
                 Then("초대 토큰을 반환한다") {
                     create().invitation.shouldNotBeBlank()
@@ -62,13 +63,14 @@ class CreateFolderInvitationServiceTest :
             }
 
             When("로그인 사용자가 없으면") {
-                val create = suspend {
-                    createFolderInvitationService.createInvitation(
-                        loginId = RandomFixture.randomId(),
-                        folderId = sharedFolder.id!!,
-                        request = CreateFolderInvitationRequest(durationDays = 1),
-                    )
-                }
+                val create =
+                    suspend {
+                        createFolderInvitationService.createInvitation(
+                            loginId = RandomFixture.randomId(),
+                            folderId = sharedFolder.id!!,
+                            request = CreateFolderInvitationRequest(durationDays = 1),
+                        )
+                    }
 
                 Then("예외를 반환한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.FOLDER_OWNER_NOT_FOUND.message) {
@@ -78,13 +80,14 @@ class CreateFolderInvitationServiceTest :
             }
 
             When("폴더가 없으면") {
-                val create = suspend {
-                    createFolderInvitationService.createInvitation(
-                        loginId = owner.id!!,
-                        folderId = RandomFixture.randomId(),
-                        request = CreateFolderInvitationRequest(durationDays = 1),
-                    )
-                }
+                val create =
+                    suspend {
+                        createFolderInvitationService.createInvitation(
+                            loginId = owner.id!!,
+                            folderId = RandomFixture.randomId(),
+                            request = CreateFolderInvitationRequest(durationDays = 1),
+                        )
+                    }
 
                 Then("예외를 반환한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.FOLDER_NOT_FOUND.message) {
@@ -94,13 +97,14 @@ class CreateFolderInvitationServiceTest :
             }
 
             When("폴더 소유자가 아니면") {
-                val create = suspend {
-                    createFolderInvitationService.createInvitation(
-                        loginId = otherUser.id!!,
-                        folderId = sharedFolder.id!!,
-                        request = CreateFolderInvitationRequest(durationDays = 1),
-                    )
-                }
+                val create =
+                    suspend {
+                        createFolderInvitationService.createInvitation(
+                            loginId = otherUser.id!!,
+                            folderId = sharedFolder.id!!,
+                            request = CreateFolderInvitationRequest(durationDays = 1),
+                        )
+                    }
 
                 Then("예외를 반환한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.FOLDER_DIFFERENT_OWNER.message) {
@@ -110,13 +114,14 @@ class CreateFolderInvitationServiceTest :
             }
 
             When("공유 폴더가 아니면") {
-                val create = suspend {
-                    createFolderInvitationService.createInvitation(
-                        loginId = owner.id!!,
-                        folderId = privateFolder.id!!,
-                        request = CreateFolderInvitationRequest(durationDays = 1),
-                    )
-                }
+                val create =
+                    suspend {
+                        createFolderInvitationService.createInvitation(
+                            loginId = owner.id!!,
+                            folderId = privateFolder.id!!,
+                            request = CreateFolderInvitationRequest(durationDays = 1),
+                        )
+                    }
 
                 Then("예외를 반환한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.FOLDER_NOT_SHARED.message) {

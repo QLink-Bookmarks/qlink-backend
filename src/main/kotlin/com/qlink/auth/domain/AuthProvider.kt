@@ -3,10 +3,10 @@ package com.qlink.auth.domain
 import kotlin.time.Instant
 
 data class AuthProvider(
-    val id: Long,
+    val id: Long? = null,
     val userId: Long,
-    val providerType: String,
+    val providerType: AuthProviderType,
     val providerId: String,
-    val createdAt: Instant,
-    val updatedAt: Instant,
+    val createdAt: Instant? = null,
+    val updatedAt: Instant? = null,
 )

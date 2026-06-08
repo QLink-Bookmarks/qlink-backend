@@ -15,6 +15,9 @@ enum class ErrorCode(
     AUTH_INVALID_CREDENTIALS("AUTH_401_0002", 401, "만료되거나 변조된 인증 정보에요"),
     AUTH_WRONG_CREDENTIALS("AUTH_401_0003", 401, "인증 형태가 유효하지 않아요"),
     AUTH_UNEXPECTED_CREDENTIALS("AUTH_401_0004", 401, "예기치 못한 인증 오류가 발생했어요"),
+    AUTH_PROVIDER_NOT_SUPPORTED("AUTH_400_0001", 400, "지원하지 않는 인증 제공자에요"),
+    AUTH_CSRF_TOKEN_INVALID("AUTH_403_0001", 403, "요청 보안 토큰이 유효하지 않아요"),
+    AUTH_EXTERNAL_CLIENT_FAILED("AUTH_422_0001", 422, "외부 인증 제공자 요청에 실패했어요"),
 
     // User
     USER_THEME_NOT_SUPPORTED("USER_400_0001", 400, "지원하지 않는 화면 테마에요"),

@@ -3,6 +3,8 @@ package com.qlink.di
 import com.qlink.ai.service.GetAiProviderModelsService
 import com.qlink.ai.service.PutAiUserProviderService
 import com.qlink.ai.service.UpdateLinkAiSummaryService
+import com.qlink.auth.service.AuthTokenService
+import com.qlink.auth.service.RandomUserNameGenerator
 import com.qlink.device.service.PutDeviceService
 import com.qlink.folder.service.AcceptFolderInvitationService
 import com.qlink.folder.service.CreateFolderInvitationService
@@ -34,6 +36,16 @@ import org.koin.dsl.module
 
 fun serviceModule() =
     module {
+        single {
+            AuthTokenService(
+                securityConfig = get(),
+            )
+        }
+
+        single {
+            RandomUserNameGenerator()
+        }
+
         single {
             GetMyProfileService(
                 tx = get(),

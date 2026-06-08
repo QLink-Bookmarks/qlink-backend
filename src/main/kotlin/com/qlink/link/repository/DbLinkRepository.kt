@@ -203,8 +203,7 @@ class DbLinkRepository : LinkRepository {
                             (FolderMembers.userId eq ownerId) and
                                 Folders.sharedAt.isNotNull()
                         )
-                }
-                .apply {
+                }.apply {
                     folderId?.let { requestedFolderId ->
                         when (requestedFolderId) {
                             0L -> andWhere { Links.folderId.isNull() }

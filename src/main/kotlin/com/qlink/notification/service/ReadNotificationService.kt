@@ -21,10 +21,11 @@ class ReadNotificationService(
 
             val notification = notificationRepository.findById(notificationId) ?: return@required
 
-            val readNotification = notification.markRead(
-                loginId = loginId,
-                readAt = Clock.System.now(),
-            )
+            val readNotification =
+                notification.markRead(
+                    loginId = loginId,
+                    readAt = Clock.System.now(),
+                )
             if (readNotification !== notification) {
                 notificationRepository.update(readNotification)
             }

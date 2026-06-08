@@ -64,21 +64,22 @@ class AcceptFolderInvitationServiceTest :
             }
 
             When("유효한 초대를 수락하면") {
-                val accept = suspend {
-                    val invitation =
-                        createFolderInvitationService
-                            .createInvitation(
-                                loginId = owner.id!!,
-                                folderId = folder.id!!,
-                                request = CreateFolderInvitationRequest(durationDays = 1),
-                            ).invitation
+                val accept =
+                    suspend {
+                        val invitation =
+                            createFolderInvitationService
+                                .createInvitation(
+                                    loginId = owner.id!!,
+                                    folderId = folder.id!!,
+                                    request = CreateFolderInvitationRequest(durationDays = 1),
+                                ).invitation
 
-                    acceptFolderInvitationService.acceptInvitation(
-                        loginId = member.id!!,
-                        folderId = folder.id!!,
-                        request = AcceptFolderInvitationRequest(invitation = invitation),
-                    )
-                }
+                        acceptFolderInvitationService.acceptInvitation(
+                            loginId = member.id!!,
+                            folderId = folder.id!!,
+                            request = AcceptFolderInvitationRequest(invitation = invitation),
+                        )
+                    }
 
                 Then("멤버로 등록된다") {
                     val response = accept()
@@ -91,20 +92,21 @@ class AcceptFolderInvitationServiceTest :
             }
 
             When("이미 참여 중인 초대를 수락하면") {
-                val accept = suspend {
-                    val invitation = invitationOf(folder.id!!)
+                val accept =
+                    suspend {
+                        val invitation = invitationOf(folder.id!!)
 
-                    acceptFolderInvitationService.acceptInvitation(
-                        loginId = member.id!!,
-                        folderId = folder.id!!,
-                        request = AcceptFolderInvitationRequest(invitation = invitation),
-                    )
-                    acceptFolderInvitationService.acceptInvitation(
-                        loginId = member.id!!,
-                        folderId = folder.id!!,
-                        request = AcceptFolderInvitationRequest(invitation = invitation),
-                    )
-                }
+                        acceptFolderInvitationService.acceptInvitation(
+                            loginId = member.id!!,
+                            folderId = folder.id!!,
+                            request = AcceptFolderInvitationRequest(invitation = invitation),
+                        )
+                        acceptFolderInvitationService.acceptInvitation(
+                            loginId = member.id!!,
+                            folderId = folder.id!!,
+                            request = AcceptFolderInvitationRequest(invitation = invitation),
+                        )
+                    }
 
                 Then("멱등하게 성공한다") {
                     val response = accept()
@@ -116,13 +118,14 @@ class AcceptFolderInvitationServiceTest :
             }
 
             When("로그인 사용자가 없으면") {
-                val accept = suspend {
-                    acceptFolderInvitationService.acceptInvitation(
-                        loginId = RandomFixture.randomId(),
-                        folderId = folder.id!!,
-                        request = AcceptFolderInvitationRequest(invitation = invitationOf(folder.id!!)),
-                    )
-                }
+                val accept =
+                    suspend {
+                        acceptFolderInvitationService.acceptInvitation(
+                            loginId = RandomFixture.randomId(),
+                            folderId = folder.id!!,
+                            request = AcceptFolderInvitationRequest(invitation = invitationOf(folder.id!!)),
+                        )
+                    }
 
                 Then("예외를 반환한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.COMMON_BAD_REQUEST.message) {
@@ -132,13 +135,14 @@ class AcceptFolderInvitationServiceTest :
             }
 
             When("토큰이 잘못되면") {
-                val accept = suspend {
-                    acceptFolderInvitationService.acceptInvitation(
-                        loginId = member.id!!,
-                        folderId = folder.id!!,
-                        request = AcceptFolderInvitationRequest(invitation = "invalid"),
-                    )
-                }
+                val accept =
+                    suspend {
+                        acceptFolderInvitationService.acceptInvitation(
+                            loginId = member.id!!,
+                            folderId = folder.id!!,
+                            request = AcceptFolderInvitationRequest(invitation = "invalid"),
+                        )
+                    }
 
                 Then("예외를 반환한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.FOLDER_INVITATION_INVALID.message) {
@@ -148,13 +152,14 @@ class AcceptFolderInvitationServiceTest :
             }
 
             When("토큰의 폴더와 요청 폴더가 다르면") {
-                val accept = suspend {
-                    acceptFolderInvitationService.acceptInvitation(
-                        loginId = member.id!!,
-                        folderId = folder.id!!,
-                        request = AcceptFolderInvitationRequest(invitation = invitationOf(RandomFixture.randomId())),
-                    )
-                }
+                val accept =
+                    suspend {
+                        acceptFolderInvitationService.acceptInvitation(
+                            loginId = member.id!!,
+                            folderId = folder.id!!,
+                            request = AcceptFolderInvitationRequest(invitation = invitationOf(RandomFixture.randomId())),
+                        )
+                    }
 
                 Then("예외를 반환한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.FOLDER_INVITATION_INVALID.message) {
@@ -164,13 +169,14 @@ class AcceptFolderInvitationServiceTest :
             }
 
             When("토큰이 만료되면") {
-                val accept = suspend {
-                    acceptFolderInvitationService.acceptInvitation(
-                        loginId = member.id!!,
-                        folderId = folder.id!!,
-                        request = AcceptFolderInvitationRequest(invitation = expiredInvitationOf(folder.id!!)),
-                    )
-                }
+                val accept =
+                    suspend {
+                        acceptFolderInvitationService.acceptInvitation(
+                            loginId = member.id!!,
+                            folderId = folder.id!!,
+                            request = AcceptFolderInvitationRequest(invitation = expiredInvitationOf(folder.id!!)),
+                        )
+                    }
 
                 Then("예외를 반환한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.FOLDER_INVITATION_EXPIRED.message) {
@@ -181,13 +187,14 @@ class AcceptFolderInvitationServiceTest :
 
             When("폴더가 없으면") {
                 val missingFolderId = RandomFixture.randomId()
-                val accept = suspend {
-                    acceptFolderInvitationService.acceptInvitation(
-                        loginId = member.id!!,
-                        folderId = missingFolderId,
-                        request = AcceptFolderInvitationRequest(invitation = invitationOf(missingFolderId)),
-                    )
-                }
+                val accept =
+                    suspend {
+                        acceptFolderInvitationService.acceptInvitation(
+                            loginId = member.id!!,
+                            folderId = missingFolderId,
+                            request = AcceptFolderInvitationRequest(invitation = invitationOf(missingFolderId)),
+                        )
+                    }
 
                 Then("예외를 반환한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.FOLDER_NOT_FOUND.message) {

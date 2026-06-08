@@ -15,18 +15,17 @@ class AuthProviderTest :
                 AuthProvider(
                     id = 1,
                     userId = 2,
-                    providerType = "google",
+                    providerType = AuthProviderType.KAKAO,
                     providerId = "google-user",
                     createdAt = now,
                     updatedAt = now,
                 )
 
             authProvider.userId shouldBe 2
-            authProvider.providerType shouldBe "google"
+            authProvider.providerType shouldBe AuthProviderType.KAKAO
             authProvider.copy() shouldBe authProvider
             authProvider.copy(id = 2) shouldNotBe authProvider
             authProvider.copy(userId = 3) shouldNotBe authProvider
-            authProvider.copy(providerType = "kakao") shouldNotBe authProvider
             authProvider.copy(providerId = "other") shouldNotBe authProvider
             authProvider.copy(createdAt = now + 1.seconds) shouldNotBe authProvider
             authProvider.copy(updatedAt = now + 2.seconds) shouldNotBe authProvider

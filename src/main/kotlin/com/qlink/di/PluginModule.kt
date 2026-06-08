@@ -9,6 +9,7 @@ import com.qlink.config.MonitoringConfig
 import com.qlink.config.SecurityConfig
 import com.qlink.config.boolean
 import com.qlink.config.int
+import com.qlink.config.optionalInt
 import com.qlink.config.optionalStringList
 import com.qlink.config.string
 import com.qlink.config.stringList
@@ -64,6 +65,8 @@ fun pluginModule(config: ApplicationConfig) =
         single {
             SecurityConfig(
                 jwtSecret = config.string("security.jwt.secret"),
+                accessDurationSeconds = config.optionalInt("security.access.duration") ?: 900,
+                refreshDurationSeconds = config.optionalInt("security.refresh.duration") ?: 1_209_600,
             )
         }
 

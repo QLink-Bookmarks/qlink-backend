@@ -66,13 +66,23 @@ class Notification(
         readAt: Instant,
     ): Notification =
         when {
-            userId != loginId -> this
-            this.readAt != null -> this
-            firedAt == null -> throw BusinessException(ErrorCode.NOTIFICATION_NOT_FIRED)
-            else ->
+            userId != loginId -> {
+                this
+            }
+
+            this.readAt != null -> {
+                this
+            }
+
+            firedAt == null -> {
+                throw BusinessException(ErrorCode.NOTIFICATION_NOT_FIRED)
+            }
+
+            else -> {
                 copy(
                     readAt = readAt,
                 )
+            }
         }
 
     fun recordSendResult(

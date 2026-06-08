@@ -9,9 +9,9 @@ import com.qlink.common.response.ErrorDetail
 import com.qlink.common.scroll.ScrollResponse
 import com.qlink.folder.dto.AcceptFolderInvitationRequest
 import com.qlink.folder.dto.AcceptFolderInvitationResponse
-import com.qlink.folder.dto.CreateFolderRequest
 import com.qlink.folder.dto.CreateFolderInvitationRequest
 import com.qlink.folder.dto.CreateFolderInvitationResponse
+import com.qlink.folder.dto.CreateFolderRequest
 import com.qlink.folder.dto.CreateFolderResponse
 import com.qlink.folder.dto.GetFoldersContentResponse
 import com.qlink.folder.dto.UpdateFolderRequest
