@@ -1,5 +1,6 @@
 package com.qlink.notification.domain
 
+import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireNotOver
 import com.qlink.common.error.requireTrue
@@ -21,6 +22,7 @@ class Notification(
     val scheduledAt: Instant? = null,
     val firedAt: Instant? = null,
     val failedAt: Instant? = null,
+    val readAt: Instant? = null,
     val successCount: Int = 0,
     val failureCount: Int = 0,
     val createdAt: Instant? = null,
@@ -59,6 +61,20 @@ class Notification(
             failureCount = 1,
         )
 
+    fun markRead(
+        loginId: Long,
+        readAt: Instant,
+    ): Notification =
+        when {
+            userId != loginId -> this
+            this.readAt != null -> this
+            firedAt == null -> throw BusinessException(ErrorCode.NOTIFICATION_NOT_FIRED)
+            else ->
+                copy(
+                    readAt = readAt,
+                )
+        }
+
     fun recordSendResult(
         handledAt: Instant,
         successCount: Int,
@@ -75,6 +91,7 @@ class Notification(
         scheduledAt: Instant? = this.scheduledAt,
         firedAt: Instant? = this.firedAt,
         failedAt: Instant? = this.failedAt,
+        readAt: Instant? = this.readAt,
         successCount: Int = this.successCount,
         failureCount: Int = this.failureCount,
     ): Notification =
@@ -89,6 +106,7 @@ class Notification(
             scheduledAt = scheduledAt,
             firedAt = firedAt,
             failedAt = failedAt,
+            readAt = readAt,
             successCount = successCount,
             failureCount = failureCount,
             createdAt = createdAt,

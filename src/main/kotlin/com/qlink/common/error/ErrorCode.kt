@@ -70,6 +70,7 @@ enum class ErrorCode(
     NOTIFICATION_MESSAGE_OVER_MAX("NOTI_400_0003", 400, "알림 메시지는 최대 200자에요"),
     NOTIFICATION_COUNT_INVALID("NOTI_400_0004", 400, "알림 처리 건수가 올바르지 않아요"),
     NOTIFICATION_NOT_FOUND("NOTI_404_0001", 404, "알림을 찾을 수 없어요"),
+    NOTIFICATION_NOT_FIRED("NOTI_422_0001", 422, "아직 발송되지 않은 알림이에요"),
 
     // Device
     DEVICE_PLATFORM_NOT_SUPPORTED("DEVICE_400_0001", 400, "지원하지 않는 디바이스 플랫폼이에요"),

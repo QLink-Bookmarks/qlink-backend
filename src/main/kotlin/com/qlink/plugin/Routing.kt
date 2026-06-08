@@ -6,6 +6,7 @@ import com.qlink.auth.domain.Role
 import com.qlink.device.route.deviceRoutes
 import com.qlink.folder.route.folderRoutes
 import com.qlink.link.route.linkRoutes
+import com.qlink.notification.route.notificationRoutes
 import com.qlink.todo.route.todoRoutes
 import com.qlink.user.route.userRoutes
 import io.github.smiley4.ktoropenapi.get
@@ -64,6 +65,7 @@ fun Application.configureRouting() {
             deviceRoutes()
             folderRoutes()
             linkRoutes()
+            notificationRoutes()
             todoRoutes()
             userRoutes()
         }
