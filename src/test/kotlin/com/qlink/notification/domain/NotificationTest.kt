@@ -160,7 +160,45 @@ class NotificationTest :
 
         Given("알림 읽음 처리 테스트") {
             When("읽음 시간을 기록하면") {
+                val firedAt = Clock.System.now()
                 val readAt = Clock.System.now()
+                val notification =
+                    Notification(
+                        userId = RandomFixture.randomId(),
+                        title = RandomFixture.randomSentenceWithMax(50),
+                        message = RandomFixture.randomSentenceWithMax(200),
+                        context = NotificationContext.TODO,
+                        contextId = RandomFixture.randomId(),
+                        willFireAt = Clock.System.now(),
+                        firedAt = firedAt,
+                    )
+
+                Then("읽음 시간이 반영된 알림을 반환한다") {
+                    notification.markRead(readAt).readAt shouldBe readAt
+                }
+            }
+
+            When("이미 읽은 알림이면") {
+                val firedAt = Clock.System.now()
+                val readAt = Clock.System.now()
+                val notification =
+                    Notification(
+                        userId = RandomFixture.randomId(),
+                        title = RandomFixture.randomSentenceWithMax(50),
+                        message = RandomFixture.randomSentenceWithMax(200),
+                        context = NotificationContext.TODO,
+                        contextId = RandomFixture.randomId(),
+                        willFireAt = Clock.System.now(),
+                        firedAt = firedAt,
+                        readAt = readAt,
+                    )
+
+                Then("기존 알림을 그대로 반환한다") {
+                    notification.markRead(Clock.System.now()) shouldBe notification
+                }
+            }
+
+            When("아직 발송되지 않은 알림이면") {
                 val notification =
                     Notification(
                         userId = RandomFixture.randomId(),
@@ -171,8 +209,10 @@ class NotificationTest :
                         willFireAt = Clock.System.now(),
                     )
 
-                Then("읽음 시간이 반영된 알림을 반환한다") {
-                    notification.markRead(readAt).readAt shouldBe readAt
+                Then("비즈니스 예외를 던진다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.NOTIFICATION_NOT_FIRED.message) {
+                        notification.markRead(Clock.System.now())
+                    }
                 }
             }
         }

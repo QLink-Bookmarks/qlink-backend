@@ -1,5 +1,6 @@
 package com.qlink.notification.domain
 
+import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireNotOver
 import com.qlink.common.error.requireTrue
@@ -61,9 +62,14 @@ class Notification(
         )
 
     fun markRead(readAt: Instant): Notification =
-        copy(
-            readAt = readAt,
-        )
+        when {
+            this.readAt != null -> this
+            firedAt == null -> throw BusinessException(ErrorCode.NOTIFICATION_NOT_FIRED)
+            else ->
+                copy(
+                    readAt = readAt,
+                )
+        }
 
     fun recordSendResult(
         handledAt: Instant,
