@@ -2,6 +2,8 @@
 
 package com.qlink.auth.dto
 
+import com.qlink.common.error.BusinessException
+import com.qlink.common.error.ErrorCode
 import kotlinx.serialization.Serializable
 
 enum class AuthPlatform {
@@ -15,3 +17,10 @@ data class SignInRequest(
     val token: String,
     val platform: AuthPlatform,
 )
+
+@Serializable
+data class NativeRefreshTokenRequest(
+    val refreshToken: String? = null,
+) {
+    fun requireRefreshToken(): String = refreshToken?.takeIf { it.isNotBlank() } ?: throw BusinessException(ErrorCode.AUTH_NO_CREDENTIALS)
+}
