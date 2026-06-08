@@ -5,6 +5,8 @@ import com.qlink.ai.service.PutAiUserProviderService
 import com.qlink.ai.service.UpdateLinkAiSummaryService
 import com.qlink.auth.service.AuthTokenService
 import com.qlink.auth.service.RandomUserNameGenerator
+import com.qlink.auth.service.RefreshAuthTokenService
+import com.qlink.auth.service.SignInService
 import com.qlink.device.service.PutDeviceService
 import com.qlink.folder.service.AcceptFolderInvitationService
 import com.qlink.folder.service.CreateFolderInvitationService
@@ -44,6 +46,27 @@ fun serviceModule() =
 
         single {
             RandomUserNameGenerator()
+        }
+
+        single {
+            SignInService(
+                tx = get(),
+                userRepository = get(),
+                authProviderRepository = get(),
+                refreshTokenRepository = get(),
+                authResourceClientRouter = get(),
+                authTokenService = get(),
+                randomUserNameGenerator = get(),
+            )
+        }
+
+        single {
+            RefreshAuthTokenService(
+                tx = get(),
+                userRepository = get(),
+                refreshTokenRepository = get(),
+                authTokenService = get(),
+            )
         }
 
         single {

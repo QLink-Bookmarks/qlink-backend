@@ -5,6 +5,8 @@ import com.qlink.ai.client.GeminiAiClient
 import com.qlink.ai.client.OpenAiClient
 import com.qlink.ai.worker.AiSummaryDispatcher
 import com.qlink.ai.worker.AiSummaryWorker
+import com.qlink.auth.client.AuthResourceClientRouter
+import com.qlink.auth.client.KakaoAuthResourceClient
 import com.qlink.common.crypto.ApiKeyCipher
 import com.qlink.config.MonitoringConfig
 import com.qlink.config.string
@@ -62,6 +64,18 @@ fun aiModule(
     single {
         OpenAiClient(
             httpClient = get(),
+        )
+    }
+
+    single {
+        KakaoAuthResourceClient(
+            httpClient = get(),
+        )
+    }
+
+    single {
+        AuthResourceClientRouter(
+            clients = listOf(get<KakaoAuthResourceClient>()),
         )
     }
 

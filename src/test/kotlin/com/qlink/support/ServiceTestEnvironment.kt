@@ -122,6 +122,7 @@ object ServiceTestEnvironment {
                 securityTestModule(),
                 notificationTestModule(),
                 aiTestModule(),
+                authTestModule(),
                 serviceModule(),
             )
         }
@@ -167,6 +168,19 @@ object ServiceTestEnvironment {
         module {
             single {
                 SecurityConfig(jwtSecret = "test-jwt-secret")
+            }
+        }
+
+    private fun authTestModule() =
+        module {
+            single {
+                FakeAuthResourceClient()
+            }
+
+            single {
+                com.qlink.auth.client.AuthResourceClientRouter(
+                    clients = listOf(get<FakeAuthResourceClient>()),
+                )
             }
         }
 

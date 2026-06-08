@@ -140,6 +140,7 @@ dependencies {
     // Auth
     implementation(ktorLibs.server.auth)
     implementation(ktorLibs.server.auth.jwt)
+    implementation(ktorLibs.server.csrf)
 
     // DI
     implementation(libs.koin.ktor)
