@@ -27,38 +27,36 @@ class GetUnreadNotificationCountServiceTest :
             beforeTest {
                 user = userRepository.insert(UserFixture.createRandomValidUser())
                 otherUser = userRepository.insert(UserFixture.createRandomValidUser())
+
+                notificationRepository.insert(
+                    NotificationFixture.createRandomNotificationOf(
+                        userId = user.id!!,
+                        firedAt = Clock.System.now(),
+                    ),
+                )
+                notificationRepository.insert(
+                    NotificationFixture.createRandomNotificationOf(
+                        userId = user.id!!,
+                        firedAt = Clock.System.now(),
+                        readAt = Clock.System.now(),
+                    ),
+                )
+                notificationRepository.insert(NotificationFixture.createRandomNotificationOf(userId = user.id!!))
+                notificationRepository.insert(
+                    NotificationFixture.createRandomNotificationOf(
+                        userId = user.id!!,
+                        failedAt = Clock.System.now(),
+                    ),
+                )
+                notificationRepository.insert(
+                    NotificationFixture.createRandomNotificationOf(
+                        userId = otherUser.id!!,
+                        firedAt = Clock.System.now(),
+                    ),
+                )
             }
 
-            When("발송 완료된 미읽음 알림이 있으면") {
-                beforeTest {
-                    notificationRepository.insert(
-                        NotificationFixture.createRandomNotificationOf(
-                            userId = user.id!!,
-                            firedAt = Clock.System.now(),
-                        ),
-                    )
-                    notificationRepository.insert(
-                        NotificationFixture.createRandomNotificationOf(
-                            userId = user.id!!,
-                            firedAt = Clock.System.now(),
-                            readAt = Clock.System.now(),
-                        ),
-                    )
-                    notificationRepository.insert(NotificationFixture.createRandomNotificationOf(userId = user.id!!))
-                    notificationRepository.insert(
-                        NotificationFixture.createRandomNotificationOf(
-                            userId = user.id!!,
-                            failedAt = Clock.System.now(),
-                        ),
-                    )
-                    notificationRepository.insert(
-                        NotificationFixture.createRandomNotificationOf(
-                            userId = otherUser.id!!,
-                            firedAt = Clock.System.now(),
-                        ),
-                    )
-                }
-
+            When("안 읽은 알림 수를 조회하면") {
                 Then("발송 완료 미읽음 알림만 집계한다") {
                     val response = service.getUnreadCount(user.id!!)
 
