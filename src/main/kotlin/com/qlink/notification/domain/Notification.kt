@@ -61,8 +61,12 @@ class Notification(
             failureCount = 1,
         )
 
-    fun markRead(readAt: Instant): Notification =
+    fun markRead(
+        loginId: Long,
+        readAt: Instant,
+    ): Notification =
         when {
+            userId != loginId -> this
             this.readAt != null -> this
             firedAt == null -> throw BusinessException(ErrorCode.NOTIFICATION_NOT_FIRED)
             else ->
