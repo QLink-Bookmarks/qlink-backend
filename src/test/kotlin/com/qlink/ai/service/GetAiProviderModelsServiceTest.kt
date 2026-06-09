@@ -116,7 +116,7 @@ class GetAiProviderModelsServiceTest :
             }
 
             When("Gemini API key를 등록한 사용자가 조회하면") {
-                Then("Gemini는 사용자 provider의 모든 모델을, 나머지는 SUPER_ADMIN DEFAULT 모델만 반환한다") {
+                Then("Gemini는 SUPER_ADMIN DEFAULT 모델과 사용자 provider의 모든 모델을 함께 반환한다") {
                     val geminiProvider = insertProvider(AiProviderType.GEMINI)
                     val openAiProvider = insertProvider(AiProviderType.OPENAI)
                     val geminiProviderId = geminiProvider.id!!
@@ -125,11 +125,12 @@ class GetAiProviderModelsServiceTest :
                     val geminiSecondModel = insertModel(providerId = geminiProviderId, model = "gemini-second", priority = 2)
                     val openAiDefaultModel = insertModel(providerId = openAiProviderId, model = "openai-default", priority = 1)
                     insertModel(providerId = openAiProviderId, model = "openai-sub", priority = 2)
-                    insertUserProvider(
-                        user = superAdmin,
-                        provider = geminiProvider,
-                        role = Role.SUPER_ADMIN,
-                    )
+                    val geminiSuperAdminProvider =
+                        insertUserProvider(
+                            user = superAdmin,
+                            provider = geminiProvider,
+                            role = Role.SUPER_ADMIN,
+                        )
                     val openAiSuperAdminProvider =
                         insertUserProvider(
                             user = superAdmin,
@@ -148,9 +149,12 @@ class GetAiProviderModelsServiceTest :
                     val openAiResponse = response.first { it.providerId == openAiProviderId }
 
                     response shouldHaveSize 2
-                    geminiResponse.models.map { it.id } shouldContainExactly listOf(geminiFirstModel.id, geminiSecondModel.id)
-                    geminiResponse.models.map { it.model } shouldContainExactly listOf(geminiFirstModel.model, geminiSecondModel.model)
-                    geminiResponse.models.map { it.userProviderId }.distinct() shouldContainExactly listOf(geminiUserProvider.id)
+                    geminiResponse.models.map { it.id } shouldContainExactly
+                        listOf(geminiFirstModel.id, geminiFirstModel.id, geminiSecondModel.id)
+                    geminiResponse.models.map { it.model } shouldContainExactly
+                        listOf("DEFAULT", geminiFirstModel.model, geminiSecondModel.model)
+                    geminiResponse.models.map { it.userProviderId } shouldContainExactly
+                        listOf(geminiSuperAdminProvider.id, geminiUserProvider.id, geminiUserProvider.id)
                     openAiResponse.models shouldHaveSize 1
                     openAiResponse.models.first().id shouldBe openAiDefaultModel.id
                     openAiResponse.models.first().model shouldBe "DEFAULT"

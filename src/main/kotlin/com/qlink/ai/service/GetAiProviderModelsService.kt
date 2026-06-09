@@ -28,15 +28,23 @@ class GetAiProviderModelsService(
 
             val userProviders = loginId?.let { userProviderRepository.findAllByUserId(it) }.orEmpty()
             val superAdminProviders = userProviderRepository.findAllByRole(Role.SUPER_ADMIN)
+            val userProvidersByProviderId = userProviders.associateBy { it.providerId }
+            val defaultProvidersByProviderId = superAdminProviders.distinctBy { it.providerId }.associateBy { it.providerId }
 
-            (userProviders + superAdminProviders)
-                .distinctBy { it.providerId }
-                .map { userProvider ->
-                    userProvider.toResponse(isDefaultProvider = userProvider.userRole == Role.SUPER_ADMIN)
+            (userProvidersByProviderId.keys + defaultProvidersByProviderId.keys)
+                .map { providerId ->
+                    providerId.toResponse(
+                        userProvider = userProvidersByProviderId[providerId],
+                        defaultProvider = defaultProvidersByProviderId[providerId],
+                    )
                 }.sortedWith(compareBy({ it.providerType.name }, { it.providerId }))
         }
 
-    private suspend fun UserProvider.toResponse(isDefaultProvider: Boolean): AiProviderModelsResponse {
+    private suspend fun Long.toResponse(
+        userProvider: UserProvider?,
+        defaultProvider: UserProvider?,
+    ): AiProviderModelsResponse {
+        val providerId = this
         val provider = aiProviderRepository.findById(providerId) ?: throw BusinessException(ErrorCode.AI_USER_PROVIDER_NOT_FOUND)
         val models = availableModelRepository.findAllByProviderId(providerId)
 
@@ -44,24 +52,33 @@ class GetAiProviderModelsService(
             providerId = provider.id!!,
             providerType = provider.type,
             models =
-                if (isDefaultProvider) {
-                    models.take(1).map {
-                        AiProviderModelResponse(
-                            id = it.id!!,
-                            model = DEFAULT_MODEL_NAME,
-                            priority = it.priority,
-                            userProviderId = id!!,
-                        )
+                buildList {
+                    defaultProvider?.let { provider ->
+                        models
+                            .take(1)
+                            .map {
+                                AiProviderModelResponse(
+                                    id = it.id!!,
+                                    model = DEFAULT_MODEL_NAME,
+                                    priority = it.priority,
+                                    userProviderId = provider.id!!,
+                                )
+                            }.let(::addAll)
                     }
-                } else {
-                    models.map {
-                        AiProviderModelResponse(
-                            id = it.id!!,
-                            model = it.model,
-                            priority = it.priority,
-                            userProviderId = id!!,
-                        )
-                    }
+
+                    userProvider
+                        ?.takeUnless { it.userRole == Role.SUPER_ADMIN }
+                        ?.let { provider ->
+                            models
+                                .map {
+                                    AiProviderModelResponse(
+                                        id = it.id!!,
+                                        model = it.model,
+                                        priority = it.priority,
+                                        userProviderId = provider.id!!,
+                                    )
+                                }.let(::addAll)
+                        }
                 },
         )
     }
