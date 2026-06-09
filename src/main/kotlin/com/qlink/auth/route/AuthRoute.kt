@@ -10,8 +10,8 @@ import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.response.respondError
 import com.qlink.common.response.respondSuccess
-import io.github.smiley4.ktoropenapi.post
-import io.github.smiley4.ktoropenapi.resources.post as resourcePost
+import io.github.smiley4.ktoropenapi.post as postWithoutResource
+import io.github.smiley4.ktoropenapi.resources.post
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.resources.resource
 import io.ktor.server.plugins.csrf.CSRF
@@ -26,7 +26,7 @@ fun Route.authRoutes() {
     val signInService by inject<SignInService>()
     val refreshAuthTokenService by inject<RefreshAuthTokenService>()
 
-    resourcePost<AuthResources.Sign>(signInDocs()) {
+    post<AuthResources.Sign>(signInDocs()) {
         val request = call.receive<SignInRequest>()
         val response = signInService.signIn(request)
 
@@ -39,7 +39,7 @@ fun Route.authRoutes() {
 
     webRefreshRoute(refreshAuthTokenService)
 
-    resourcePost<AuthResources.Token.Refresh.Native>(nativeRefreshAuthTokenDocs()) {
+    post<AuthResources.Token.Refresh.Native>(nativeRefreshAuthTokenDocs()) {
         val request = call.receive<NativeRefreshTokenRequest>()
         val response = refreshAuthTokenService.refresh(request.requireRefreshToken())
 
@@ -59,7 +59,7 @@ private fun Route.webRefreshRoute(refreshAuthTokenService: RefreshAuthTokenServi
             }
         }
 
-        post(webRefreshAuthTokenDocs()) {
+        postWithoutResource(webRefreshAuthTokenDocs()) {
             val refreshToken =
                 call.request.headers[REFRESH_TOKEN_HEADER_NAME]
                     ?.takeIf { it.isNotBlank() }
