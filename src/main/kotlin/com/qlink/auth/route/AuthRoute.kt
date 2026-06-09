@@ -10,12 +10,13 @@ import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.response.respondError
 import com.qlink.common.response.respondSuccess
+import io.github.smiley4.ktoropenapi.post as postWithoutResource
 import io.github.smiley4.ktoropenapi.resources.post
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.resources.resource
 import io.ktor.server.plugins.csrf.CSRF
 import io.ktor.server.request.receive
 import io.ktor.server.routing.Route
-import io.ktor.server.routing.route
 import org.koin.ktor.ext.inject
 
 const val REFRESH_TOKEN_HEADER_NAME = "refresh_token"
@@ -47,7 +48,7 @@ fun Route.authRoutes() {
 }
 
 private fun Route.webRefreshRoute(refreshAuthTokenService: RefreshAuthTokenService) {
-    route("") {
+    resource<AuthResources.Token.Refresh.Web> {
         install(CSRF) {
             checkHeader(CSRF_TOKEN_HEADER_NAME)
             onFailure { reason ->
@@ -58,7 +59,7 @@ private fun Route.webRefreshRoute(refreshAuthTokenService: RefreshAuthTokenServi
             }
         }
 
-        post<AuthResources.Token.Refresh.Web>(webRefreshAuthTokenDocs()) {
+        postWithoutResource(webRefreshAuthTokenDocs()) {
             val refreshToken =
                 call.request.headers[REFRESH_TOKEN_HEADER_NAME]
                     ?.takeIf { it.isNotBlank() }
