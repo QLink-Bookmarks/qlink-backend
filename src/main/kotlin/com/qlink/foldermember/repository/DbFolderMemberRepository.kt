@@ -60,6 +60,8 @@ class DbFolderMemberRepository : FolderMemberRepository {
                 FolderMembers.role,
                 FolderMembers.joinedAt,
                 Users.nickname,
+                Users.avatarUrl,
+                Users.avatarEmoji,
             ).where { FolderMembers.folderId eq folderId }
             .orderBy(FolderMembers.joinedAt to SortOrder.DESC, FolderMembers.userId to SortOrder.DESC)
             .map { it.toFolderMemberQuery() }

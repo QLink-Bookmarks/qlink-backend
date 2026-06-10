@@ -35,12 +35,16 @@ class GetFolderMembersService(
                         userId = it.userId,
                         role = it.role,
                         userNickname = it.userNickname,
+                        avatarUrl = it.avatarUrl,
+                        avatarEmoji = it.avatarEmoji,
                     )
                 }
 
             GetFolderMembersResponse(
                 ownerId = folder.ownerId,
                 ownerNickname = owner.nickname,
+                ownerAvatarUrl = owner.avatarUrl,
+                ownerAvatarEmoji = owner.avatarEmoji,
                 members = members,
             )
         }

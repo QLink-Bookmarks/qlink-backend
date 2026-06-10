@@ -25,6 +25,8 @@ data class GetFoldersContentResponse(
 data class GetFolderMembersResponse(
     val ownerId: Long,
     val ownerNickname: String,
+    val ownerAvatarUrl: String?,
+    val ownerAvatarEmoji: String?,
     val members: List<GetFolderMemberResponse>,
 )
 
@@ -33,6 +35,8 @@ data class GetFolderMemberResponse(
     val userId: Long,
     val role: String,
     val userNickname: String,
+    val avatarUrl: String?,
+    val avatarEmoji: String?,
 )
 
 @Serializable
