@@ -1,5 +1,6 @@
 package com.qlink.foldermember.repository
 
+import com.qlink.folder.dto.FolderMemberQuery
 import com.qlink.foldermember.domain.FolderMember
 
 interface FolderMemberRepository {
@@ -14,6 +15,8 @@ interface FolderMemberRepository {
     ): Boolean
 
     suspend fun existsByFolderId(folderId: Long): Boolean
+
+    suspend fun findAllByFolderIdOrderByJoinedAtDesc(folderId: Long): List<FolderMemberQuery>
 
     suspend fun insertIfAbsent(folderMember: FolderMember): FolderMember
 

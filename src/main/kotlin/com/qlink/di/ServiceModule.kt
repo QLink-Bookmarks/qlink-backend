@@ -13,6 +13,7 @@ import com.qlink.folder.service.CreateFolderInvitationService
 import com.qlink.folder.service.CreateFolderService
 import com.qlink.folder.service.DeleteFolderMemberService
 import com.qlink.folder.service.DeleteFolderService
+import com.qlink.folder.service.GetFolderMembersService
 import com.qlink.folder.service.GetFoldersService
 import com.qlink.folder.service.UpdateFolderService
 import com.qlink.link.service.CreateLinkService
@@ -160,6 +161,15 @@ fun serviceModule() =
 
         single {
             DeleteFolderMemberService(
+                tx = get(),
+                folderRepository = get(),
+                folderMemberRepository = get(),
+                userRepository = get(),
+            )
+        }
+
+        single {
+            GetFolderMembersService(
                 tx = get(),
                 folderRepository = get(),
                 folderMemberRepository = get(),

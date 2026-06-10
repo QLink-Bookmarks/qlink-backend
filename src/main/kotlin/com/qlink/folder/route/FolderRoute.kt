@@ -12,6 +12,7 @@ import com.qlink.folder.service.CreateFolderInvitationService
 import com.qlink.folder.service.CreateFolderService
 import com.qlink.folder.service.DeleteFolderMemberService
 import com.qlink.folder.service.DeleteFolderService
+import com.qlink.folder.service.GetFolderMembersService
 import com.qlink.folder.service.GetFoldersService
 import com.qlink.folder.service.UpdateFolderService
 import io.github.smiley4.ktoropenapi.resources.delete
@@ -31,6 +32,7 @@ fun Route.folderRoutes() {
     val createFolderInvitationService by inject<CreateFolderInvitationService>()
     val acceptFolderInvitationService by inject<AcceptFolderInvitationService>()
     val deleteFolderService by inject<DeleteFolderService>()
+    val getFolderMembersService by inject<GetFolderMembersService>()
     val getFoldersService by inject<GetFoldersService>()
     val updateFolderService by inject<UpdateFolderService>()
 
@@ -72,6 +74,17 @@ fun Route.folderRoutes() {
             val principal = call.principal<JwtPrincipal>()!!
             val request = call.receive<AcceptFolderInvitationRequest>()
             val response = acceptFolderInvitationService.acceptInvitation(principal.userId, resource.parent.id, request)
+
+            call.respondSuccess(HttpStatusCode.OK, response)
+        }
+
+        get<FolderResources.ById.Members>(getFolderMembersDocs()) { resource ->
+            val principal = call.principal<JwtPrincipal>()!!
+            val response =
+                getFolderMembersService.getFolderMembers(
+                    loginId = principal.userId,
+                    folderId = resource.parent.id,
+                )
 
             call.respondSuccess(HttpStatusCode.OK, response)
         }
