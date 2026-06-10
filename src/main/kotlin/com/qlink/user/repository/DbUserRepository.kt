@@ -5,7 +5,9 @@ import com.qlink.user.repository.table.Users
 import com.qlink.user.repository.table.fromDomain
 import com.qlink.user.repository.table.refreshUserUpdatedAt
 import com.qlink.user.repository.table.toUserDomain
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.neq
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -20,6 +22,18 @@ class DbUserRepository : UserRepository {
             .where { Users.id eq userId }
             .singleOrNull()
             ?.toUserDomain()
+
+    override suspend fun existsByUsernameAndIdNot(
+        username: String,
+        userId: Long,
+    ): Boolean =
+        Users
+            .select(Users.id)
+            .where {
+                (Users.username eq username) and
+                    (Users.id neq userId)
+            }.empty()
+            .not()
 
     override suspend fun insert(user: User): User = Users.insertReturning { it.fromDomain(user) }.single().toUserDomain()
 

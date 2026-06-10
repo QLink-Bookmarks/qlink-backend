@@ -7,6 +7,11 @@ interface UserRepository {
 
     suspend fun findById(userId: Long): User?
 
+    suspend fun existsByUsernameAndIdNot(
+        username: String,
+        userId: Long,
+    ): Boolean
+
     suspend fun insert(user: User): User
 
     suspend fun update(user: User): User

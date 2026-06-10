@@ -8,6 +8,7 @@ import com.qlink.common.response.EmptySuccessResponse
 import com.qlink.common.response.ErrorDetail
 import com.qlink.user.dto.GetMyProfileResponse
 import com.qlink.user.dto.GetMySettingsResponse
+import com.qlink.user.dto.UpdateMyProfileRequest
 import com.qlink.user.dto.UpdateMySettingsRequest
 import io.github.smiley4.ktoropenapi.config.RouteConfig
 import io.ktor.http.HttpStatusCode
@@ -25,6 +26,45 @@ internal fun getMyProfileDocs(): RouteConfig.() -> Unit =
                 description = "로그인 사용자 조회 실패"
                 body<ApiResponse<ErrorDetail>> {
                     examples(ErrorCode.USER_NOT_FOUND)
+                }
+            }
+        }
+    }
+
+internal fun updateMyProfileDocs(): RouteConfig.() -> Unit =
+    {
+        summary = "내 정보 수정 API"
+        request { body<UpdateMyProfileRequest>() }
+        response {
+            code(HttpStatusCode.OK) {
+                description = "내 정보 수정 성공"
+                body<ApiResponse<EmptySuccessResponse>>()
+            }
+            code(HttpStatusCode.BadRequest) {
+                description = "내 정보 수정 요청 유효성 검증 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(
+                        ErrorCode.USER_USERNAME_BLANK,
+                        ErrorCode.USER_USERNAME_UNDER_MIN,
+                        ErrorCode.USER_USERNAME_OVER_MAX,
+                        ErrorCode.USER_NICKNAME_BLANK,
+                        ErrorCode.USER_NICKNAME_OVER_MAX,
+                        ErrorCode.USER_AVATAR_EMOJI_OVER_MAX,
+                        ErrorCode.USER_AVATAR_EMOJI_INVALID,
+                    )
+                }
+            }
+            authErrorResponse()
+            code(HttpStatusCode.NotFound) {
+                description = "로그인 사용자 조회 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.USER_NOT_FOUND)
+                }
+            }
+            code(HttpStatusCode.Conflict) {
+                description = "사용자 이름 중복"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.USER_USERNAME_DUPLICATED)
                 }
             }
         }

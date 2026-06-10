@@ -34,6 +34,7 @@ import com.qlink.todo.service.GetTodosService
 import com.qlink.todo.service.UpdateTodoService
 import com.qlink.user.service.GetMyProfileService
 import com.qlink.user.service.GetMySettingsService
+import com.qlink.user.service.UpdateMyProfileService
 import com.qlink.user.service.UpdateMySettingsService
 import org.koin.dsl.module
 
@@ -83,6 +84,13 @@ fun serviceModule() =
                 userRepository = get(),
                 aiProviderRepository = get(),
                 availableModelRepository = get(),
+            )
+        }
+
+        single {
+            UpdateMyProfileService(
+                tx = get(),
+                userRepository = get(),
             )
         }
 
