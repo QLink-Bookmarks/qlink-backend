@@ -22,6 +22,20 @@ data class GetFoldersContentResponse(
 )
 
 @Serializable
+data class GetFolderMembersResponse(
+    val ownerId: Long,
+    val ownerNickname: String,
+    val members: List<GetFolderMemberResponse>,
+)
+
+@Serializable
+data class GetFolderMemberResponse(
+    val userId: Long,
+    val role: String,
+    val userNickname: String,
+)
+
+@Serializable
 data class UpdateFolderResponse(
     val id: Long,
 )

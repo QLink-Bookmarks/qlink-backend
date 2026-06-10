@@ -13,6 +13,7 @@ import com.qlink.folder.dto.CreateFolderInvitationRequest
 import com.qlink.folder.dto.CreateFolderInvitationResponse
 import com.qlink.folder.dto.CreateFolderRequest
 import com.qlink.folder.dto.CreateFolderResponse
+import com.qlink.folder.dto.GetFolderMembersResponse
 import com.qlink.folder.dto.GetFoldersContentResponse
 import com.qlink.folder.dto.UpdateFolderRequest
 import com.qlink.folder.dto.UpdateFolderResponse
@@ -191,6 +192,42 @@ internal fun deleteFolderMemberDocs(): RouteConfig.() -> Unit =
                 description = "공유 멤버 삭제에 필요한 리소스 조회 실패"
                 body<ApiResponse<ErrorDetail>> {
                     examples(ErrorCode.FOLDER_OWNER_NOT_FOUND)
+                }
+            }
+        }
+    }
+
+internal fun getFolderMembersDocs(): RouteConfig.() -> Unit =
+    {
+        summary = "공유 폴더 멤버 조회 API"
+        request {
+            pathParameter<Long>("id") { description = "폴더 ID" }
+        }
+        response {
+            code(HttpStatusCode.OK) {
+                description = "공유 폴더 멤버 조회 성공"
+                body<ApiResponse<GetFolderMembersResponse>>()
+            }
+            authErrorResponse()
+            code(HttpStatusCode.Forbidden) {
+                description = "공유 폴더 멤버 조회 권한 검증 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.FOLDER_MEMBER_ACCESS_DENIED)
+                }
+            }
+            code(HttpStatusCode.NotFound) {
+                description = "공유 폴더 멤버 조회에 필요한 리소스 조회 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(
+                        ErrorCode.FOLDER_MEMBER_OWNER_NOT_FOUND,
+                        ErrorCode.FOLDER_MEMBER_FOLDER_NOT_FOUND,
+                    )
+                }
+            }
+            code(HttpStatusCode.UnprocessableEntity) {
+                description = "공유 폴더가 아님"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.FOLDER_MEMBER_NOT_SHARED_FOLDER)
                 }
             }
         }

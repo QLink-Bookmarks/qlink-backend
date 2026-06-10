@@ -1,9 +1,14 @@
 package com.qlink.foldermember.repository
 
+import com.qlink.folder.dto.FolderMemberQuery
+import com.qlink.folder.dto.toFolderMemberQuery
 import com.qlink.foldermember.domain.FolderMember
 import com.qlink.foldermember.repository.table.FolderMembers
 import com.qlink.foldermember.repository.table.fromDomain
 import com.qlink.foldermember.repository.table.toFolderMemberDomain
+import com.qlink.user.repository.table.Users
+import org.jetbrains.exposed.v1.core.JoinType
+import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
@@ -43,6 +48,21 @@ class DbFolderMemberRepository : FolderMemberRepository {
             .limit(1)
             .empty()
             .not()
+
+    override suspend fun findAllByFolderIdOrderByJoinedAtDesc(folderId: Long): List<FolderMemberQuery> =
+        FolderMembers
+            .join(
+                otherTable = Users,
+                joinType = JoinType.INNER,
+                additionalConstraint = { FolderMembers.userId eq Users.id },
+            ).select(
+                FolderMembers.userId,
+                FolderMembers.role,
+                FolderMembers.joinedAt,
+                Users.nickname,
+            ).where { FolderMembers.folderId eq folderId }
+            .orderBy(FolderMembers.joinedAt to SortOrder.DESC, FolderMembers.userId to SortOrder.DESC)
+            .map { it.toFolderMemberQuery() }
 
     override suspend fun insertIfAbsent(folderMember: FolderMember): FolderMember {
         findByFolderIdAndUserId(

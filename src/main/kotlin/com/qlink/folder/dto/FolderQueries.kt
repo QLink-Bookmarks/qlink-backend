@@ -4,8 +4,12 @@ package com.qlink.folder.dto
 
 import com.qlink.common.search.SearchCursor
 import com.qlink.common.search.SearchOrder
+import com.qlink.foldermember.repository.table.FolderMembers
+import com.qlink.user.repository.table.Users
 import kotlinx.serialization.Serializable
+import org.jetbrains.exposed.v1.core.ResultRow
 import kotlin.time.Instant
+import kotlin.time.toKotlinInstant
 
 const val DEFAULT_FOLDER_SEARCH_ORDER = "latest"
 
@@ -22,6 +26,13 @@ data class SearchFoldersQuery(
     val score: Double,
 )
 
+data class FolderMemberQuery(
+    val userId: Long,
+    val role: String,
+    val userNickname: String,
+    val joinedAt: Instant,
+)
+
 typealias FolderSearchOrder = SearchOrder
 
 typealias FolderSearchCursor = SearchCursor<FolderSearchCursorValue>
@@ -32,3 +43,11 @@ data class FolderSearchCursorValue(
     val name: String? = null,
     val score: Double? = null,
 )
+
+fun ResultRow.toFolderMemberQuery(): FolderMemberQuery =
+    FolderMemberQuery(
+        userId = this[FolderMembers.userId],
+        role = this[FolderMembers.role],
+        userNickname = this[Users.nickname],
+        joinedAt = this[FolderMembers.joinedAt].toKotlinInstant(),
+    )
