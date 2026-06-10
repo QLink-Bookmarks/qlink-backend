@@ -12,3 +12,11 @@ data class UpdateMySettingsRequest(
     val defaultProviderId: Long? = null,
     val defaultModelId: Long? = null,
 )
+
+@Serializable
+data class UpdateMyProfileRequest(
+    val username: String,
+    val nickname: String,
+    val avatarEmoji: String? = null,
+    val avatarUrl: String? = null,
+)

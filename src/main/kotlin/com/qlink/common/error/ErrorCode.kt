@@ -22,7 +22,15 @@ enum class ErrorCode(
     // User
     USER_THEME_NOT_SUPPORTED("USER_400_0001", 400, "지원하지 않는 화면 테마에요"),
     USER_ACCENT_NOT_SUPPORTED("USER_400_0002", 400, "지원하지 않는 강조 색상이에요"),
+    USER_USERNAME_BLANK("USER_400_0003", 400, "사용자 이름이 입력되지 않았어요"),
+    USER_USERNAME_UNDER_MIN("USER_400_0004", 400, "사용자 이름은 최소 3자에요"),
+    USER_USERNAME_OVER_MAX("USER_400_0005", 400, "사용자 이름은 최대 100자에요"),
+    USER_NICKNAME_BLANK("USER_400_0006", 400, "닉네임이 입력되지 않았어요"),
+    USER_NICKNAME_OVER_MAX("USER_400_0007", 400, "닉네임은 최대 50자에요"),
+    USER_AVATAR_EMOJI_OVER_MAX("USER_400_0008", 400, "프로필 이모지는 최대 20자에요"),
+    USER_AVATAR_EMOJI_INVALID("USER_400_0009", 400, "프로필 이모지 형식이 올바르지 않아요"),
     USER_NOT_FOUND("USER_404_0001", 404, "로그인 사용자를 찾을 수 없어요"),
+    USER_USERNAME_DUPLICATED("USER_409_0001", 409, "이미 사용 중인 사용자 이름이에요"),
 
     // LINK
     LINK_URL_BLANK("LINK_400_0001", 400, "URL에 입력된 값이 없어요"),
