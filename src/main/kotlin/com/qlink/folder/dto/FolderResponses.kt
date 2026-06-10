@@ -33,6 +33,8 @@ data class GetFolderMemberResponse(
     val userId: Long,
     val role: String,
     val userNickname: String,
+    val avatarUrl: String?,
+    val avatarEmoji: String?,
 )
 
 @Serializable

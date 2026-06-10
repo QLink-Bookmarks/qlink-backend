@@ -91,6 +91,8 @@ class GetFolderMembersServiceTest :
                     response.members.map { it.userId } shouldBe listOf(latestMember.id, member.id, owner.id)
                     response.members.map { it.role } shouldBe listOf("MEMBER", "MEMBER", "OWNER")
                     response.members.map { it.userNickname } shouldBe listOf(latestMember.nickname, member.nickname, owner.nickname)
+                    response.members.map { it.avatarUrl } shouldBe listOf(latestMember.avatarUrl, member.avatarUrl, owner.avatarUrl)
+                    response.members.map { it.avatarEmoji } shouldBe listOf(latestMember.avatarEmoji, member.avatarEmoji, owner.avatarEmoji)
                 }
             }
 

@@ -35,6 +35,8 @@ class GetFolderMembersService(
                         userId = it.userId,
                         role = it.role,
                         userNickname = it.userNickname,
+                        avatarUrl = it.avatarUrl,
+                        avatarEmoji = it.avatarEmoji,
                     )
                 }
 

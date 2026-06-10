@@ -30,6 +30,8 @@ data class FolderMemberQuery(
     val userId: Long,
     val role: String,
     val userNickname: String,
+    val avatarUrl: String?,
+    val avatarEmoji: String?,
     val joinedAt: Instant,
 )
 
@@ -49,5 +51,7 @@ fun ResultRow.toFolderMemberQuery(): FolderMemberQuery =
         userId = this[FolderMembers.userId],
         role = this[FolderMembers.role],
         userNickname = this[Users.nickname],
+        avatarUrl = this[Users.avatarUrl],
+        avatarEmoji = this[Users.avatarEmoji],
         joinedAt = this[FolderMembers.joinedAt].toKotlinInstant(),
     )
