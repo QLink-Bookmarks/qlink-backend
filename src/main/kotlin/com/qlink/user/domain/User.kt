@@ -3,16 +3,16 @@ package com.qlink.user.domain
 import com.qlink.auth.domain.Role
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
+import com.qlink.common.error.requireNotBlank
+import com.qlink.common.error.requireNotLessThan
 import com.qlink.common.error.requireNotOver
-import com.qlink.common.error.requireTrue
+import com.qlink.common.error.requiresEmoji
 import kotlin.time.Instant
 
 private const val MIN_USERNAME_LENGTH = 3
 private const val MAX_USERNAME_LENGTH = 100
 private const val MAX_NICKNAME_LENGTH = 50
 private const val MAX_AVATAR_EMOJI_LENGTH = 20
-private const val ZERO_WIDTH_JOINER = 0x200D
-private const val VARIATION_SELECTOR_16 = 0xFE0F
 
 class User(
     val id: Long? = null,
@@ -88,45 +88,20 @@ class User(
             defaultModelId == other.defaultModelId
 
     private fun validateUsername(username: String) {
-        username.isNotBlank().requireTrue(ErrorCode.USER_USERNAME_BLANK)
-        (username.length >= MIN_USERNAME_LENGTH).requireTrue(ErrorCode.USER_USERNAME_UNDER_MIN)
+        username.requireNotBlank(ErrorCode.USER_USERNAME_BLANK)
+        username.requireNotLessThan(MIN_USERNAME_LENGTH, ErrorCode.USER_USERNAME_UNDER_MIN)
         username.requireNotOver(MAX_USERNAME_LENGTH, ErrorCode.USER_USERNAME_OVER_MAX)
     }
 
     private fun validateNickname(nickname: String) {
-        nickname.isNotBlank().requireTrue(ErrorCode.USER_NICKNAME_BLANK)
+        nickname.requireNotBlank(ErrorCode.USER_NICKNAME_BLANK)
         nickname.requireNotOver(MAX_NICKNAME_LENGTH, ErrorCode.USER_NICKNAME_OVER_MAX)
     }
 
     private fun validateAvatarEmoji(avatarEmoji: String) {
         avatarEmoji.requireNotOver(MAX_AVATAR_EMOJI_LENGTH, ErrorCode.USER_AVATAR_EMOJI_OVER_MAX)
-        avatarEmoji.isEmojiLike().requireTrue(ErrorCode.USER_AVATAR_EMOJI_INVALID)
+        avatarEmoji.requiresEmoji(ErrorCode.USER_AVATAR_EMOJI_INVALID)
     }
-
-    private fun String.isEmojiLike(): Boolean {
-        var containsEmoji = false
-
-        codePoints().forEach { codePoint ->
-            if (codePoint.isEmojiBase()) {
-                containsEmoji = true
-                return@forEach
-            }
-
-            codePoint.isEmojiModifier().requireTrue(ErrorCode.USER_AVATAR_EMOJI_INVALID)
-        }
-
-        return containsEmoji
-    }
-
-    private fun Int.isEmojiBase(): Boolean =
-        this in 0x2600..0x27BF ||
-            this in 0x1F000..0x1FAFF ||
-            Character.getType(this) == Character.OTHER_SYMBOL.toInt()
-
-    private fun Int.isEmojiModifier(): Boolean =
-        this == ZERO_WIDTH_JOINER ||
-            this == VARIATION_SELECTOR_16 ||
-            this in 0x1F3FB..0x1F3FF
 }
 
 enum class UserTheme(
