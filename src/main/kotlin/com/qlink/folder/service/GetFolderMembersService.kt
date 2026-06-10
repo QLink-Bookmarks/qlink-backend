@@ -43,8 +43,6 @@ class GetFolderMembersService(
             GetFolderMembersResponse(
                 ownerId = folder.ownerId,
                 ownerNickname = owner.nickname,
-                ownerAvatarUrl = owner.avatarUrl,
-                ownerAvatarEmoji = owner.avatarEmoji,
                 members = members,
             )
         }
