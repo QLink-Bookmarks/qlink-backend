@@ -43,6 +43,11 @@ output "ecs_service_name" {
   value       = module.ecs.service_name
 }
 
+output "images_bucket_name" {
+  description = "S3 bucket name for uploaded images"
+  value       = module.s3.bucket_name
+}
+
 output "capacity_provider_name" {
   description = "ECS capacity provider name"
   value       = module.ecs.capacity_provider_name

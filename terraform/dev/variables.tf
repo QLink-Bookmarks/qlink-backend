@@ -2,6 +2,32 @@ variable "aws_region" {
   type = string
 }
 
+variable "aws_s3_bucket_name" {
+  type = string
+}
+
+variable "aws_s3_cors_allowed_origins" {
+  type    = list(string)
+  default = ["*"]
+}
+
+variable "aws_s3_public_base_url" {
+  type    = string
+  default = ""
+}
+
+variable "aws_s3_access_key_id" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
+variable "aws_s3_secret_access_key" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
 variable "vpc_cidr" {
   type = string
 }

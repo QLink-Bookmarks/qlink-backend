@@ -137,6 +137,9 @@ dependencies {
     implementation(libs.firebase.admin)
     implementation(libs.expo.server.sdk)
 
+    // Storage
+    implementation(libs.aws.s3)
+
     // Auth
     implementation(ktorLibs.server.auth)
     implementation(ktorLibs.server.auth.jwt)
@@ -179,5 +182,6 @@ dependencies {
     testImplementation(libs.ktor.client.mock)
     testImplementation(libs.testcontainers.junit.jupiter)
     testImplementation(libs.testcontainers.postgresql)
+    testImplementation(libs.testcontainers.localstack)
     testImplementation(libs.datafaker)
 }

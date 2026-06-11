@@ -16,6 +16,7 @@ import com.qlink.folder.service.DeleteFolderService
 import com.qlink.folder.service.GetFolderMembersService
 import com.qlink.folder.service.GetFoldersService
 import com.qlink.folder.service.UpdateFolderService
+import com.qlink.image.service.UploadImageService
 import com.qlink.link.service.CreateLinkService
 import com.qlink.link.service.DeleteLinkService
 import com.qlink.link.service.GetLinkDetailService
@@ -359,6 +360,12 @@ fun serviceModule() =
                 deviceTokenRepository = get(),
                 senderRouter = get(),
                 todoRepository = get(),
+            )
+        }
+
+        single {
+            UploadImageService(
+                imageStorage = get(),
             )
         }
     }

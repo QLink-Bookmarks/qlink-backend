@@ -1,6 +1,7 @@
 package com.qlink.di
 
 import com.qlink.config.NotificationConfig
+import com.qlink.config.S3Config
 import io.ktor.server.config.ApplicationConfig
 import org.slf4j.Logger
 
@@ -14,5 +15,6 @@ fun appModules(
     repositoryModule(),
     notificationModule(config = NotificationConfig.from(config), log = log),
     aiModule(config = config, log = log),
+    storageModule(config = S3Config.from(config)),
     serviceModule(),
 )

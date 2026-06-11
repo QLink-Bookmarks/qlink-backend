@@ -58,6 +58,17 @@ notification:
   fcm:
     serviceAccountJson: ""
 
+# Local defaults target LocalStack (see compose.yml); production overrides every value via AWS_S3_* env.
+aws:
+  s3:
+    region: ap-northeast-2
+    bucket: qlink-images-local
+    endpoint: http://localhost:4566
+    forcePathStyle: true
+    accessKeyId: test
+    secretAccessKey: test
+    publicBaseUrl: ""
+
 logging:
   http:
     slowThresholdMs: 1000

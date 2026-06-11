@@ -107,4 +107,10 @@ enum class ErrorCode(
     FOLDER_MEMBER_FOLDER_NOT_FOUND("FOLDER_MEMBER_404_0002", 404, "폴더를 찾을 수 없어요"),
     FOLDER_MEMBER_ACCESS_DENIED("FOLDER_MEMBER_403_0001", 403, "공유 폴더 멤버에 대한 권한이 없어요"),
     FOLDER_MEMBER_NOT_SHARED_FOLDER("FOLDER_MEMBER_422_0001", 422, "공유 폴더가 아니에요"),
+
+    // Image
+    IMAGE_FILE_REQUIRED("IMAGE_400_0001", 400, "이미지 파일이 필요해요"),
+    IMAGE_INVALID_FORMAT("IMAGE_400_0002", 400, "지원하지 않는 이미지 형식이에요"),
+    IMAGE_FILE_TOO_LARGE("IMAGE_400_0003", 400, "이미지 파일 크기가 너무 커요"),
+    IMAGE_UPLOAD_FAILED("IMAGE_500_0001", 500, "이미지 업로드에 실패했어요"),
 }

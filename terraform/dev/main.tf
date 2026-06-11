@@ -45,6 +45,14 @@ module "security" {
   rds_public_ingress_cidrs  = var.rds_public_ingress_cidrs
 }
 
+module "s3" {
+  source = "../modules/s3"
+
+  bucket_name          = var.aws_s3_bucket_name
+  bucket_tag_name      = var.aws_s3_bucket_name
+  cors_allowed_origins = var.aws_s3_cors_allowed_origins
+}
+
 module "ecr" {
   source = "../modules/ecr"
 
@@ -136,6 +144,13 @@ module "ecs" {
     DB_DRIVER_CLASS_NAME     = "org.postgresql.Driver"
     FCM_SERVICE_ACCOUNT_JSON = var.fcm_service_account_json
     EXPO_ACCESS_TOKEN        = var.expo_access_token
+    AWS_S3_REGION            = var.aws_region
+    AWS_S3_BUCKET            = module.s3.bucket_name
+    AWS_S3_ENDPOINT          = ""
+    AWS_S3_FORCE_PATH_STYLE  = "false"
+    AWS_S3_ACCESS_KEY_ID     = var.aws_s3_access_key_id
+    AWS_S3_SECRET_ACCESS_KEY = var.aws_s3_secret_access_key
+    AWS_S3_PUBLIC_BASE_URL   = var.aws_s3_public_base_url
   }
   task_healthcheck_command = var.ecs_task_healthcheck_command
   task_definition_tag_name = var.ecs_task_definition_tag_name
