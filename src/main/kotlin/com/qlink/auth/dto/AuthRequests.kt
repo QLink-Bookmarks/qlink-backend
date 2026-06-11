@@ -24,3 +24,8 @@ data class NativeRefreshTokenRequest(
 ) {
     fun requireRefreshToken(): String = refreshToken?.takeIf { it.isNotBlank() } ?: throw BusinessException(ErrorCode.AUTH_NO_CREDENTIALS)
 }
+
+@Serializable
+data class SignOutRequest(
+    val refreshToken: String? = null,
+)

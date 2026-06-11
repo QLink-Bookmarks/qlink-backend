@@ -21,4 +21,9 @@ interface RefreshTokenRepository {
         issuedAt: Instant,
         expiredAt: Instant,
     ): RefreshToken?
+
+    suspend fun deleteByUserIdAndToken(
+        userId: Long,
+        token: String,
+    )
 }
