@@ -10,6 +10,7 @@ import com.qlink.link.dto.UpdateLinkRequest
 import com.qlink.link.dto.UpdateLinkResponse
 import com.qlink.link.repository.LinkRepository
 import com.qlink.user.repository.UserRepository
+import kotlin.time.Clock
 
 class UpdateLinkService(
     private val tx: TransactionRunner,
@@ -43,6 +44,7 @@ class UpdateLinkService(
                     tags = request.tags,
                     thumbnailUrl = request.thumbnailUrl,
                     sourceType = request.sourceType,
+                    favoriteAt = link.resolveFavoriteAt(request.isFavorite, Clock.System.now()),
                 )
 
             val savedLink = linkRepository.update(updatedLink)
@@ -60,5 +62,6 @@ class UpdateLinkService(
             tags = tags,
             thumbnailUrl = thumbnailUrl,
             sourceType = sourceType,
+            isFavorite = favoriteAt != null,
         )
 }

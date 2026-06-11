@@ -104,6 +104,7 @@ class DbLinkRepository : LinkRepository {
                 Links.workModelId,
                 workModel,
                 Links.createdAt,
+                Links.favoriteAt,
             ).where { Links.id eq linkId }
             .singleOrNull()
             ?.toLinkDetailQuery(
@@ -117,6 +118,7 @@ class DbLinkRepository : LinkRepository {
         ownerId: Long,
         query: String?,
         folderId: Long?,
+        isFavorite: Boolean?,
         order: LinkSearchOrder,
         cursor: LinkSearchCursor?,
         size: Int,
@@ -191,6 +193,7 @@ class DbLinkRepository : LinkRepository {
                     Links.status,
                     Links.tags,
                     Links.createdAt,
+                    Links.favoriteAt,
                     score,
                     titleScore,
                     urlScore,
@@ -208,6 +211,12 @@ class DbLinkRepository : LinkRepository {
                         when (requestedFolderId) {
                             0L -> andWhere { Links.folderId.isNull() }
                             else -> andWhere { Links.folderId eq requestedFolderId }
+                        }
+                    }
+                    isFavorite?.let { favorite ->
+                        when (favorite) {
+                            true -> andWhere { Links.favoriteAt.isNotNull() }
+                            false -> andWhere { Links.favoriteAt.isNull() }
                         }
                     }
                     loweredQuery?.let { keyword ->
@@ -489,6 +498,7 @@ class DbLinkRepository : LinkRepository {
             status = this[Links.status],
             tags = this[Links.tags],
             createdAt = this[Links.createdAt].toKotlinInstant(),
+            favoriteAt = this[Links.favoriteAt]?.toKotlinInstant(),
             score = this[score],
             titleScore = this[titleScore],
             urlScore = this[urlScore],
@@ -520,5 +530,6 @@ class DbLinkRepository : LinkRepository {
             workModelId = this[Links.workModelId],
             workModel = this[workModel],
             createdAt = this[Links.createdAt].toKotlinInstant(),
+            favoriteAt = this[Links.favoriteAt]?.toKotlinInstant(),
         )
 }

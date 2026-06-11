@@ -20,6 +20,7 @@ interface LinkRepository {
         ownerId: Long,
         query: String?,
         folderId: Long?,
+        isFavorite: Boolean?,
         order: LinkSearchOrder,
         cursor: LinkSearchCursor?,
         size: Int,

@@ -162,6 +162,7 @@ fun Link.copyAiStatus(
         sourceType = sourceType,
         status = status,
         workModelId = workModelId,
+        favoriteAt = favoriteAt,
         createdAt = createdAt,
         updatedAt = updatedAt,
     )

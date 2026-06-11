@@ -24,6 +24,7 @@ class Link(
     val sourceType: SourceType,
     val status: LinkStatus = LinkStatus.C,
     val workModelId: Long? = null,
+    val favoriteAt: Instant? = null,
     val createdAt: Instant? = null,
     val updatedAt: Instant? = null,
 ) {
@@ -53,6 +54,7 @@ class Link(
         tags: List<String>,
         thumbnailUrl: String?,
         sourceType: SourceType,
+        favoriteAt: Instant? = this.favoriteAt,
     ): Link =
         Link(
             id = id,
@@ -67,9 +69,19 @@ class Link(
             sourceType = sourceType,
             status = status,
             workModelId = workModelId,
+            favoriteAt = favoriteAt,
             createdAt = createdAt,
             updatedAt = updatedAt,
         )
+
+    fun resolveFavoriteAt(
+        isFavorite: Boolean,
+        now: Instant,
+    ): Instant? =
+        when {
+            !isFavorite -> null
+            else -> favoriteAt ?: now
+        }
 
     private fun validateUrl(url: String) {
         url.isNotBlank().requireTrue(ErrorCode.LINK_URL_BLANK)

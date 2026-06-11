@@ -132,6 +132,23 @@ class GetLinkDetailServiceTest :
                     actual.folderEmoji shouldBe expectedFolderEmoji
                     actual.workModel shouldBe model.model
                     actual.todos shouldContainExactly todos.map { it.toExpectedTodo() }
+                    actual.isFavorite shouldBe false
+                }
+            }
+
+            When("바로가기로 지정된 본인 링크 상세 조회를") {
+                val link =
+                    linkRepository.insert(
+                        LinkFixture.createRandomLinkOf(
+                            ownerId = user.id!!,
+                            favoriteAt = RandomFixture.randomPastInstant(),
+                        ),
+                    )
+                val actual = getLinkDetailService.getLinkDetail(user.id!!, link.id!!)
+
+                Then("isFavorite가 true로 조회된다") {
+                    actual.id shouldBe link.id
+                    actual.isFavorite shouldBe true
                 }
             }
 

@@ -7,6 +7,8 @@ import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+import kotlin.time.Instant
+import kotlin.time.toKotlinInstant
 
 object RandomFixture {
     private val faker = Faker(Locale.KOREA)
@@ -100,6 +102,8 @@ object RandomFixture {
             .timeAndDate()
             .past(pastScope.toLong(), timeUnit)
             .toOffsetDateTime()
+
+    fun randomPastInstant(): Instant = pastDateTime(365, TimeUnit.DAYS).toInstant().toKotlinInstant()
 
     fun futureDateTime(
         futureScope: Int,

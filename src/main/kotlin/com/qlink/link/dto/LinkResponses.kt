@@ -30,6 +30,7 @@ data class GetLinkDetailResponse(
     val folderEmoji: String?,
     val todos: List<LinkDetailTodoQuery>,
     val workModel: String?,
+    val isFavorite: Boolean,
 )
 
 @Serializable
@@ -46,6 +47,7 @@ data class GetLinksContentResponse(
     val workModel: String?,
     val todos: List<LinkSearchTodoResponse>,
     val countMoreTodos: Int,
+    val isFavorite: Boolean,
 )
 
 @Serializable
@@ -69,4 +71,5 @@ data class UpdateLinkResponse(
     val tags: List<String>,
     val thumbnailUrl: String?,
     val sourceType: SourceType,
+    val isFavorite: Boolean,
 )
