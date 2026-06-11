@@ -16,18 +16,6 @@ variable "aws_s3_public_base_url" {
   default = ""
 }
 
-variable "aws_s3_access_key_id" {
-  type      = string
-  sensitive = true
-  default   = ""
-}
-
-variable "aws_s3_secret_access_key" {
-  type      = string
-  sensitive = true
-  default   = ""
-}
-
 variable "vpc_cidr" {
   type = string
 }
@@ -261,6 +249,10 @@ variable "task_execution_role_name" {
 }
 
 variable "task_execution_role_policy_arn" {
+  type = string
+}
+
+variable "ecs_task_role_name" {
   type = string
 }
 

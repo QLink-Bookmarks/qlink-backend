@@ -78,6 +78,15 @@ variable "task_execution_role_policy_arn" {
   type = string
 }
 
+variable "task_role_name" {
+  type = string
+}
+
+variable "s3_bucket_arn" {
+  type    = string
+  default = ""
+}
+
 variable "log_group_name" {
   type = string
 }

@@ -128,6 +128,45 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
   policy_arn = var.task_execution_role_policy_arn
 }
 
+# Task role: the IAM identity the running application assumes for AWS API calls
+# (the AWS SDK default credential chain picks it up via ECS container credentials).
+resource "aws_iam_role" "ecs_task_role" {
+  name = var.task_role_name
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+# Allow uploading objects to the images bucket. Created only when a bucket ARN is provided.
+resource "aws_iam_role_policy" "ecs_task_s3" {
+  count = var.s3_bucket_arn == "" ? 0 : 1
+
+  name = "${var.task_role_name}-s3"
+  role = aws_iam_role.ecs_task_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "PutImageObjects"
+        Effect   = "Allow"
+        Action   = ["s3:PutObject"]
+        Resource = "${var.s3_bucket_arn}/*"
+      }
+    ]
+  })
+}
+
 resource "aws_cloudwatch_log_group" "ecs_log_group" {
   name              = var.log_group_name
   retention_in_days = var.log_group_retention_in_days
@@ -144,6 +183,7 @@ resource "aws_ecs_task_definition" "qlink_task" {
   cpu                      = var.task_cpu
   memory                   = var.task_memory
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  task_role_arn            = aws_iam_role.ecs_task_role.arn
 
   runtime_platform {
     operating_system_family = "LINUX"

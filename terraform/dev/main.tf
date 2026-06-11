@@ -125,6 +125,8 @@ module "ecs" {
 
   task_execution_role_name       = var.task_execution_role_name
   task_execution_role_policy_arn = var.task_execution_role_policy_arn
+  task_role_name                 = var.ecs_task_role_name
+  s3_bucket_arn                  = module.s3.bucket_arn
 
   log_group_name              = var.ecs_log_group_name
   log_group_retention_in_days = var.ecs_log_group_retention_in_days
@@ -148,9 +150,9 @@ module "ecs" {
     AWS_S3_BUCKET            = module.s3.bucket_name
     AWS_S3_ENDPOINT          = ""
     AWS_S3_FORCE_PATH_STYLE  = "false"
-    AWS_S3_ACCESS_KEY_ID     = var.aws_s3_access_key_id
-    AWS_S3_SECRET_ACCESS_KEY = var.aws_s3_secret_access_key
     AWS_S3_PUBLIC_BASE_URL   = var.aws_s3_public_base_url
+    # No AWS_S3_ACCESS_KEY_ID / SECRET: the app uses the ECS task role via the
+    # default credential chain (see module.ecs task_role + s3_bucket_arn policy).
   }
   task_healthcheck_command = var.ecs_task_healthcheck_command
   task_definition_tag_name = var.ecs_task_definition_tag_name
