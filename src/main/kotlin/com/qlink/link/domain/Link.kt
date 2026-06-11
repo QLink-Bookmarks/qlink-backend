@@ -6,6 +6,7 @@ import com.qlink.common.error.requireFalse
 import com.qlink.common.error.requireNotOver
 import com.qlink.common.error.requireTrue
 import java.net.URI
+import kotlin.time.Clock
 import kotlin.time.Instant
 
 private const val MAX_TITLE_LENGTH = 300
@@ -54,7 +55,8 @@ class Link(
         tags: List<String>,
         thumbnailUrl: String?,
         sourceType: SourceType,
-        favoriteAt: Instant? = this.favoriteAt,
+        isFavorite: Boolean = favoriteAt != null,
+        now: Instant = Clock.System.now(),
     ): Link =
         Link(
             id = id,
@@ -69,12 +71,12 @@ class Link(
             sourceType = sourceType,
             status = status,
             workModelId = workModelId,
-            favoriteAt = favoriteAt,
+            favoriteAt = resolveFavoriteAt(isFavorite, now),
             createdAt = createdAt,
             updatedAt = updatedAt,
         )
 
-    fun resolveFavoriteAt(
+    private fun resolveFavoriteAt(
         isFavorite: Boolean,
         now: Instant,
     ): Instant? =

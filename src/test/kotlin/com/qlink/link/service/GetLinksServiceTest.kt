@@ -402,103 +402,100 @@ class GetLinksServiceTest :
             }
 
             When("isFavorite=true 필터로 검색하면") {
-                Then("바로가기 링크만 isFavorite=true로 반환한다") {
-                    val favorited =
-                        linkRepository.insert(
-                            LinkFixture.createRandomLinkOf(
-                                ownerId = user.id!!,
-                                title = "favorite filter a",
-                                url = "https://example.com/favorite-a",
-                                favoriteAt = RandomFixture.randomPastInstant(),
-                            ),
-                        )
+                val favorited =
                     linkRepository.insert(
                         LinkFixture.createRandomLinkOf(
                             ownerId = user.id!!,
-                            title = "favorite filter b",
-                            url = "https://example.com/favorite-b",
+                            title = "favorite filter a",
+                            url = "https://example.com/favorite-a",
+                            favoriteAt = RandomFixture.randomPastInstant(),
                         ),
                     )
+                linkRepository.insert(
+                    LinkFixture.createRandomLinkOf(
+                        ownerId = user.id!!,
+                        title = "favorite filter b",
+                        url = "https://example.com/favorite-b",
+                    ),
+                )
+                val response =
+                    getLinksService.getLinks(
+                        loginId = user.id!!,
+                        query = "favorite filter",
+                        folderId = null,
+                        isFavorite = true,
+                        order = "latest",
+                        scrollRequest = ScrollRequest(size = 10),
+                    )
 
-                    val response =
-                        getLinksService.getLinks(
-                            loginId = user.id!!,
-                            query = "favorite filter",
-                            folderId = null,
-                            isFavorite = true,
-                            order = "latest",
-                            scrollRequest = ScrollRequest(size = 10),
-                        )
-
+                Then("바로가기 링크만 isFavorite=true로 반환한다") {
                     response.contents.map { it.id } shouldBe listOf(favorited.id)
                     response.contents.all { it.isFavorite } shouldBe true
                 }
             }
 
             When("isFavorite=false 필터로 검색하면") {
-                Then("바로가기가 아닌 링크만 반환한다") {
+                linkRepository.insert(
+                    LinkFixture.createRandomLinkOf(
+                        ownerId = user.id!!,
+                        title = "non favorite filter a",
+                        url = "https://example.com/non-favorite-a",
+                        favoriteAt = RandomFixture.randomPastInstant(),
+                    ),
+                )
+                val notFavorited =
                     linkRepository.insert(
                         LinkFixture.createRandomLinkOf(
                             ownerId = user.id!!,
-                            title = "non favorite filter a",
-                            url = "https://example.com/non-favorite-a",
-                            favoriteAt = RandomFixture.randomPastInstant(),
+                            title = "non favorite filter b",
+                            url = "https://example.com/non-favorite-b",
                         ),
                     )
-                    val notFavorited =
-                        linkRepository.insert(
-                            LinkFixture.createRandomLinkOf(
-                                ownerId = user.id!!,
-                                title = "non favorite filter b",
-                                url = "https://example.com/non-favorite-b",
-                            ),
-                        )
+                val response =
+                    getLinksService.getLinks(
+                        loginId = user.id!!,
+                        query = "non favorite filter",
+                        folderId = null,
+                        isFavorite = false,
+                        order = "latest",
+                        scrollRequest = ScrollRequest(size = 10),
+                    )
 
-                    val response =
-                        getLinksService.getLinks(
-                            loginId = user.id!!,
-                            query = "non favorite filter",
-                            folderId = null,
-                            isFavorite = false,
-                            order = "latest",
-                            scrollRequest = ScrollRequest(size = 10),
-                        )
-
+                Then("바로가기가 아닌 링크만 반환한다") {
                     response.contents.map { it.id } shouldBe listOf(notFavorited.id)
                     response.contents.all { it.isFavorite } shouldBe false
                 }
             }
 
             When("isFavorite 필터가 null이면") {
+                val favorited =
+                    linkRepository.insert(
+                        LinkFixture.createRandomLinkOf(
+                            ownerId = user.id!!,
+                            title = "no favorite filter a",
+                            url = "https://example.com/no-filter-a",
+                            favoriteAt = RandomFixture.randomPastInstant(),
+                        ),
+                    )
+                val notFavorited =
+                    linkRepository.insert(
+                        LinkFixture.createRandomLinkOf(
+                            ownerId = user.id!!,
+                            title = "no favorite filter b",
+                            url = "https://example.com/no-filter-b",
+                        ),
+                    )
+                val response =
+                    getLinksService.getLinks(
+                        loginId = user.id!!,
+                        query = "no favorite filter",
+                        folderId = null,
+                        isFavorite = null,
+                        order = "latest",
+                        scrollRequest = ScrollRequest(size = 10),
+                    )
+
                 Then("바로가기 여부와 무관하게 모두 반환한다") {
-                    val favorited =
-                        linkRepository.insert(
-                            LinkFixture.createRandomLinkOf(
-                                ownerId = user.id!!,
-                                title = "no favorite filter a",
-                                url = "https://example.com/no-filter-a",
-                                favoriteAt = RandomFixture.randomPastInstant(),
-                            ),
-                        )
-                    val notFavorited =
-                        linkRepository.insert(
-                            LinkFixture.createRandomLinkOf(
-                                ownerId = user.id!!,
-                                title = "no favorite filter b",
-                                url = "https://example.com/no-filter-b",
-                            ),
-                        )
-
-                    val response =
-                        getLinksService.getLinks(
-                            loginId = user.id!!,
-                            query = "no favorite filter",
-                            folderId = null,
-                            isFavorite = null,
-                            order = "latest",
-                            scrollRequest = ScrollRequest(size = 10),
-                        )
-
                     response.contents.map { it.id }.toSet() shouldBe setOf(favorited.id, notFavorited.id)
                 }
             }

@@ -46,7 +46,6 @@ object Links : Table("links") {
         index("links_status_idx", false, status)
         index("links_work_model_id_idx", false, workModelId)
         index("links_tags_idx", false, tags, indexType = "GIN")
-        index("links_favorite_at_idx", false, favoriteAt)
     }
 }
 
