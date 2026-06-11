@@ -15,6 +15,9 @@ import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
+import kotlin.time.Clock
+import kotlin.time.toJavaInstant
 
 class DbFolderMemberRepository : FolderMemberRepository {
     override suspend fun findByFolderIdAndUserId(
@@ -66,6 +69,13 @@ class DbFolderMemberRepository : FolderMemberRepository {
             .orderBy(FolderMembers.joinedAt to SortOrder.DESC, FolderMembers.userId to SortOrder.DESC)
             .map { it.toFolderMemberQuery() }
 
+    override suspend fun findAllByFolderIdOrderByJoinedAtAsc(folderId: Long): List<FolderMember> =
+        FolderMembers
+            .selectAll()
+            .where { FolderMembers.folderId eq folderId }
+            .orderBy(FolderMembers.joinedAt to SortOrder.ASC, FolderMembers.userId to SortOrder.ASC)
+            .map { it.toFolderMemberDomain() }
+
     override suspend fun insertIfAbsent(folderMember: FolderMember): FolderMember {
         findByFolderIdAndUserId(
             folderId = folderMember.folderId,
@@ -76,6 +86,22 @@ class DbFolderMemberRepository : FolderMemberRepository {
             .insertReturning { it.fromDomain(folderMember) }
             .single()
             .toFolderMemberDomain()
+    }
+
+    override suspend fun updateRole(
+        folderId: Long,
+        userId: Long,
+        role: String,
+    ) {
+        FolderMembers.update(
+            where = {
+                (FolderMembers.folderId eq folderId) and
+                    (FolderMembers.userId eq userId)
+            },
+        ) {
+            it[FolderMembers.role] = role
+            it[FolderMembers.updatedAt] = Clock.System.now().toJavaInstant()
+        }
     }
 
     override suspend fun deleteByFolderIdAndUserId(

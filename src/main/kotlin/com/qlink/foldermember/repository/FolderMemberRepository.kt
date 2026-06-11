@@ -18,7 +18,15 @@ interface FolderMemberRepository {
 
     suspend fun findAllByFolderIdOrderByJoinedAtDesc(folderId: Long): List<FolderMemberQuery>
 
+    suspend fun findAllByFolderIdOrderByJoinedAtAsc(folderId: Long): List<FolderMember>
+
     suspend fun insertIfAbsent(folderMember: FolderMember): FolderMember
+
+    suspend fun updateRole(
+        folderId: Long,
+        userId: Long,
+        role: String,
+    )
 
     suspend fun deleteByFolderIdAndUserId(
         folderId: Long,

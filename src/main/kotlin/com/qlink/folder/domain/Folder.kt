@@ -47,6 +47,17 @@ class Folder(
             updatedAt = updatedAt,
         )
 
+    fun delegateTo(newOwnerId: Long): Folder =
+        Folder(
+            id = id,
+            ownerId = newOwnerId,
+            name = name,
+            emoji = emoji,
+            sharedAt = sharedAt,
+            createdAt = createdAt,
+            updatedAt = updatedAt,
+        )
+
     companion object {
         fun create(
             ownerId: Long,
