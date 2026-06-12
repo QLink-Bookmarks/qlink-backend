@@ -6,7 +6,6 @@ import com.qlink.common.error.requireFalse
 import com.qlink.common.error.requireNotOver
 import com.qlink.common.error.requireTrue
 import java.net.URI
-import kotlin.time.Clock
 import kotlin.time.Instant
 
 private const val MAX_TITLE_LENGTH = 300
@@ -55,8 +54,29 @@ class Link(
         tags: List<String>,
         thumbnailUrl: String?,
         sourceType: SourceType,
-        isFavorite: Boolean = favoriteAt != null,
-        now: Instant = Clock.System.now(),
+        favoriteAt: Instant? = this.favoriteAt,
+    ): Link =
+        Link(
+            id = id,
+            ownerId = ownerId,
+            folderId = folderId,
+            url = url,
+            title = title,
+            summary = summary,
+            memo = memo,
+            tags = tags,
+            thumbnailUrl = thumbnailUrl,
+            sourceType = sourceType,
+            status = status,
+            workModelId = workModelId,
+            favoriteAt = favoriteAt,
+            createdAt = createdAt,
+            updatedAt = updatedAt,
+        )
+
+    fun changeFavorite(
+        isFavorite: Boolean,
+        now: Instant,
     ): Link =
         Link(
             id = id,

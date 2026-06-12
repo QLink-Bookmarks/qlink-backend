@@ -40,5 +40,9 @@ data class UpdateLinkRequest(
     val tags: List<String>,
     val thumbnailUrl: String? = null,
     val sourceType: SourceType,
-    val isFavorite: Boolean = false,
+)
+
+@Serializable
+data class SetLinkFavoriteRequest(
+    val isFavorite: Boolean? = null,
 )
