@@ -9,8 +9,6 @@ data class S3Config(
     val bucket: String,
     val endpoint: String?,
     val forcePathStyle: Boolean,
-    val accessKeyId: String?,
-    val secretAccessKey: String?,
     val publicBaseUrl: String?,
 ) {
     companion object {
@@ -26,8 +24,6 @@ data class S3Config(
                     },
                 endpoint = resolve(env, config, "AWS_S3_ENDPOINT", "aws.s3.endpoint"),
                 forcePathStyle = resolve(env, config, "AWS_S3_FORCE_PATH_STYLE", "aws.s3.forcePathStyle").toBoolean(),
-                accessKeyId = resolve(env, config, "AWS_S3_ACCESS_KEY_ID", "aws.s3.accessKeyId"),
-                secretAccessKey = resolve(env, config, "AWS_S3_SECRET_ACCESS_KEY", "aws.s3.secretAccessKey"),
                 publicBaseUrl = resolve(env, config, "AWS_S3_PUBLIC_BASE_URL", "aws.s3.publicBaseUrl"),
             )
 

@@ -18,7 +18,7 @@ class UploadImageService(
         loginId: Long,
         bytes: ByteArray?,
     ): UploadImageResponse {
-        tx.required {
+        tx.readOnly {
             userRepository.findById(loginId) ?: throw BusinessException(ErrorCode.IMAGE_OWNER_NOT_FOUND)
         }
 
@@ -38,6 +38,6 @@ class UploadImageService(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            throw BusinessException(ErrorCode.IMAGE_UPLOAD_FAILED, e)
+            throw BusinessException(ErrorCode.COMMON_INTERNAL_SERVER_ERROR, e)
         }
 }

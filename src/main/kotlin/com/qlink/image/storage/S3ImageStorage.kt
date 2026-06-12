@@ -3,6 +3,8 @@ package com.qlink.image.storage
 import aws.sdk.kotlin.services.s3.S3Client
 import aws.sdk.kotlin.services.s3.putObject
 import aws.smithy.kotlin.runtime.content.ByteStream
+import com.qlink.common.error.BusinessException
+import com.qlink.common.error.ErrorCode
 import com.qlink.config.S3Config
 
 class S3ImageStorage(
@@ -27,6 +29,6 @@ class S3ImageStorage(
     private fun publicUrl(key: String): String {
         config.publicBaseUrl?.let { base -> return "${base.trimEnd('/')}/$key" }
         config.endpoint?.let { endpoint -> return "${endpoint.trimEnd('/')}/${config.bucket}/$key" }
-        return "https://${config.bucket}.s3.${config.region}.amazonaws.com/$key"
+        throw BusinessException(ErrorCode.COMMON_INTERNAL_SERVER_ERROR)
     }
 }

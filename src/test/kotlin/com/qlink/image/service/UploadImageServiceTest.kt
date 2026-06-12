@@ -87,8 +87,8 @@ class UploadImageServiceTest :
                         imageStorage = S3ImageStorage(s3Client, s3Config.copy(bucket = "qlink-nonexistent-bucket")),
                     )
 
-                Then("IMAGE_UPLOAD_FAILED 예외를 반환한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.IMAGE_UPLOAD_FAILED.message) {
+                Then("COMMON_INTERNAL_SERVER_ERROR 예외를 반환한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.COMMON_INTERNAL_SERVER_ERROR.message) {
                         failingService.upload(user.id!!, ImageFixture.validPng())
                     }
                 }

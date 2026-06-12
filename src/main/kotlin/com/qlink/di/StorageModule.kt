@@ -29,15 +29,9 @@ private fun buildS3Client(config: S3Config): S3Client =
     S3Client {
         region = config.region
         forcePathStyle = config.forcePathStyle
-        config.endpoint?.let { endpointUrl = Url.parse(it) }
 
-        if (config.accessKeyId != null && config.secretAccessKey != null) {
-            credentialsProvider =
-                StaticCredentialsProvider(
-                    Credentials(
-                        accessKeyId = config.accessKeyId,
-                        secretAccessKey = config.secretAccessKey,
-                    ),
-                )
+        config.endpoint?.let { endpoint ->
+            endpointUrl = Url.parse(endpoint)
+            credentialsProvider = StaticCredentialsProvider(Credentials("local", "local"))
         }
     }

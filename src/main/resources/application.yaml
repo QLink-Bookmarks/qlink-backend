@@ -64,9 +64,6 @@ aws:
     bucket: qlink-images-local
     endpoint: http://localhost:4566
     forcePathStyle: true
-    accessKeyId: test
-    secretAccessKey: test
-    publicBaseUrl: ""
 
 logging:
   http:

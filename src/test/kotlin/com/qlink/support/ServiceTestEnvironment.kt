@@ -149,8 +149,6 @@ object ServiceTestEnvironment {
             bucket = S3_BUCKET,
             endpoint = localStackContainer.endpoint.toString(),
             forcePathStyle = true,
-            accessKeyId = localStackContainer.accessKey,
-            secretAccessKey = localStackContainer.secretKey,
             publicBaseUrl = null,
         )
 

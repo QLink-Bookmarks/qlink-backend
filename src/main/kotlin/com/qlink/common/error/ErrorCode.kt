@@ -113,5 +113,4 @@ enum class ErrorCode(
     IMAGE_INVALID_FORMAT("IMAGE_400_0002", 400, "지원하지 않는 이미지 형식이에요"),
     IMAGE_FILE_TOO_LARGE("IMAGE_400_0003", 400, "이미지 파일 크기가 너무 커요"),
     IMAGE_OWNER_NOT_FOUND("IMAGE_404_0001", 404, "로그인 사용자를 찾을 수 없어요"),
-    IMAGE_UPLOAD_FAILED("IMAGE_500_0001", 500, "이미지 업로드에 실패했어요"),
 }
