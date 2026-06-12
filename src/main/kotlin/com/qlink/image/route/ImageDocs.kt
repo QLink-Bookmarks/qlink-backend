@@ -40,7 +40,7 @@ internal fun uploadImageDocs(): RouteConfig.() -> Unit =
             code(HttpStatusCode.InternalServerError) {
                 description = "이미지 업로드 처리 실패"
                 body<ApiResponse<ErrorDetail>> {
-                    examples(ErrorCode.COMMON_INTERNAL_SERVER_ERROR)
+                    examples(ErrorCode.IMAGE_UPLOAD_FAILED)
                 }
             }
         }

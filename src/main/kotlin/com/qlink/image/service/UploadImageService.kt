@@ -38,6 +38,6 @@ class UploadImageService(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            throw BusinessException(ErrorCode.COMMON_INTERNAL_SERVER_ERROR, e)
+            throw BusinessException(ErrorCode.IMAGE_UPLOAD_FAILED, e)
         }
 }
