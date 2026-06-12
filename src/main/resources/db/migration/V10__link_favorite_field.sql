@@ -1,0 +1,2 @@
+ALTER TABLE links
+ADD COLUMN favorite_at TIMESTAMP;

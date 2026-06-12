@@ -22,6 +22,7 @@ data class SearchLinksQuery(
     val status: LinkStatus,
     val tags: List<String>,
     val createdAt: Instant,
+    val favoriteAt: Instant?,
     val score: Double,
     val titleScore: Double,
     val urlScore: Double,
@@ -48,6 +49,7 @@ data class LinkDetailQuery(
     val workModelId: Long?,
     val workModel: String?,
     val createdAt: Instant,
+    val favoriteAt: Instant?,
 )
 
 typealias LinkSearchOrder = SearchOrder

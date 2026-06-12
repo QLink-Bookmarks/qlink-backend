@@ -101,6 +101,7 @@ class UpdateLinkServiceTest :
                     response.tags shouldBe expectedTags
                     response.thumbnailUrl shouldBe request.thumbnailUrl
                     response.sourceType shouldBe request.sourceType
+                    response.isFavorite shouldBe false
 
                     actual shouldNotBe null
                     actual!!.folderId shouldBe request.folderId
@@ -111,7 +112,67 @@ class UpdateLinkServiceTest :
                     actual.tags shouldBe expectedTags
                     actual.thumbnailUrl shouldBe request.thumbnailUrl
                     actual.sourceType shouldBe request.sourceType
+                    actual.favoriteAt shouldBe null
                     actual.updatedAt shouldNotBe link.updatedAt
+                }
+            }
+
+            When("isFavorite=true로 바로가기가 없는 링크를 수정하면") {
+                val response =
+                    updateLinkService.updateLink(
+                        user.id!!,
+                        link.id!!,
+                        LinkFixture.createValidUpdateLinkRequest(folderId = folder.id, isFavorite = true),
+                    )
+                val actual = linkRepository.findById(link.id!!)
+
+                Then("favoriteAt가 추가된다") {
+                    response.isFavorite shouldBe true
+                    actual!!.favoriteAt shouldNotBe null
+                }
+            }
+
+            When("isFavorite=true로 이미 바로가기인 링크를 수정하면") {
+                val favoritedLink =
+                    linkRepository.insert(
+                        LinkFixture.createRandomLinkOf(
+                            ownerId = user.id!!,
+                            favoriteAt = RandomFixture.randomPastInstant(),
+                        ),
+                    )
+                val response =
+                    updateLinkService.updateLink(
+                        user.id!!,
+                        favoritedLink.id!!,
+                        LinkFixture.createValidUpdateLinkRequest(isFavorite = true),
+                    )
+                val actual = linkRepository.findById(favoritedLink.id!!)
+
+                Then("기존 favoriteAt가 유지된다") {
+                    response.isFavorite shouldBe true
+                    actual!!.favoriteAt shouldBe favoritedLink.favoriteAt
+                }
+            }
+
+            When("isFavorite=false로 바로가기인 링크를 수정하면") {
+                val favoritedLink =
+                    linkRepository.insert(
+                        LinkFixture.createRandomLinkOf(
+                            ownerId = user.id!!,
+                            favoriteAt = RandomFixture.randomPastInstant(),
+                        ),
+                    )
+                val response =
+                    updateLinkService.updateLink(
+                        user.id!!,
+                        favoritedLink.id!!,
+                        LinkFixture.createValidUpdateLinkRequest(isFavorite = false),
+                    )
+                val actual = linkRepository.findById(favoritedLink.id!!)
+
+                Then("favoriteAt가 제거된다") {
+                    response.isFavorite shouldBe false
+                    actual!!.favoriteAt shouldBe null
                 }
             }
 

@@ -43,6 +43,7 @@ class UpdateLinkService(
                     tags = request.tags,
                     thumbnailUrl = request.thumbnailUrl,
                     sourceType = request.sourceType,
+                    isFavorite = request.isFavorite,
                 )
 
             val savedLink = linkRepository.update(updatedLink)
@@ -60,5 +61,6 @@ class UpdateLinkService(
             tags = tags,
             thumbnailUrl = thumbnailUrl,
             sourceType = sourceType,
+            isFavorite = favoriteAt != null,
         )
 }

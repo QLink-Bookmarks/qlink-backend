@@ -34,6 +34,7 @@ object Links : Table("links") {
     val workModelId =
         reference("work_model_id", AvailableModels.id, onDelete = ReferenceOption.SET_NULL)
             .nullable()
+    val favoriteAt = timestamp("favorite_at").nullable()
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
     val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp)
 
@@ -62,6 +63,7 @@ fun ResultRow.toLinkDomain(): Link =
         sourceType = this[Links.sourceType],
         status = this[Links.status],
         workModelId = this[Links.workModelId],
+        favoriteAt = this[Links.favoriteAt]?.toKotlinInstant(),
         createdAt = this[Links.createdAt].toKotlinInstant(),
         updatedAt = this[Links.updatedAt].toKotlinInstant(),
     )
@@ -79,6 +81,7 @@ fun UpdateBuilder<*>.fromDomain(link: Link) {
     this[Links.sourceType] = link.sourceType
     this[Links.status] = link.status
     this[Links.workModelId] = link.workModelId
+    this[Links.favoriteAt] = link.favoriteAt?.toJavaInstant()
 }
 
 fun UpdateBuilder<*>.refreshUpdatedAt() {

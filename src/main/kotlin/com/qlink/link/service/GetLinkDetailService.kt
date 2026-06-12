@@ -50,6 +50,7 @@ class GetLinkDetailService(
             folderEmoji = folderEmoji,
             todos = todos,
             workModel = workModel,
+            isFavorite = favoriteAt != null,
         )
 
     private fun validateAccess(

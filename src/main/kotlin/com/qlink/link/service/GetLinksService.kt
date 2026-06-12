@@ -30,6 +30,7 @@ class GetLinksService(
         loginId: Long,
         query: String?,
         folderId: Long?,
+        isFavorite: Boolean? = null,
         order: String,
         scrollRequest: ScrollRequest,
     ): ScrollResponse<GetLinksContentResponse> =
@@ -45,6 +46,7 @@ class GetLinksService(
                     ownerId = loginId,
                     query = query,
                     folderId = folderId,
+                    isFavorite = isFavorite,
                     order = normalizedOrder,
                     cursor = cursor,
                     size = size,
@@ -75,6 +77,7 @@ class GetLinksService(
                             createdAt = queryRow.createdAt,
                             todos = todoQueries.map { it.toResponse() },
                             countMoreTodos = (todoQueries.firstOrNull()?.totalCount ?: 0) - todoQueries.size,
+                            isFavorite = queryRow.favoriteAt != null,
                         )
                     },
                 nextCursor = contents.lastOrNull()?.takeIf { hasNext }?.let { encodeCursor(it, normalizedOrder) },

@@ -6,6 +6,7 @@ import com.qlink.common.error.requireFalse
 import com.qlink.common.error.requireNotOver
 import com.qlink.common.error.requireTrue
 import java.net.URI
+import kotlin.time.Clock
 import kotlin.time.Instant
 
 private const val MAX_TITLE_LENGTH = 300
@@ -24,6 +25,7 @@ class Link(
     val sourceType: SourceType,
     val status: LinkStatus = LinkStatus.C,
     val workModelId: Long? = null,
+    val favoriteAt: Instant? = null,
     val createdAt: Instant? = null,
     val updatedAt: Instant? = null,
 ) {
@@ -53,6 +55,8 @@ class Link(
         tags: List<String>,
         thumbnailUrl: String?,
         sourceType: SourceType,
+        isFavorite: Boolean = favoriteAt != null,
+        now: Instant = Clock.System.now(),
     ): Link =
         Link(
             id = id,
@@ -67,9 +71,19 @@ class Link(
             sourceType = sourceType,
             status = status,
             workModelId = workModelId,
+            favoriteAt = resolveFavoriteAt(isFavorite, now),
             createdAt = createdAt,
             updatedAt = updatedAt,
         )
+
+    private fun resolveFavoriteAt(
+        isFavorite: Boolean,
+        now: Instant,
+    ): Instant? =
+        when {
+            !isFavorite -> null
+            else -> favoriteAt ?: now
+        }
 
     private fun validateUrl(url: String) {
         url.isNotBlank().requireTrue(ErrorCode.LINK_URL_BLANK)

@@ -53,6 +53,7 @@ fun Route.linkRoutes() {
                     loginId = principal.userId,
                     query = resource.query,
                     folderId = resource.folderId,
+                    isFavorite = resource.isFavorite,
                     order = resource.order,
                     scrollRequest =
                         ScrollRequest(

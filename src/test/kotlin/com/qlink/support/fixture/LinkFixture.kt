@@ -25,6 +25,7 @@ object LinkFixture {
         sourceType: SourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
         status: LinkStatus = LinkStatus.C,
         workModelId: Long? = null,
+        favoriteAt: Instant? = null,
     ): Link =
         Link(
             id = RandomFixture.randomId(),
@@ -38,10 +39,14 @@ object LinkFixture {
             sourceType = sourceType,
             status = status,
             workModelId = workModelId,
+            favoriteAt = favoriteAt,
             tags = tags,
         )
 
-    fun createValidUpdateLinkRequest(folderId: Long? = null): UpdateLinkRequest =
+    fun createValidUpdateLinkRequest(
+        folderId: Long? = null,
+        isFavorite: Boolean = false,
+    ): UpdateLinkRequest =
         UpdateLinkRequest(
             folderId = folderId,
             url = RandomFixture.randomUrl(),
@@ -51,6 +56,7 @@ object LinkFixture {
             tags = randomDistinctTags(),
             thumbnailUrl = RandomFixture.randomUrl(),
             sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
+            isFavorite = isFavorite,
         )
 
     fun createPatchLinkRequest(

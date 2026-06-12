@@ -7,6 +7,7 @@ import io.ktor.resources.Resource
 class LinkResources(
     val query: String? = null,
     val folderId: Long? = null,
+    val isFavorite: Boolean? = null,
     val order: String = DEFAULT_LINK_SEARCH_ORDER,
     val cursor: String? = null,
     val size: Int = 15,
