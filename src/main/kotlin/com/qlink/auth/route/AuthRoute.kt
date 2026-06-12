@@ -67,7 +67,6 @@ private fun Route.signOutRoute(signOutService: SignOutService) {
 
             deleteWithoutResource(signOutDocs()) {
                 val principal = call.principal<JwtPrincipal>()!!
-                // 웹은 쿠키, 네이티브는 쿠키가 없어 요청 바디로 refresh token을 전달한다
                 val refreshToken = call.resolveSignOutRefreshToken()
 
                 signOutService.signOut(principal.userId, refreshToken)

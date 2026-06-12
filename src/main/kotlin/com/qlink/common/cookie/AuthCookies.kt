@@ -20,8 +20,6 @@ fun ApplicationCall.appendRefreshTokenCookie(refreshToken: String) {
     )
 }
 
-// deprecated된 appendExpired 대신 동일 속성으로 빈 쿠키를 덮어쓰고,
-// maxAge = 0 (Max-Age=0)으로 브라우저가 즉시 삭제하도록 한다
 fun ApplicationCall.expireAuthCookies() {
     response.cookies.append(
         Cookie(

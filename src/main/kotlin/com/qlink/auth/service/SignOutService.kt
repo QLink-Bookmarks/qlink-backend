@@ -17,9 +17,8 @@ class SignOutService(
     ) = tx.required {
         userRepository.findById(loginId) ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
 
-        val token = refreshToken?.takeIf { it.isNotBlank() }
-        if (token != null) {
-            refreshTokenRepository.deleteByUserIdAndToken(userId = loginId, token = token)
-        }
+        refreshToken
+            ?.takeIf { it.isNotBlank() }
+            ?.let { refreshTokenRepository.deleteByUserIdAndToken(userId = loginId, token = it) }
     }
 }
