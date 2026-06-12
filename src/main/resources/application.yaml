@@ -58,6 +58,13 @@ notification:
   fcm:
     serviceAccountJson: ""
 
+aws:
+  s3:
+    region: ap-northeast-2
+    bucket: qlink-images-local
+    endpoint: http://localhost:4566
+    forcePathStyle: true
+
 logging:
   http:
     slowThresholdMs: 1000

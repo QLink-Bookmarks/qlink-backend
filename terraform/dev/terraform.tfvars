@@ -1,5 +1,8 @@
 aws_region = "ap-northeast-2"
 
+aws_s3_bucket_name = "qlink-images-dev"
+images_domain      = "images.qlinkapps.com"
+
 vpc_cidr = "172.31.0.0/16"
 az_a     = "ap-northeast-2a"
 az_c     = "ap-northeast-2c"
@@ -63,6 +66,7 @@ capacity_provider_name          = "Infra-ECS-Cluster-qlink-ecs-cluster-dev-83711
 additional_capacity_providers   = ["FARGATE", "FARGATE_SPOT"]
 task_execution_role_name        = "ecsTaskExecutionRole"
 task_execution_role_policy_arn  = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+ecs_task_role_name              = "qlinkEcsTaskRole"
 ecs_log_group_name              = "/ecs/qlink-ecs-task-dev"
 ecs_log_group_retention_in_days = 7
 ecs_task_family                 = "qlink-ecs-task-dev"

@@ -1,11 +1,15 @@
 package com.qlink.support
 
+import aws.sdk.kotlin.services.s3.S3Client
+import aws.sdk.kotlin.services.s3.createBucket
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.config.DataSourceConfig
+import com.qlink.config.S3Config
 import com.qlink.config.SecurityConfig
 import com.qlink.di.dataModule
 import com.qlink.di.repositoryModule
 import com.qlink.di.serviceModule
+import com.qlink.di.storageModule
 import com.qlink.di.transactionModule
 import com.qlink.notification.worker.TaskScheduler
 import com.qlink.push.client.PushNotificationSenderRouter
@@ -14,6 +18,7 @@ import io.ktor.server.config.ApplicationConfig
 import io.ktor.server.config.MapApplicationConfig
 import io.ktor.server.config.yaml.YamlConfig
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -24,6 +29,7 @@ import org.koin.core.context.stopKoin
 import org.koin.dsl.module
 import org.slf4j.LoggerFactory
 import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.containers.localstack.LocalStackContainer
 import org.testcontainers.utility.DockerImageName
 import javax.sql.DataSource
 
@@ -34,6 +40,7 @@ private class ServicePostgreSQLContainer(
 object ServiceTestEnvironment {
     private const val SCHEMA = "qlink_local"
     private const val DRIVER_CLASS_NAME = "org.postgresql.Driver"
+    private const val S3_BUCKET = "qlink-images-test"
 
     private val container =
         ServicePostgreSQLContainer(
@@ -43,6 +50,10 @@ object ServiceTestEnvironment {
         ).withDatabaseName("qlink")
             .withUsername("local")
             .withPassword("1234")
+
+    private val localStackContainer =
+        LocalStackContainer(DockerImageName.parse("localstack/localstack:3"))
+            .withServices(LocalStackContainer.Service.S3)
 
     private var containerStarted = false
 
@@ -64,12 +75,14 @@ object ServiceTestEnvironment {
     fun start() {
         if (!containerStarted) {
             container.start()
+            localStackContainer.start()
             containerStarted = true
         }
 
         if (!isKoinUsable()) {
             startKoinContext()
             GlobalContext.get().get<Flyway>().migrate()
+            ensureS3Bucket()
         }
     }
 
@@ -86,6 +99,7 @@ object ServiceTestEnvironment {
 
         stopKoin()
         container.stop()
+        localStackContainer.stop()
         containerStarted = false
     }
 
@@ -123,8 +137,27 @@ object ServiceTestEnvironment {
                 notificationTestModule(),
                 aiTestModule(),
                 authTestModule(),
+                storageModule(testS3Config()),
                 serviceModule(),
             )
+        }
+    }
+
+    private fun testS3Config(): S3Config =
+        S3Config(
+            region = localStackContainer.region,
+            bucket = S3_BUCKET,
+            endpoint = localStackContainer.endpoint.toString(),
+            forcePathStyle = true,
+            publicBaseUrl = null,
+        )
+
+    private fun ensureS3Bucket() {
+        val s3Client = GlobalContext.get().get<S3Client>()
+        runBlocking {
+            runCatching {
+                s3Client.createBucket { bucket = S3_BUCKET }
+            }
         }
     }
 

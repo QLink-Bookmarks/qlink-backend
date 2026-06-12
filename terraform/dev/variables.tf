@@ -2,6 +2,16 @@ variable "aws_region" {
   type = string
 }
 
+variable "aws_s3_bucket_name" {
+  type = string
+}
+
+variable "images_domain" {
+  description = "Custom domain that serves uploaded images via CloudFront"
+  type        = string
+  default     = "images.qlinkapps.com"
+}
+
 variable "vpc_cidr" {
   type = string
 }
@@ -235,6 +245,10 @@ variable "task_execution_role_name" {
 }
 
 variable "task_execution_role_policy_arn" {
+  type = string
+}
+
+variable "ecs_task_role_name" {
   type = string
 }
 

@@ -45,6 +45,29 @@ module "security" {
   rds_public_ingress_cidrs  = var.rds_public_ingress_cidrs
 }
 
+module "s3" {
+  source = "../modules/s3"
+
+  bucket_name     = var.aws_s3_bucket_name
+  bucket_tag_name = var.aws_s3_bucket_name
+}
+
+module "cloudfront" {
+  source = "../modules/cloudfront"
+
+  providers = {
+    aws           = aws
+    aws.us_east_1 = aws.us_east_1
+  }
+
+  domain_name                 = var.images_domain
+  hosted_zone_id              = var.route53_hosted_zone_id
+  price_class                 = "PriceClass_200"
+  bucket_id                   = module.s3.bucket_name
+  bucket_arn                  = module.s3.bucket_arn
+  bucket_regional_domain_name = module.s3.bucket_regional_domain_name
+}
+
 module "ecr" {
   source = "../modules/ecr"
 
@@ -85,6 +108,12 @@ module "route53_dev" {
       hosted_zone_id         = module.alb.alb_zone_id
       evaluate_target_health = true
     }
+    images = {
+      name                   = var.images_domain
+      dns_name               = module.cloudfront.distribution_domain_name
+      hosted_zone_id         = module.cloudfront.distribution_hosted_zone_id
+      evaluate_target_health = false
+    }
   }
 }
 
@@ -117,6 +146,9 @@ module "ecs" {
 
   task_execution_role_name       = var.task_execution_role_name
   task_execution_role_policy_arn = var.task_execution_role_policy_arn
+  task_role_name                 = var.ecs_task_role_name
+  s3_bucket_arn                  = module.s3.bucket_arn
+  s3_access_enabled              = true
 
   log_group_name              = var.ecs_log_group_name
   log_group_retention_in_days = var.ecs_log_group_retention_in_days
@@ -136,6 +168,11 @@ module "ecs" {
     DB_DRIVER_CLASS_NAME     = "org.postgresql.Driver"
     FCM_SERVICE_ACCOUNT_JSON = var.fcm_service_account_json
     EXPO_ACCESS_TOKEN        = var.expo_access_token
+    AWS_S3_REGION            = var.aws_region
+    AWS_S3_BUCKET            = module.s3.bucket_name
+    AWS_S3_ENDPOINT          = ""
+    AWS_S3_FORCE_PATH_STYLE  = "false"
+    AWS_S3_PUBLIC_BASE_URL   = module.cloudfront.public_base_url
   }
   task_healthcheck_command = var.ecs_task_healthcheck_command
   task_definition_tag_name = var.ecs_task_definition_tag_name

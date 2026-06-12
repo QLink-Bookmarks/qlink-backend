@@ -9,3 +9,16 @@ services:
       POSTGRES_DB: qlink
     ports:
       - "5432:5432"
+
+  localstack:
+    image: localstack/localstack:3
+    container_name: qlink_localstack
+    restart: unless-stopped
+    environment:
+      SERVICES: s3
+      AWS_DEFAULT_REGION: ap-northeast-2
+      AWS_S3_BUCKET: qlink-images-local
+    ports:
+      - "4566:4566"
+    volumes:
+      - "./scripts/localstack/init-s3.sh:/etc/localstack/init/ready.d/init-s3.sh"
