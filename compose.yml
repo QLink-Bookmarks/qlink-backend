@@ -17,7 +17,6 @@ services:
     environment:
       SERVICES: s3
       AWS_DEFAULT_REGION: ap-northeast-2
-      # Auto-create the local bucket and make its objects publicly readable on startup.
       AWS_S3_BUCKET: qlink-images-local
     ports:
       - "4566:4566"

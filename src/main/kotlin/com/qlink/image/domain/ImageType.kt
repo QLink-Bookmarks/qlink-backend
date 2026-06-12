@@ -1,9 +1,5 @@
 package com.qlink.image.domain
 
-/**
- * Supported image formats, detected by inspecting magic bytes rather than trusting
- * the client-supplied filename or Content-Type.
- */
 enum class ImageType(
     val contentType: String,
     val extension: String,
@@ -29,7 +25,6 @@ enum class ImageType(
             return signature.withIndex().all { (index, expected) -> this[index].toInt() and 0xFF == expected }
         }
 
-        // WebP: "RIFF" (0..3) .... "WEBP" (8..11)
         private fun ByteArray.isWebp(): Boolean =
             startsWith(0x52, 0x49, 0x46, 0x46) &&
                 size >= 12 &&

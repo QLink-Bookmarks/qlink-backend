@@ -128,8 +128,6 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
   policy_arn = var.task_execution_role_policy_arn
 }
 
-# Task role: the IAM identity the running application assumes for AWS API calls
-# (the AWS SDK default credential chain picks it up via ECS container credentials).
 resource "aws_iam_role" "ecs_task_role" {
   name = var.task_role_name
 
@@ -147,8 +145,6 @@ resource "aws_iam_role" "ecs_task_role" {
   })
 }
 
-# Allow uploading objects to the images bucket. Gated on a static flag (not the
-# bucket ARN, which is unknown at plan time for a newly created bucket).
 resource "aws_iam_role_policy" "ecs_task_s3" {
   count = var.s3_access_enabled ? 1 : 0
 

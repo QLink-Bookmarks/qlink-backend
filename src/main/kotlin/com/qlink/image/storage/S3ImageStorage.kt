@@ -26,7 +26,6 @@ class S3ImageStorage(
 
     private fun publicUrl(key: String): String {
         config.publicBaseUrl?.let { base -> return "${base.trimEnd('/')}/$key" }
-        // Path-style URL, used for LocalStack and any custom endpoint.
         config.endpoint?.let { endpoint -> return "${endpoint.trimEnd('/')}/${config.bucket}/$key" }
         return "https://${config.bucket}.s3.${config.region}.amazonaws.com/$key"
     }

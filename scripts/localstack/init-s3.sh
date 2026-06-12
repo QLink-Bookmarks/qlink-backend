@@ -1,7 +1,4 @@
 #!/bin/bash
-# Runs inside the LocalStack container once it is ready.
-# Creates the local images bucket and exposes its objects for public read,
-# mirroring the dev S3 bucket managed by Terraform.
 set -euo pipefail
 
 BUCKET="${AWS_S3_BUCKET:-qlink-images-local}"

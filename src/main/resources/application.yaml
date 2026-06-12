@@ -58,7 +58,6 @@ notification:
   fcm:
     serviceAccountJson: ""
 
-# Local defaults target LocalStack (see compose.yml); production overrides every value via AWS_S3_* env.
 aws:
   s3:
     region: ap-northeast-2

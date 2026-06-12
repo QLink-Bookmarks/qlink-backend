@@ -1,10 +1,8 @@
-# AWS-managed cache policy "CachingOptimized" (global, fixed id).
 locals {
   caching_optimized_policy_id = "658327ea-f89d-4fab-a63d-7e88639e58f6"
   origin_id                   = "s3-${var.bucket_id}"
 }
 
-# --- ACM certificate (must be in us-east-1 for CloudFront), validated via Route53 DNS ---
 resource "aws_acm_certificate" "cdn" {
   provider          = aws.us_east_1
   domain_name       = var.domain_name
@@ -38,7 +36,6 @@ resource "aws_acm_certificate_validation" "cdn" {
   validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
 }
 
-# --- Origin Access Control: CloudFront signs requests to the private S3 bucket ---
 resource "aws_cloudfront_origin_access_control" "s3" {
   name                              = "${var.bucket_id}-oac"
   description                       = "OAC for ${var.bucket_id}"
@@ -86,7 +83,6 @@ resource "aws_cloudfront_distribution" "cdn" {
   }
 }
 
-# --- Bucket policy: only this distribution may read objects ---
 resource "aws_s3_bucket_policy" "cdn_oac_read" {
   bucket = var.bucket_id
 

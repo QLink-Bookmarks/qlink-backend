@@ -31,13 +31,6 @@ data class S3Config(
                 publicBaseUrl = resolve(env, config, "AWS_S3_PUBLIC_BASE_URL", "aws.s3.publicBaseUrl"),
             )
 
-        /**
-         * Resolves a value with system env taking precedence over [application.yaml].
-         *
-         * When the env key is *present at all* it wins even if blank, letting production explicitly
-         * disable a local default (e.g. `AWS_S3_ENDPOINT=""` to fall back to real AWS instead of LocalStack).
-         * Blank resolves to null, so callers can apply their own default.
-         */
         private fun resolve(
             env: Map<String, String>,
             config: ApplicationConfig,

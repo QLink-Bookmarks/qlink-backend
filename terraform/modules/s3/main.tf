@@ -14,8 +14,6 @@ resource "aws_s3_bucket_ownership_controls" "images" {
   }
 }
 
-# The bucket is fully private; objects are served only through CloudFront (OAC).
-# The read policy granting access to the distribution lives in the cloudfront module.
 resource "aws_s3_bucket_public_access_block" "images" {
   bucket = aws_s3_bucket.images.id
 
@@ -25,7 +23,6 @@ resource "aws_s3_bucket_public_access_block" "images" {
   restrict_public_buckets = true
 }
 
-# Clean up incomplete multipart uploads so they don't accumulate storage cost.
 resource "aws_s3_bucket_lifecycle_configuration" "images" {
   bucket = aws_s3_bucket.images.id
 

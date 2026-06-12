@@ -5,10 +5,6 @@ import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireTrue
 import java.util.UUID
 
-/**
- * A validated image ready to be stored. Construction guarantees the bytes are a
- * supported image format and within the size limit.
- */
 class ImageFile private constructor(
     val bytes: ByteArray,
     val type: ImageType,
