@@ -23,9 +23,7 @@ class SetLinkFavoriteService(
             val link = linkRepository.findById(linkId) ?: throw BusinessException(ErrorCode.LINK_NOT_FOUND)
             link.validateOwner(loginId)
 
-            if (isFavorite != null) {
-                linkRepository.update(link.changeFavorite(isFavorite))
-            }
+            link.changeFavorite(isFavorite)?.let { linkRepository.update(it) }
         }
     }
 }
