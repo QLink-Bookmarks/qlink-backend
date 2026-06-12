@@ -55,8 +55,7 @@ class Link(
         tags: List<String>,
         thumbnailUrl: String?,
         sourceType: SourceType,
-        isFavorite: Boolean = favoriteAt != null,
-        now: Instant = Clock.System.now(),
+        favoriteAt: Instant? = this.favoriteAt,
     ): Link =
         Link(
             id = id,
@@ -71,10 +70,40 @@ class Link(
             sourceType = sourceType,
             status = status,
             workModelId = workModelId,
-            favoriteAt = resolveFavoriteAt(isFavorite, now),
+            favoriteAt = favoriteAt,
             createdAt = createdAt,
             updatedAt = updatedAt,
         )
+
+    fun changeFavorite(
+        isFavorite: Boolean?,
+        now: Instant = Clock.System.now(),
+    ): Link? =
+        when (isFavorite) {
+            null -> {
+                null
+            }
+
+            else -> {
+                Link(
+                    id = id,
+                    ownerId = ownerId,
+                    folderId = folderId,
+                    url = url,
+                    title = title,
+                    summary = summary,
+                    memo = memo,
+                    tags = tags,
+                    thumbnailUrl = thumbnailUrl,
+                    sourceType = sourceType,
+                    status = status,
+                    workModelId = workModelId,
+                    favoriteAt = resolveFavoriteAt(isFavorite, now),
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
+                )
+            }
+        }
 
     private fun resolveFavoriteAt(
         isFavorite: Boolean,

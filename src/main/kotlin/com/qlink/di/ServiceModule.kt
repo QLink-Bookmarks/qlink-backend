@@ -23,6 +23,7 @@ import com.qlink.link.service.DeleteLinkService
 import com.qlink.link.service.GetLinkDetailService
 import com.qlink.link.service.GetLinksService
 import com.qlink.link.service.PatchLinkService
+import com.qlink.link.service.SetLinkFavoriteService
 import com.qlink.link.service.UpdateLinkService
 import com.qlink.notification.service.GetNotificationsService
 import com.qlink.notification.service.GetUnreadNotificationCountService
@@ -274,6 +275,14 @@ fun serviceModule() =
 
         single {
             DeleteLinkService(
+                tx = get(),
+                linkRepository = get(),
+                userRepository = get(),
+            )
+        }
+
+        single {
+            SetLinkFavoriteService(
                 tx = get(),
                 linkRepository = get(),
                 userRepository = get(),

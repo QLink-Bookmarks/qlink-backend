@@ -21,5 +21,10 @@ class LinkResources(
     class ById(
         val parent: LinkResources = LinkResources(),
         val id: Long,
-    )
+    ) {
+        @Resource("favorite")
+        class Favorite(
+            val parent: ById,
+        )
+    }
 }

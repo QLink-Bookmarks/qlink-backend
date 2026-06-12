@@ -43,10 +43,7 @@ object LinkFixture {
             tags = tags,
         )
 
-    fun createValidUpdateLinkRequest(
-        folderId: Long? = null,
-        isFavorite: Boolean = false,
-    ): UpdateLinkRequest =
+    fun createValidUpdateLinkRequest(folderId: Long? = null): UpdateLinkRequest =
         UpdateLinkRequest(
             folderId = folderId,
             url = RandomFixture.randomUrl(),
@@ -56,7 +53,6 @@ object LinkFixture {
             tags = randomDistinctTags(),
             thumbnailUrl = RandomFixture.randomUrl(),
             sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
-            isFavorite = isFavorite,
         )
 
     fun createPatchLinkRequest(

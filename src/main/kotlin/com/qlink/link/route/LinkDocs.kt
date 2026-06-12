@@ -15,6 +15,7 @@ import com.qlink.link.dto.GetLinkDetailResponse
 import com.qlink.link.dto.GetLinksContentResponse
 import com.qlink.link.dto.PatchLinkRequest
 import com.qlink.link.dto.PatchLinkResponse
+import com.qlink.link.dto.SetLinkFavoriteRequest
 import com.qlink.link.dto.UpdateLinkRequest
 import com.qlink.link.dto.UpdateLinkResponse
 import io.github.smiley4.ktoropenapi.config.RouteConfig
@@ -252,6 +253,37 @@ internal fun patchLinkDocs(): RouteConfig.() -> Unit =
                         ErrorCode.LINK_NOT_FOUND,
                         ErrorCode.LINK_FOLDER_NOT_FOUND,
                         ErrorCode.TODO_NOT_FOUND,
+                    )
+                }
+            }
+        }
+    }
+
+internal fun setLinkFavoriteDocs(): RouteConfig.() -> Unit =
+    {
+        summary = "링크 바로가기 설정 API"
+        request {
+            pathParameter<Long>("id") { description = "링크 ID" }
+            body<SetLinkFavoriteRequest>()
+        }
+        response {
+            code(HttpStatusCode.OK) {
+                description = "링크 바로가기 설정 성공"
+                body<EmptySuccessResponse>()
+            }
+            authErrorResponse()
+            code(HttpStatusCode.Forbidden) {
+                description = "링크 바로가기 설정 권한 검증 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.LINK_DIFFERENT_OWNER)
+                }
+            }
+            code(HttpStatusCode.NotFound) {
+                description = "링크 바로가기 설정 대상 리소스 조회 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(
+                        ErrorCode.LINK_OWNER_NOT_FOUND,
+                        ErrorCode.LINK_NOT_FOUND,
                     )
                 }
             }
