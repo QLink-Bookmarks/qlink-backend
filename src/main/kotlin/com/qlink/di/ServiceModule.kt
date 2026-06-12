@@ -365,6 +365,8 @@ fun serviceModule() =
 
         single {
             UploadImageService(
+                tx = get(),
+                userRepository = get(),
                 imageStorage = get(),
             )
         }

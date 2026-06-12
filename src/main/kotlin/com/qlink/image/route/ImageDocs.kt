@@ -1,5 +1,6 @@
 package com.qlink.image.route
 
+import com.qlink.common.docs.authErrorResponse
 import com.qlink.common.docs.examples
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.response.ApiResponse
@@ -27,6 +28,13 @@ internal fun uploadImageDocs(): RouteConfig.() -> Unit =
                         ErrorCode.IMAGE_INVALID_FORMAT,
                         ErrorCode.IMAGE_FILE_TOO_LARGE,
                     )
+                }
+            }
+            authErrorResponse()
+            code(HttpStatusCode.NotFound) {
+                description = "로그인 사용자 조회 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.IMAGE_OWNER_NOT_FOUND)
                 }
             }
             code(HttpStatusCode.InternalServerError) {
