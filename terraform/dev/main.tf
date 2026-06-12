@@ -148,6 +148,7 @@ module "ecs" {
   task_execution_role_policy_arn = var.task_execution_role_policy_arn
   task_role_name                 = var.ecs_task_role_name
   s3_bucket_arn                  = module.s3.bucket_arn
+  s3_access_enabled              = true
 
   log_group_name              = var.ecs_log_group_name
   log_group_retention_in_days = var.ecs_log_group_retention_in_days

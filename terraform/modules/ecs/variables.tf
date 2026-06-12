@@ -87,6 +87,12 @@ variable "s3_bucket_arn" {
   default = ""
 }
 
+variable "s3_access_enabled" {
+  description = "Attach the s3:PutObject policy to the task role"
+  type        = bool
+  default     = false
+}
+
 variable "log_group_name" {
   type = string
 }
