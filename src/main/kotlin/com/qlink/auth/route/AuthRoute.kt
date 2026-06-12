@@ -63,18 +63,11 @@ fun Route.authRoutes() {
 private fun Route.signOutRoute(signOutService: SignOutService) {
     authenticate {
         resource<AuthResources.Signout> {
-            install(CSRF) {
-                checkHeader(CSRF_TOKEN_HEADER_NAME)
-                onFailure { reason ->
-                    respondError(
-                        errorCode = ErrorCode.AUTH_CSRF_TOKEN_INVALID,
-                        causeMessage = reason,
-                    )
-                }
-            }
+            installCsrfHeaderCheck()
 
             deleteWithoutResource(signOutDocs()) {
                 val principal = call.principal<JwtPrincipal>()!!
+                // 웹은 쿠키, 네이티브는 쿠키가 없어 요청 바디로 refresh token을 전달한다
                 val refreshToken = call.resolveSignOutRefreshToken()
 
                 signOutService.signOut(principal.userId, refreshToken)
@@ -86,27 +79,15 @@ private fun Route.signOutRoute(signOutService: SignOutService) {
     }
 }
 
-private suspend fun ApplicationCall.resolveSignOutRefreshToken(): String? {
-    request.cookies[REFRESH_TOKEN_COOKIE_NAME]
-        ?.takeIf { it.isNotBlank() }
-        ?.let { return it }
-
-    return runCatching { receiveNullable<SignOutRequest>()?.refreshToken }
-        .getOrNull()
-        ?.takeIf { it.isNotBlank() }
-}
+private suspend fun ApplicationCall.resolveSignOutRefreshToken(): String? =
+    request.cookies[REFRESH_TOKEN_COOKIE_NAME]?.takeIf { it.isNotBlank() }
+        ?: runCatching { receiveNullable<SignOutRequest>()?.refreshToken }
+            .getOrNull()
+            ?.takeIf { it.isNotBlank() }
 
 private fun Route.webRefreshRoute(refreshAuthTokenService: RefreshAuthTokenService) {
     resource<AuthResources.Token.Refresh.Web> {
-        install(CSRF) {
-            checkHeader(CSRF_TOKEN_HEADER_NAME)
-            onFailure { reason ->
-                respondError(
-                    errorCode = ErrorCode.AUTH_CSRF_TOKEN_INVALID,
-                    causeMessage = reason,
-                )
-            }
-        }
+        installCsrfHeaderCheck()
 
         postWithoutResource(webRefreshAuthTokenDocs()) {
             val refreshToken =
@@ -117,6 +98,18 @@ private fun Route.webRefreshRoute(refreshAuthTokenService: RefreshAuthTokenServi
 
             call.appendRefreshTokenCookie(response.refreshToken)
             call.respondSuccess(HttpStatusCode.Created, response)
+        }
+    }
+}
+
+private fun Route.installCsrfHeaderCheck() {
+    install(CSRF) {
+        checkHeader(CSRF_TOKEN_HEADER_NAME)
+        onFailure { reason ->
+            respondError(
+                errorCode = ErrorCode.AUTH_CSRF_TOKEN_INVALID,
+                causeMessage = reason,
+            )
         }
     }
 }
