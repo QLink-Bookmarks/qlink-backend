@@ -3,6 +3,7 @@ package com.qlink.foldermember.repository
 import com.qlink.folder.dto.FolderMemberQuery
 import com.qlink.folder.dto.toFolderMemberQuery
 import com.qlink.foldermember.domain.FolderMember
+import com.qlink.foldermember.domain.MemberRole
 import com.qlink.foldermember.repository.table.FolderMembers
 import com.qlink.foldermember.repository.table.fromDomain
 import com.qlink.foldermember.repository.table.toFolderMemberDomain
@@ -91,7 +92,7 @@ class DbFolderMemberRepository : FolderMemberRepository {
     override suspend fun updateRole(
         folderId: Long,
         userId: Long,
-        role: String,
+        role: MemberRole,
     ) {
         FolderMembers.update(
             where = {
@@ -99,7 +100,7 @@ class DbFolderMemberRepository : FolderMemberRepository {
                     (FolderMembers.userId eq userId)
             },
         ) {
-            it[FolderMembers.role] = role
+            it[FolderMembers.role] = role.name
             it[FolderMembers.updatedAt] = Clock.System.now().toJavaInstant()
         }
     }

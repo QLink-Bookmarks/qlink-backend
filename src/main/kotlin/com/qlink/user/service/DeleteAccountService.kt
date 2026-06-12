@@ -5,10 +5,9 @@ import com.qlink.common.error.ErrorCode
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.folder.domain.Folder
 import com.qlink.folder.repository.FolderRepository
+import com.qlink.foldermember.domain.MemberRole
 import com.qlink.foldermember.repository.FolderMemberRepository
 import com.qlink.user.repository.UserRepository
-
-private const val OWNER_ROLE = "OWNER"
 
 class DeleteAccountService(
     private val tx: TransactionRunner,
@@ -45,6 +44,6 @@ class DeleteAccountService(
         }
 
         folderRepository.update(folder.delegateTo(nextOwner.userId))
-        folderMemberRepository.updateRole(folderId, nextOwner.userId, OWNER_ROLE)
+        folderMemberRepository.updateRole(folderId, nextOwner.userId, MemberRole.OWNER)
     }
 }

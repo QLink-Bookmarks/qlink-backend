@@ -2,6 +2,7 @@ package com.qlink.foldermember.repository
 
 import com.qlink.folder.dto.FolderMemberQuery
 import com.qlink.foldermember.domain.FolderMember
+import com.qlink.foldermember.domain.MemberRole
 
 interface FolderMemberRepository {
     suspend fun findByFolderIdAndUserId(
@@ -25,7 +26,7 @@ interface FolderMemberRepository {
     suspend fun updateRole(
         folderId: Long,
         userId: Long,
-        role: String,
+        role: MemberRole,
     )
 
     suspend fun deleteByFolderIdAndUserId(
