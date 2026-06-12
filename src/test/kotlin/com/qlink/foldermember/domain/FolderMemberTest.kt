@@ -16,7 +16,7 @@ class FolderMemberTest :
                         folderId = 1,
                         userId = 2,
                         userName = "tester",
-                        role = "owner",
+                        role = MemberRole.OWNER,
                         joinedAt = now,
                         createdAt = now,
                         updatedAt = now,
@@ -25,12 +25,12 @@ class FolderMemberTest :
                 Then("값과 data class 동작이 유지된다") {
                     folderMember.folderId shouldBe 1
                     folderMember.userName shouldBe "tester"
-                    folderMember.role shouldBe "owner"
+                    folderMember.role shouldBe MemberRole.OWNER
                     folderMember.copy() shouldBe folderMember
                     folderMember.copy(folderId = 2) shouldNotBe folderMember
                     folderMember.copy(userId = 3) shouldNotBe folderMember
                     folderMember.copy(userName = "other") shouldNotBe folderMember
-                    folderMember.copy(role = "member") shouldNotBe folderMember
+                    folderMember.copy(role = MemberRole.MEMBER) shouldNotBe folderMember
                     folderMember.copy(joinedAt = now + 1.seconds) shouldNotBe folderMember
                     folderMember.copy(createdAt = now + 2.seconds) shouldNotBe folderMember
                     folderMember.copy(updatedAt = now + 3.seconds) shouldNotBe folderMember
@@ -53,7 +53,7 @@ class FolderMemberTest :
                     folderMember.folderId shouldBe 1
                     folderMember.userId shouldBe 2
                     folderMember.userName shouldBe "owner"
-                    folderMember.role shouldBe "OWNER"
+                    folderMember.role shouldBe MemberRole.OWNER
                     folderMember.joinedAt shouldBe now
                     folderMember.createdAt shouldBe now
                     folderMember.updatedAt shouldBe now
@@ -74,7 +74,7 @@ class FolderMemberTest :
                     folderMember.folderId shouldBe 1
                     folderMember.userId shouldBe 2
                     folderMember.userName shouldBe "member"
-                    folderMember.role shouldBe "MEMBER"
+                    folderMember.role shouldBe MemberRole.MEMBER
                     folderMember.joinedAt shouldBe now
                     folderMember.createdAt shouldBe now
                     folderMember.updatedAt shouldBe now

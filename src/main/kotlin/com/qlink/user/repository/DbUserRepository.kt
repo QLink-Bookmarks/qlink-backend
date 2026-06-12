@@ -8,6 +8,7 @@ import com.qlink.user.repository.table.toUserDomain
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.neq
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -44,4 +45,8 @@ class DbUserRepository : UserRepository {
                 it.refreshUserUpdatedAt()
             }.single()
             .toUserDomain()
+
+    override suspend fun deleteById(userId: Long) {
+        Users.deleteWhere { id eq userId }
+    }
 }

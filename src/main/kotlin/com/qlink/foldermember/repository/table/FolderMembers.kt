@@ -2,6 +2,7 @@ package com.qlink.foldermember.repository.table
 
 import com.qlink.folder.repository.table.Folders
 import com.qlink.foldermember.domain.FolderMember
+import com.qlink.foldermember.domain.MemberRole
 import com.qlink.user.repository.table.Users
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.ResultRow
@@ -33,7 +34,7 @@ fun ResultRow.toFolderMemberDomain(): FolderMember =
         folderId = this[FolderMembers.folderId],
         userId = this[FolderMembers.userId],
         userName = this[FolderMembers.userName],
-        role = this[FolderMembers.role],
+        role = MemberRole.valueOf(this[FolderMembers.role]),
         joinedAt = this[FolderMembers.joinedAt].toKotlinInstant(),
         createdAt = this[FolderMembers.createdAt].toKotlinInstant(),
         updatedAt = this[FolderMembers.updatedAt].toKotlinInstant(),
@@ -43,6 +44,6 @@ fun UpdateBuilder<*>.fromDomain(folderMember: FolderMember) {
     this[FolderMembers.folderId] = folderMember.folderId
     this[FolderMembers.userId] = folderMember.userId
     this[FolderMembers.userName] = folderMember.userName
-    this[FolderMembers.role] = folderMember.role
+    this[FolderMembers.role] = folderMember.role.name
     this[FolderMembers.joinedAt] = folderMember.joinedAt.toJavaInstant()
 }
