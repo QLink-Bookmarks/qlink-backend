@@ -14,44 +14,15 @@ resource "aws_s3_bucket_ownership_controls" "images" {
   }
 }
 
-# Public-read objects are served via a bucket policy (ACLs are disabled by the ownership control above).
+# The bucket is fully private; objects are served only through CloudFront (OAC).
+# The read policy granting access to the distribution lives in the cloudfront module.
 resource "aws_s3_bucket_public_access_block" "images" {
   bucket = aws_s3_bucket.images.id
 
   block_public_acls       = true
   ignore_public_acls      = true
-  block_public_policy     = false
-  restrict_public_buckets = false
-}
-
-resource "aws_s3_bucket_policy" "images_public_read" {
-  bucket = aws_s3_bucket.images.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid       = "PublicReadGetObject"
-        Effect    = "Allow"
-        Principal = "*"
-        Action    = "s3:GetObject"
-        Resource  = "${aws_s3_bucket.images.arn}/*"
-      }
-    ]
-  })
-
-  depends_on = [aws_s3_bucket_public_access_block.images]
-}
-
-resource "aws_s3_bucket_cors_configuration" "images" {
-  bucket = aws_s3_bucket.images.id
-
-  cors_rule {
-    allowed_methods = ["GET"]
-    allowed_origins = var.cors_allowed_origins
-    allowed_headers = ["*"]
-    max_age_seconds = 3000
-  }
+  block_public_policy     = true
+  restrict_public_buckets = true
 }
 
 # Clean up incomplete multipart uploads so they don't accumulate storage cost.

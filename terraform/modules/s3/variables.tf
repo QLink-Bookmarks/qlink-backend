@@ -5,8 +5,3 @@ variable "bucket_name" {
 variable "bucket_tag_name" {
   type = string
 }
-
-variable "cors_allowed_origins" {
-  type    = list(string)
-  default = ["*"]
-}

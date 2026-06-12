@@ -6,14 +6,10 @@ variable "aws_s3_bucket_name" {
   type = string
 }
 
-variable "aws_s3_cors_allowed_origins" {
-  type    = list(string)
-  default = ["*"]
-}
-
-variable "aws_s3_public_base_url" {
-  type    = string
-  default = ""
+variable "images_domain" {
+  description = "Custom domain that serves uploaded images via CloudFront"
+  type        = string
+  default     = "images.qlinkapps.com"
 }
 
 variable "vpc_cidr" {

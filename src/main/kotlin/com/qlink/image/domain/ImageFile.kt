@@ -13,10 +13,14 @@ class ImageFile private constructor(
     val bytes: ByteArray,
     val type: ImageType,
 ) {
-    fun newObjectKey(): String = "images/${UUID.randomUUID()}.${type.extension}"
+    fun newObjectKey(): String {
+        val uniqueId = UUID.randomUUID().toString().replace("-", "")
+        return "$OBJECT_KEY_PREFIX$uniqueId.${type.extension}"
+    }
 
     companion object {
         const val MAX_SIZE_BYTES: Int = 10 * 1024 * 1024
+        const val OBJECT_KEY_PREFIX: String = "qlink_profile_"
 
         fun of(bytes: ByteArray): ImageFile {
             bytes.isNotEmpty().requireTrue(ErrorCode.IMAGE_FILE_REQUIRED)

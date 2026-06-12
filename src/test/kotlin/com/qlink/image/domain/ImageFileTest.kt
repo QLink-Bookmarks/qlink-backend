@@ -40,7 +40,7 @@ class ImageFileTest :
                 Then("형식이 매핑된 ImageFile을 생성한다") {
                     val image = ImageFile.of(PNG)
                     image.type shouldBe ImageType.PNG
-                    image.newObjectKey().startsWith("images/") shouldBe true
+                    image.newObjectKey().startsWith("qlink_profile_") shouldBe true
                     image.newObjectKey().endsWith(".png") shouldBe true
                 }
             }

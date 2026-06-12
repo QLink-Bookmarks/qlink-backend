@@ -1,7 +1,7 @@
 aws_region = "ap-northeast-2"
 
-aws_s3_bucket_name     = "qlink-images-dev"
-aws_s3_public_base_url = ""
+aws_s3_bucket_name = "qlink-images-dev"
+images_domain      = "images.qlinkapps.com"
 
 vpc_cidr = "172.31.0.0/16"
 az_a     = "ap-northeast-2a"

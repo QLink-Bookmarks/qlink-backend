@@ -48,9 +48,24 @@ module "security" {
 module "s3" {
   source = "../modules/s3"
 
-  bucket_name          = var.aws_s3_bucket_name
-  bucket_tag_name      = var.aws_s3_bucket_name
-  cors_allowed_origins = var.aws_s3_cors_allowed_origins
+  bucket_name     = var.aws_s3_bucket_name
+  bucket_tag_name = var.aws_s3_bucket_name
+}
+
+module "cloudfront" {
+  source = "../modules/cloudfront"
+
+  providers = {
+    aws           = aws
+    aws.us_east_1 = aws.us_east_1
+  }
+
+  domain_name                 = var.images_domain
+  hosted_zone_id              = var.route53_hosted_zone_id
+  price_class                 = "PriceClass_200"
+  bucket_id                   = module.s3.bucket_name
+  bucket_arn                  = module.s3.bucket_arn
+  bucket_regional_domain_name = module.s3.bucket_regional_domain_name
 }
 
 module "ecr" {
@@ -92,6 +107,12 @@ module "route53_dev" {
       dns_name               = "dualstack.${module.alb.alb_dns_name}"
       hosted_zone_id         = module.alb.alb_zone_id
       evaluate_target_health = true
+    }
+    images = {
+      name                   = var.images_domain
+      dns_name               = module.cloudfront.distribution_domain_name
+      hosted_zone_id         = module.cloudfront.distribution_hosted_zone_id
+      evaluate_target_health = false
     }
   }
 }
@@ -150,7 +171,7 @@ module "ecs" {
     AWS_S3_BUCKET            = module.s3.bucket_name
     AWS_S3_ENDPOINT          = ""
     AWS_S3_FORCE_PATH_STYLE  = "false"
-    AWS_S3_PUBLIC_BASE_URL   = var.aws_s3_public_base_url
+    AWS_S3_PUBLIC_BASE_URL   = module.cloudfront.public_base_url
     # No AWS_S3_ACCESS_KEY_ID / SECRET: the app uses the ECS task role via the
     # default credential chain (see module.ecs task_role + s3_bucket_arn policy).
   }
