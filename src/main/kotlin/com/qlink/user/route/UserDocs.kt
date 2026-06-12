@@ -70,6 +70,24 @@ internal fun updateMyProfileDocs(): RouteConfig.() -> Unit =
         }
     }
 
+internal fun deleteMyAccountDocs(): RouteConfig.() -> Unit =
+    {
+        summary = "회원탈퇴 API"
+        response {
+            code(HttpStatusCode.OK) {
+                description = "회원탈퇴 성공"
+                body<ApiResponse<EmptySuccessResponse>>()
+            }
+            authErrorResponse()
+            code(HttpStatusCode.NotFound) {
+                description = "로그인 사용자 조회 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.USER_NOT_FOUND)
+                }
+            }
+        }
+    }
+
 internal fun getMySettingsDocs(): RouteConfig.() -> Unit =
     {
         summary = "사용자 설정 조회 API"

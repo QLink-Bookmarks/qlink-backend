@@ -3,6 +3,7 @@ package com.qlink.auth.route
 import com.qlink.auth.dto.AuthTokenResponse
 import com.qlink.auth.dto.NativeRefreshTokenRequest
 import com.qlink.auth.dto.SignInRequest
+import com.qlink.auth.dto.SignOutRequest
 import com.qlink.common.docs.examples
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.response.ApiResponse
@@ -46,6 +47,30 @@ internal fun webRefreshAuthTokenDocs(): RouteConfig.() -> Unit =
                 description = "refresh token 인증 실패"
                 body<ApiResponse<ErrorDetail>> {
                     examples(ErrorCode.AUTH_NO_CREDENTIALS, ErrorCode.AUTH_INVALID_CREDENTIALS)
+                }
+            }
+            code(HttpStatusCode.Forbidden) {
+                description = "CSRF token 검증 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.AUTH_CSRF_TOKEN_INVALID)
+                }
+            }
+        }
+    }
+
+internal fun signOutDocs(): RouteConfig.() -> Unit =
+    {
+        summary = "로그아웃 API"
+        request { body<SignOutRequest>() }
+        response {
+            code(HttpStatusCode.OK) {
+                description = "로그아웃 성공"
+                body<ApiResponse<Unit>>()
+            }
+            code(HttpStatusCode.NotFound) {
+                description = "로그인 사용자 없음"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.USER_NOT_FOUND)
                 }
             }
             code(HttpStatusCode.Forbidden) {

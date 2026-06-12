@@ -15,4 +15,6 @@ interface UserRepository {
     suspend fun insert(user: User): User
 
     suspend fun update(user: User): User
+
+    suspend fun deleteById(userId: Long)
 }

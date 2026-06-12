@@ -8,6 +8,7 @@ import com.qlink.auth.repository.table.toRefreshTokenDomain
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.updateReturning
@@ -65,4 +66,14 @@ class DbRefreshTokenRepository : RefreshTokenRepository {
                 it.refreshRefreshTokenUpdatedAt()
             }.singleOrNull()
             ?.toRefreshTokenDomain()
+
+    override suspend fun deleteByUserIdAndToken(
+        userId: Long,
+        token: String,
+    ) {
+        RefreshTokens.deleteWhere {
+            (RefreshTokens.userId eq userId) and
+                (RefreshTokens.token eq token)
+        }
+    }
 }

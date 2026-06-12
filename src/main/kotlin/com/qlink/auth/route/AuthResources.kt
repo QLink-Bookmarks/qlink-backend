@@ -9,6 +9,11 @@ class AuthResources {
         val parent: AuthResources = AuthResources(),
     )
 
+    @Resource("signout")
+    class Signout(
+        val parent: AuthResources = AuthResources(),
+    )
+
     @Resource("token")
     class Token(
         val parent: AuthResources = AuthResources(),

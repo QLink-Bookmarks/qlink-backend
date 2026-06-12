@@ -1,13 +1,16 @@
 package com.qlink.user.route
 
 import com.qlink.auth.domain.JwtPrincipal
+import com.qlink.common.cookie.expireAuthCookies
 import com.qlink.common.response.respondSuccess
 import com.qlink.user.dto.UpdateMyProfileRequest
 import com.qlink.user.dto.UpdateMySettingsRequest
+import com.qlink.user.service.DeleteAccountService
 import com.qlink.user.service.GetMyProfileService
 import com.qlink.user.service.GetMySettingsService
 import com.qlink.user.service.UpdateMyProfileService
 import com.qlink.user.service.UpdateMySettingsService
+import io.github.smiley4.ktoropenapi.resources.delete
 import io.github.smiley4.ktoropenapi.resources.get
 import io.github.smiley4.ktoropenapi.resources.patch
 import io.github.smiley4.ktoropenapi.resources.put
@@ -23,6 +26,7 @@ fun Route.userRoutes() {
     val getMySettingsService by inject<GetMySettingsService>()
     val updateMyProfileService by inject<UpdateMyProfileService>()
     val updateMySettingsService by inject<UpdateMySettingsService>()
+    val deleteAccountService by inject<DeleteAccountService>()
 
     authenticate {
         get<UserResources.Me>(getMyProfileDocs()) {
@@ -38,6 +42,15 @@ fun Route.userRoutes() {
 
             updateMyProfileService.updateMyProfile(principal.userId, request)
 
+            call.respondSuccess(HttpStatusCode.OK)
+        }
+
+        delete<UserResources.Me>(deleteMyAccountDocs()) {
+            val principal = call.principal<JwtPrincipal>()!!
+
+            deleteAccountService.deleteAccount(principal.userId)
+
+            call.expireAuthCookies()
             call.respondSuccess(HttpStatusCode.OK)
         }
 

@@ -7,6 +7,7 @@ import com.qlink.auth.service.AuthTokenService
 import com.qlink.auth.service.RandomUserNameGenerator
 import com.qlink.auth.service.RefreshAuthTokenService
 import com.qlink.auth.service.SignInService
+import com.qlink.auth.service.SignOutService
 import com.qlink.device.service.PutDeviceService
 import com.qlink.folder.service.AcceptFolderInvitationService
 import com.qlink.folder.service.CreateFolderInvitationService
@@ -32,6 +33,7 @@ import com.qlink.todo.service.CreateTodoService
 import com.qlink.todo.service.DeleteTodoService
 import com.qlink.todo.service.GetTodosService
 import com.qlink.todo.service.UpdateTodoService
+import com.qlink.user.service.DeleteAccountService
 import com.qlink.user.service.GetMyProfileService
 import com.qlink.user.service.GetMySettingsService
 import com.qlink.user.service.UpdateMyProfileService
@@ -72,6 +74,14 @@ fun serviceModule() =
         }
 
         single {
+            SignOutService(
+                tx = get(),
+                userRepository = get(),
+                refreshTokenRepository = get(),
+            )
+        }
+
+        single {
             GetMyProfileService(
                 tx = get(),
                 userRepository = get(),
@@ -91,6 +101,15 @@ fun serviceModule() =
             UpdateMyProfileService(
                 tx = get(),
                 userRepository = get(),
+            )
+        }
+
+        single {
+            DeleteAccountService(
+                tx = get(),
+                userRepository = get(),
+                folderRepository = get(),
+                folderMemberRepository = get(),
             )
         }
 

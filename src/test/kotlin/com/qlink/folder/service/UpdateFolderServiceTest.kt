@@ -5,6 +5,7 @@ import com.qlink.common.error.ErrorCode
 import com.qlink.folder.domain.Folder
 import com.qlink.folder.dto.UpdateFolderRequest
 import com.qlink.folder.repository.FolderRepository
+import com.qlink.foldermember.domain.MemberRole
 import com.qlink.foldermember.repository.FolderMemberRepository
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.FolderFixture
@@ -85,7 +86,7 @@ class UpdateFolderServiceTest :
                     actual!!.sharedAt shouldNotBe null
                     member shouldNotBe null
                     member!!.userName shouldBe user.nickname
-                    member.role shouldBe "OWNER"
+                    member.role shouldBe MemberRole.OWNER
                 }
             }
 
