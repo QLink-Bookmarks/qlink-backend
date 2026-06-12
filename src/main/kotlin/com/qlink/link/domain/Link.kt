@@ -6,6 +6,7 @@ import com.qlink.common.error.requireFalse
 import com.qlink.common.error.requireNotOver
 import com.qlink.common.error.requireTrue
 import java.net.URI
+import kotlin.time.Clock
 import kotlin.time.Instant
 
 private const val MAX_TITLE_LENGTH = 300
@@ -76,7 +77,7 @@ class Link(
 
     fun changeFavorite(
         isFavorite: Boolean,
-        now: Instant,
+        now: Instant = Clock.System.now(),
     ): Link =
         Link(
             id = id,

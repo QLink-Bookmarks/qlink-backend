@@ -6,7 +6,6 @@ import com.qlink.common.error.requireFalse
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.link.repository.LinkRepository
 import com.qlink.user.repository.UserRepository
-import kotlin.time.Clock
 
 class SetLinkFavoriteService(
     private val tx: TransactionRunner,
@@ -25,7 +24,7 @@ class SetLinkFavoriteService(
             link.validateOwner(loginId)
 
             if (isFavorite != null) {
-                linkRepository.update(link.changeFavorite(isFavorite, Clock.System.now()))
+                linkRepository.update(link.changeFavorite(isFavorite))
             }
         }
     }
