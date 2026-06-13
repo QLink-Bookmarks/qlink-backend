@@ -67,6 +67,17 @@ class DbNotificationRepository : NotificationRepository {
                     Notifications.failedAt.isNull()
             }.map { it.toNotificationDomain() }
 
+    override suspend fun findByContext(
+        context: NotificationContext,
+        contextId: Long,
+    ): List<Notification> =
+        Notifications
+            .selectAll()
+            .where {
+                (Notifications.context eq context) and
+                    (Notifications.contextId eq contextId)
+            }.map { it.toNotificationDomain() }
+
     override suspend fun findPendingByContext(
         context: NotificationContext,
         contextId: Long,
