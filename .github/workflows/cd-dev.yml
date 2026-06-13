@@ -31,11 +31,9 @@ jobs:
               - 'terraform/dev/**'
               - 'terraform/modules/**'
               - '.github/workflows/infra-pipeline.yml'
-              - '.github/workflows/cd-dev.yml'
             infra_shared:
               - 'terraform/shared/**'
               - '.github/workflows/infra-pipeline.yml'
-              - '.github/workflows/cd-dev.yml'
             app:
               - 'src/**'
               - 'build.gradle.kts'
