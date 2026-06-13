@@ -30,6 +30,7 @@ jobs:
             infra:
               - 'terraform/dev/**'
               - 'terraform/modules/**'
+              - '.github/workflows/cd-dev-infra-manual.yml'
               - '.github/workflows/infra-pipeline.yml'
             infra_shared:
               - 'terraform/shared/**'
