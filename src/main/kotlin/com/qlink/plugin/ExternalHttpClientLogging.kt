@@ -53,7 +53,7 @@ val ExternalHttpClientLogging =
                 url,
                 call.response.status.value,
                 startedAt.elapsedNow().inWholeMilliseconds,
-                response.sanitizeExternalHttpLog(httpLogging),
+                response.sanitizeExternalHttpLog(httpLogging).toSingleLine(),
             )
 
             call
@@ -83,6 +83,8 @@ private fun HttpRequestBuilder.queryWithoutKey(): String {
 
     return parameters.formUrlEncode().ifBlank { "-" }
 }
+
+private fun String.toSingleLine(): String = replace(Regex("""\s*[\r\n]+\s*"""), " ").trim()
 
 private fun String.sanitizeExternalHttpLog(httpLogging: HttpLoggingConfig): String =
     LogSanitizer
