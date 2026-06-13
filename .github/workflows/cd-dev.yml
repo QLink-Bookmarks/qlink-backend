@@ -30,15 +30,18 @@ jobs:
             infra:
               - 'terraform/dev/**'
               - 'terraform/modules/**'
+              - '.github/workflows/infra-pipeline.yml'
             infra_shared:
               - 'terraform/shared/**'
+              - '.github/workflows/infra-pipeline.yml'
             app:
               - 'src/**'
               - 'build.gradle.kts'
               - 'settings.gradle.kts'
               - 'gradle/**'
               - 'Dockerfile'
-              - '.github/workflows/**'
+              - '.github/workflows/deploy-pipeline.yml'
+              - '.github/workflows/cd-dev.yml'
               - '.gitmodules'
               - 'secrets/**'
 
