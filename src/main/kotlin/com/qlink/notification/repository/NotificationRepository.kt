@@ -19,6 +19,11 @@ interface NotificationRepository {
         endExclusive: Instant,
     ): List<Notification>
 
+    suspend fun findByContext(
+        context: NotificationContext,
+        contextId: Long,
+    ): List<Notification>
+
     suspend fun findPendingByContext(
         context: NotificationContext,
         contextId: Long,

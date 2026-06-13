@@ -42,6 +42,8 @@ class Notification(
     val isTodo: Boolean
         get() = context == NotificationContext.TODO
 
+    fun isFrom(todo: Todo): Boolean = isTodo && contextId == todo.id && willFireAt == todo.reminderAt
+
     fun markScheduled(scheduledAt: Instant): Notification =
         copy(
             scheduledAt = scheduledAt,

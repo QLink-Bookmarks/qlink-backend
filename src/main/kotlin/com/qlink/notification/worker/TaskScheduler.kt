@@ -120,15 +120,15 @@ class TaskScheduler(
                 endExclusive = endExclusive,
             ).forEach { todo ->
                 val todoId = todo.id ?: return@forEach
-                Notification
-                    .todo(todo)
-                    ?.takeUnless { nextNotification ->
-                        notificationRepository
-                            .findPendingByContext(
-                                context = NotificationContext.TODO,
-                                contextId = todoId,
-                            ).any { it.willFireAt == nextNotification.willFireAt }
-                    }?.let { notificationRepository.insert(it) }
+                val alreadyExists =
+                    notificationRepository
+                        .findByContext(
+                            context = NotificationContext.TODO,
+                            contextId = todoId,
+                        ).any { it.isFrom(todo) }
+                if (alreadyExists) return@forEach
+
+                Notification.todo(todo)?.let { notificationRepository.insert(it) }
             }
     }
 

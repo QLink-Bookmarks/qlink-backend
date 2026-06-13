@@ -55,6 +55,64 @@ class NotificationTest :
             }
         }
 
+        Given("할 일 기원(isFrom) 판별 테스트") {
+            val reminderAt = Clock.System.now().plus(1.days)
+            val todo =
+                Todo(
+                    id = RandomFixture.randomId(),
+                    linkId = RandomFixture.randomId(),
+                    ownerId = RandomFixture.randomId(),
+                    title = RandomFixture.randomSentenceWithMax(50),
+                    reminderAt = reminderAt,
+                )
+            val notification = Notification.todo(todo)!!
+
+            When("같은 할 일로 판별하면") {
+                Then("true 를 반환한다") {
+                    notification.isFrom(todo) shouldBe true
+                }
+            }
+
+            When("이미 발송된(fired) 알림이어도") {
+                val fired = notification.markFired(Clock.System.now())
+
+                Then("상태와 무관하게 true 를 반환한다") {
+                    fired.isPending shouldBe false
+                    fired.isFrom(todo) shouldBe true
+                }
+            }
+
+            When("리마인더 시각이 다른 할 일로 판별하면") {
+                val rescheduled =
+                    Todo(
+                        id = todo.id,
+                        linkId = todo.linkId,
+                        ownerId = todo.ownerId,
+                        title = todo.title,
+                        reminderAt = reminderAt.plus(1.days),
+                    )
+
+                Then("false 를 반환한다") {
+                    notification.isFrom(rescheduled) shouldBe false
+                }
+            }
+
+            When("다른 할 일(contextId)로 판별하면") {
+                val otherTodo =
+                    Todo(
+                        id = todo.id!! + 1,
+                        linkId = todo.linkId,
+                        ownerId = todo.ownerId,
+                        title = todo.title,
+                        reminderAt = reminderAt,
+                    )
+
+                Then("false 를 반환한다") {
+                    notification.isFrom(otherTodo) shouldBe false
+                }
+            }
+        }
+
         Given("알림 상태 변경 테스트") {
             val notification =
                 Notification(
