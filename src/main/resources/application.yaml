@@ -33,7 +33,8 @@ http:
       - Accept
       - Origin
       - X-Requested-With
-      - MyCustomHeader
+      - refresh_token
+      - csrf_token
     allowCredentials: true
     allowNonSimpleContentTypes: true
     anyHost: true
