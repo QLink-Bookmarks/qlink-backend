@@ -133,7 +133,11 @@ jobs:
             -target=module.ecs.aws_iam_role_policy_attachment.ecs_task_execution_role_policy \
             -target=module.ecs.aws_cloudwatch_log_group.ecs_log_group \
             -target=module.ecs.aws_ecs_capacity_provider.qlink_capacity_provider \
-            -target=module.ecs.aws_ecs_cluster_capacity_providers.qlink_cluster_cp
+            -target=module.ecs.aws_ecs_cluster_capacity_providers.qlink_cluster_cp \
+            -target=module.ecs.aws_iam_role.ecs_task_role \
+            -target=module.ecs.aws_iam_role_policy.ecs_task_s3 \
+            -target=module.s3 \
+            -target=module.cloudfront
 
       - name: Terraform Apply
         if: ${{ inputs.infra_update_enabled }}
