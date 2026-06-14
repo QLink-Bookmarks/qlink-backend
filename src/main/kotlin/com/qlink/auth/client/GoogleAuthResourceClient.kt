@@ -38,16 +38,16 @@ class GoogleAuthResourceClient(
 
         return AuthResource(
             providerType = providerType,
-            providerId = body.id,
+            providerId = body.sub,
         )
     }
 
     private companion object {
-        const val GOOGLE_USER_INFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
+        const val GOOGLE_USER_INFO_URL = "https://openidconnect.googleapis.com/v1/userinfo"
     }
 }
 
 @Serializable
 private data class GoogleUserResponse(
-    val id: String,
+    val sub: String,
 )
