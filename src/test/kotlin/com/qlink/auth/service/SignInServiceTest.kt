@@ -127,7 +127,7 @@ class SignInServiceTest :
             When("등록되지 않은 google provider user면") {
                 mockAuthHttpEngine.reset()
                 val providerId = "google-${RandomFixture.randomId()}"
-                mockAuthHttpEngine.respondJson("""{"id":"$providerId","email":"user@example.com"}""")
+                mockAuthHttpEngine.respondJson("""{"sub":"$providerId","email":"user@example.com"}""")
 
                 val response =
                     service.signIn(
