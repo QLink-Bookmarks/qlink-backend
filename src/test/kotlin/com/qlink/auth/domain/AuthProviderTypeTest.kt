@@ -17,6 +17,22 @@ class AuthProviderTypeTest :
                 }
             }
 
+            When("google 제공자명이면") {
+                val providerType = AuthProviderType.fromRequestName("Google")
+
+                Then("GOOGLE 제공자로 변환한다") {
+                    providerType shouldBe AuthProviderType.GOOGLE
+                }
+            }
+
+            When("naver 제공자명이면") {
+                val providerType = AuthProviderType.fromRequestName("NAVER")
+
+                Then("NAVER 제공자로 변환한다") {
+                    providerType shouldBe AuthProviderType.NAVER
+                }
+            }
+
             When("지원하지 않는 제공자명이면") {
                 val parse = {
                     AuthProviderType.fromRequestName("unknown")

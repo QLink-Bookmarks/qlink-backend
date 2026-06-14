@@ -5,6 +5,8 @@ import com.qlink.common.error.ErrorCode
 
 enum class AuthProviderType {
     KAKAO,
+    GOOGLE,
+    NAVER,
     ;
 
     companion object {
