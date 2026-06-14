@@ -10,6 +10,7 @@ import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.FakeAuthResourceClient
+import com.qlink.support.MockAuthHttpEngine
 import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.koinGet
 import com.qlink.user.domain.User
@@ -18,6 +19,7 @@ import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.ktor.http.HttpStatusCode
 
 class SignInServiceTest :
     BaseServiceTest({
@@ -27,6 +29,7 @@ class SignInServiceTest :
         val refreshTokenRepository = koinGet<RefreshTokenRepository>()
         val authTokenService = koinGet<AuthTokenService>()
         val authResourceClient = koinGet<FakeAuthResourceClient>()
+        val mockAuthHttpEngine = koinGet<MockAuthHttpEngine>()
 
         Given("인증 API 요청이 주어졌을 때") {
             When("등록되지 않은 kakao provider user면") {
@@ -109,6 +112,89 @@ class SignInServiceTest :
                             SignInRequest(
                                 provider = "kakao",
                                 token = "invalid-oauth-token",
+                                platform = AuthPlatform.NATIVE,
+                            ),
+                        )
+                    }
+
+                Then("외부 client 실패 예외가 발생한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                        signIn()
+                    }
+                }
+            }
+
+            When("등록되지 않은 google provider user면") {
+                mockAuthHttpEngine.reset()
+                val providerId = "google-${RandomFixture.randomId()}"
+                mockAuthHttpEngine.respondJson("""{"id":"$providerId","email":"user@example.com"}""")
+
+                val response =
+                    service.signIn(
+                        SignInRequest(
+                            provider = "google",
+                            token = "google-access-token",
+                            platform = AuthPlatform.NATIVE,
+                        ),
+                    )
+                val refreshTokenClaims = authTokenService.verifyRefreshToken(response.refreshToken)
+                val authProvider =
+                    authProviderRepository.findByProvider(
+                        providerType = AuthProviderType.GOOGLE,
+                        providerId = providerId,
+                    )
+                val user = userRepository.findById(refreshTokenClaims.userId)
+
+                Then("google userinfo의 id로 회원가입 후 token을 발급한다") {
+                    response.accessToken.shouldNotBeNull()
+                    authProvider.shouldNotBeNull()
+                    authProvider.providerType shouldBe AuthProviderType.GOOGLE
+                    authProvider.userId shouldBe refreshTokenClaims.userId
+                    user.shouldNotBeNull()
+                }
+            }
+
+            When("등록되지 않은 naver provider user면") {
+                mockAuthHttpEngine.reset()
+                val providerId = "naver-${RandomFixture.randomId()}"
+                mockAuthHttpEngine.respondJson(
+                    """{"resultcode":"00","message":"success","response":{"id":"$providerId"}}""",
+                )
+
+                val response =
+                    service.signIn(
+                        SignInRequest(
+                            provider = "naver",
+                            token = "naver-access-token",
+                            platform = AuthPlatform.NATIVE,
+                        ),
+                    )
+                val refreshTokenClaims = authTokenService.verifyRefreshToken(response.refreshToken)
+                val authProvider =
+                    authProviderRepository.findByProvider(
+                        providerType = AuthProviderType.NAVER,
+                        providerId = providerId,
+                    )
+                val user = userRepository.findById(refreshTokenClaims.userId)
+
+                Then("naver userinfo의 id로 회원가입 후 token을 발급한다") {
+                    response.accessToken.shouldNotBeNull()
+                    authProvider.shouldNotBeNull()
+                    authProvider.providerType shouldBe AuthProviderType.NAVER
+                    authProvider.userId shouldBe refreshTokenClaims.userId
+                    user.shouldNotBeNull()
+                }
+            }
+
+            When("google userinfo 요청이 실패 응답을 주면") {
+                mockAuthHttpEngine.reset()
+                mockAuthHttpEngine.respondJson("""{"error":"invalid_token"}""", HttpStatusCode.Unauthorized)
+                val signIn =
+                    suspend {
+                        service.signIn(
+                            SignInRequest(
+                                provider = "google",
+                                token = "invalid-google-token",
                                 platform = AuthPlatform.NATIVE,
                             ),
                         )

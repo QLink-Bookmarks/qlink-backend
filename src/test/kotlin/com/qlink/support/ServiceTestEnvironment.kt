@@ -207,12 +207,33 @@ object ServiceTestEnvironment {
     private fun authTestModule() =
         module {
             single {
+                MockAuthHttpEngine()
+            }
+
+            single {
                 FakeAuthResourceClient()
             }
 
             single {
+                com.qlink.auth.client.GoogleAuthResourceClient(
+                    httpClient = get<MockAuthHttpEngine>().client,
+                )
+            }
+
+            single {
+                com.qlink.auth.client.NaverAuthResourceClient(
+                    httpClient = get<MockAuthHttpEngine>().client,
+                )
+            }
+
+            single {
                 com.qlink.auth.client.AuthResourceClientRouter(
-                    clients = listOf(get<FakeAuthResourceClient>()),
+                    clients =
+                        listOf(
+                            get<FakeAuthResourceClient>(),
+                            get<com.qlink.auth.client.GoogleAuthResourceClient>(),
+                            get<com.qlink.auth.client.NaverAuthResourceClient>(),
+                        ),
                 )
             }
         }

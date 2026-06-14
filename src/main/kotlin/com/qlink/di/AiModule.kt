@@ -6,7 +6,9 @@ import com.qlink.ai.client.OpenAiClient
 import com.qlink.ai.worker.AiSummaryDispatcher
 import com.qlink.ai.worker.AiSummaryWorker
 import com.qlink.auth.client.AuthResourceClientRouter
+import com.qlink.auth.client.GoogleAuthResourceClient
 import com.qlink.auth.client.KakaoAuthResourceClient
+import com.qlink.auth.client.NaverAuthResourceClient
 import com.qlink.common.crypto.ApiKeyCipher
 import com.qlink.config.MonitoringConfig
 import com.qlink.config.string
@@ -74,8 +76,25 @@ fun aiModule(
     }
 
     single {
+        GoogleAuthResourceClient(
+            httpClient = get(),
+        )
+    }
+
+    single {
+        NaverAuthResourceClient(
+            httpClient = get(),
+        )
+    }
+
+    single {
         AuthResourceClientRouter(
-            clients = listOf(get<KakaoAuthResourceClient>()),
+            clients =
+                listOf(
+                    get<KakaoAuthResourceClient>(),
+                    get<GoogleAuthResourceClient>(),
+                    get<NaverAuthResourceClient>(),
+                ),
         )
     }
 
