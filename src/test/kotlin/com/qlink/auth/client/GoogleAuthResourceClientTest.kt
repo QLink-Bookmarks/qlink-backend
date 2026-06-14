@@ -48,11 +48,11 @@ class GoogleAuthResourceClientTest :
                 var capturedAuthorization: String? = null
                 val resource =
                     client(
-                        content = """{"id":"google-123","email":"user@example.com"}""",
+                        content = """{"sub":"google-123","email":"user@example.com"}""",
                         onRequest = { capturedAuthorization = it },
                     ).getResource("google-access-token")
 
-                Then("providerId를 추출하고 bearer 토큰으로 요청한다") {
+                Then("sub로 providerId를 추출하고 bearer 토큰으로 요청한다") {
                     resource.providerType shouldBe AuthProviderType.GOOGLE
                     resource.providerId shouldBe "google-123"
                     capturedAuthorization shouldBe "Bearer google-access-token"
@@ -73,7 +73,7 @@ class GoogleAuthResourceClientTest :
                 }
             }
 
-            When("응답 본문에 id가 없으면") {
+            When("응답 본문에 sub가 없으면") {
                 val googleClient = client(content = """{"email":"user@example.com"}""")
 
                 Then("외부 client 실패 예외가 발생한다") {
