@@ -12,6 +12,7 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.http.isSuccess
 import kotlinx.serialization.Serializable
+import org.slf4j.LoggerFactory
 import java.math.BigInteger
 import java.security.KeyFactory
 import java.security.interfaces.RSAPrivateKey
@@ -49,6 +50,11 @@ class AppleAuthResourceClient(
             }
 
         if (appleConfig.clientIds.none { it in verified.audience.orEmpty() }) {
+            log.warn(
+                "[APPLE_AUDIENCE_MISMATCH] tokenAudience={} configuredClientIds={}",
+                verified.audience.orEmpty(),
+                appleConfig.clientIds,
+            )
             throw BusinessException(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED)
         }
 
@@ -86,6 +92,7 @@ class AppleAuthResourceClient(
     private companion object {
         const val APPLE_ISSUER = "https://appleid.apple.com"
         const val APPLE_PUBLIC_KEYS_URL = "https://appleid.apple.com/auth/keys"
+        val log = LoggerFactory.getLogger(AppleAuthResourceClient::class.java)
     }
 }
 
