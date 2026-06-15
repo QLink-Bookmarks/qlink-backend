@@ -41,6 +41,8 @@ on:
         required: false
       TF_VAR_EXPO_ACCESS_TOKEN:
         required: false
+      TF_VAR_APPLE_CLIENT_IDS:
+        required: false
 
 permissions:
   contents: read
@@ -93,6 +95,7 @@ jobs:
           TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD }}
           TF_VAR_fcm_service_account_json: ${{ secrets.TF_VAR_FCM_SERVICE_ACCOUNT_JSON }}
           TF_VAR_expo_access_token: ${{ secrets.TF_VAR_EXPO_ACCESS_TOKEN }}
+          TF_VAR_apple_client_ids: ${{ secrets.TF_VAR_APPLE_CLIENT_IDS }}
           TF_VAR_rds_db_name: ${{ inputs.rds_db_name }}
           TF_VAR_rds_username: ${{ inputs.rds_username }}
           TF_VAR_ecs_image_tag: latest
@@ -108,6 +111,7 @@ jobs:
           TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD }}
           TF_VAR_fcm_service_account_json: ${{ secrets.TF_VAR_FCM_SERVICE_ACCOUNT_JSON }}
           TF_VAR_expo_access_token: ${{ secrets.TF_VAR_EXPO_ACCESS_TOKEN }}
+          TF_VAR_apple_client_ids: ${{ secrets.TF_VAR_APPLE_CLIENT_IDS }}
           TF_VAR_rds_db_name: ${{ inputs.rds_db_name }}
           TF_VAR_rds_username: ${{ inputs.rds_username }}
           TF_VAR_ecs_image_tag: latest
@@ -147,6 +151,7 @@ jobs:
           TF_VAR_db_password: ${{ secrets.TF_VAR_DB_PASSWORD }}
           TF_VAR_fcm_service_account_json: ${{ secrets.TF_VAR_FCM_SERVICE_ACCOUNT_JSON }}
           TF_VAR_expo_access_token: ${{ secrets.TF_VAR_EXPO_ACCESS_TOKEN }}
+          TF_VAR_apple_client_ids: ${{ secrets.TF_VAR_APPLE_CLIENT_IDS }}
           TF_VAR_rds_db_name: ${{ inputs.rds_db_name }}
           TF_VAR_rds_username: ${{ inputs.rds_username }}
           TF_VAR_ecs_image_tag: latest

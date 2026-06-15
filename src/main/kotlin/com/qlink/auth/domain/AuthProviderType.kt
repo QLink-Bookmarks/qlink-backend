@@ -7,6 +7,7 @@ enum class AuthProviderType {
     KAKAO,
     GOOGLE,
     NAVER,
+    APPLE,
     ;
 
     companion object {

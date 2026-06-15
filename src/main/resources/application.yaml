@@ -85,3 +85,8 @@ security:
     duration: 1209600
   jwt:
     secret: Y1d4cGJtc3RZbTl2YTIxaGNtdHo=
+
+apple:
+  clientIds:
+    - com.qlinkapps.qlink
+    - com.qlinkapps.qlink.web

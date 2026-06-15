@@ -1,6 +1,7 @@
 package com.qlink.di
 
 import com.qlink.common.error.ApiExceptionHandler
+import com.qlink.config.AppleConfig
 import com.qlink.config.CorsConfig
 import com.qlink.config.DocumentationConfig
 import com.qlink.config.HttpLoggingConfig
@@ -68,6 +69,10 @@ fun pluginModule(config: ApplicationConfig) =
                 accessDurationSeconds = config.optionalInt("security.access.duration") ?: 900,
                 refreshDurationSeconds = config.optionalInt("security.refresh.duration") ?: 1_209_600,
             )
+        }
+
+        single {
+            AppleConfig.from(config)
         }
 
         single {

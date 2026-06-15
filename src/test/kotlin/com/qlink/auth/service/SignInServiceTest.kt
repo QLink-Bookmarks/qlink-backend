@@ -8,6 +8,7 @@ import com.qlink.auth.repository.AuthProviderRepository
 import com.qlink.auth.repository.RefreshTokenRepository
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
+import com.qlink.support.AppleTestKeys
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.FakeAuthResourceClient
 import com.qlink.support.MockAuthHttpEngine
@@ -195,6 +196,59 @@ class SignInServiceTest :
                             SignInRequest(
                                 provider = "google",
                                 token = "invalid-google-token",
+                                platform = AuthPlatform.NATIVE,
+                            ),
+                        )
+                    }
+
+                Then("외부 client 실패 예외가 발생한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                        signIn()
+                    }
+                }
+            }
+
+            When("등록되지 않은 apple provider user면") {
+                mockAuthHttpEngine.reset()
+                mockAuthHttpEngine.respondJson(AppleTestKeys.jwks())
+                val providerId = "apple-${RandomFixture.randomId()}"
+                val idToken = AppleTestKeys.idToken(subject = providerId)
+
+                val response =
+                    service.signIn(
+                        SignInRequest(
+                            provider = "apple",
+                            token = idToken,
+                            platform = AuthPlatform.NATIVE,
+                        ),
+                    )
+                val refreshTokenClaims = authTokenService.verifyRefreshToken(response.refreshToken)
+                val authProvider =
+                    authProviderRepository.findByProvider(
+                        providerType = AuthProviderType.APPLE,
+                        providerId = providerId,
+                    )
+                val user = userRepository.findById(refreshTokenClaims.userId)
+
+                Then("id_token의 sub로 회원가입 후 token을 발급한다") {
+                    response.accessToken.shouldNotBeNull()
+                    authProvider.shouldNotBeNull()
+                    authProvider.providerType shouldBe AuthProviderType.APPLE
+                    authProvider.userId shouldBe refreshTokenClaims.userId
+                    user.shouldNotBeNull()
+                }
+            }
+
+            When("apple id_token 검증에 실패하면") {
+                mockAuthHttpEngine.reset()
+                mockAuthHttpEngine.respondJson(AppleTestKeys.jwks())
+                val idToken = AppleTestKeys.idToken(subject = "u", signWithWrongKey = true)
+                val signIn =
+                    suspend {
+                        service.signIn(
+                            SignInRequest(
+                                provider = "apple",
+                                token = idToken,
                                 platform = AuthPlatform.NATIVE,
                             ),
                         )
