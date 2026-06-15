@@ -168,6 +168,7 @@ module "ecs" {
     DB_DRIVER_CLASS_NAME     = "org.postgresql.Driver"
     FCM_SERVICE_ACCOUNT_JSON = var.fcm_service_account_json
     EXPO_ACCESS_TOKEN        = var.expo_access_token
+    APPLE_CLIENT_IDS         = var.apple_client_ids
     AWS_S3_REGION            = var.aws_region
     AWS_S3_BUCKET            = module.s3.bucket_name
     AWS_S3_ENDPOINT          = ""

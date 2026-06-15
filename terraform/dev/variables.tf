@@ -302,6 +302,12 @@ variable "expo_access_token" {
   sensitive = true
 }
 
+variable "apple_client_ids" {
+  type        = string
+  sensitive   = true
+  description = "Comma-separated Apple client IDs (bundle/services IDs) accepted as id_token audience"
+}
+
 variable "ecs_task_healthcheck_command" {
   type = string
 }

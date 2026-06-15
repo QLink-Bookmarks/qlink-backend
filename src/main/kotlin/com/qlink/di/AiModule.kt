@@ -5,6 +5,7 @@ import com.qlink.ai.client.GeminiAiClient
 import com.qlink.ai.client.OpenAiClient
 import com.qlink.ai.worker.AiSummaryDispatcher
 import com.qlink.ai.worker.AiSummaryWorker
+import com.qlink.auth.client.AppleAuthResourceClient
 import com.qlink.auth.client.AuthResourceClientRouter
 import com.qlink.auth.client.GoogleAuthResourceClient
 import com.qlink.auth.client.KakaoAuthResourceClient
@@ -88,12 +89,20 @@ fun aiModule(
     }
 
     single {
+        AppleAuthResourceClient(
+            httpClient = get(),
+            appleConfig = get(),
+        )
+    }
+
+    single {
         AuthResourceClientRouter(
             clients =
                 listOf(
                     get<KakaoAuthResourceClient>(),
                     get<GoogleAuthResourceClient>(),
                     get<NaverAuthResourceClient>(),
+                    get<AppleAuthResourceClient>(),
                 ),
         )
     }

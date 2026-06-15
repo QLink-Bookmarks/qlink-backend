@@ -33,6 +33,14 @@ class AuthProviderTypeTest :
                 }
             }
 
+            When("apple 제공자명이면") {
+                val providerType = AuthProviderType.fromRequestName("Apple")
+
+                Then("APPLE 제공자로 변환한다") {
+                    providerType shouldBe AuthProviderType.APPLE
+                }
+            }
+
             When("지원하지 않는 제공자명이면") {
                 val parse = {
                     AuthProviderType.fromRequestName("unknown")

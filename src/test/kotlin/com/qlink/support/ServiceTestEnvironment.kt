@@ -227,12 +227,24 @@ object ServiceTestEnvironment {
             }
 
             single {
+                com.qlink.config.AppleConfig(clientIds = listOf(AppleTestKeys.CLIENT_ID))
+            }
+
+            single {
+                com.qlink.auth.client.AppleAuthResourceClient(
+                    httpClient = get<MockAuthHttpEngine>().client,
+                    appleConfig = get(),
+                )
+            }
+
+            single {
                 com.qlink.auth.client.AuthResourceClientRouter(
                     clients =
                         listOf(
                             get<FakeAuthResourceClient>(),
                             get<com.qlink.auth.client.GoogleAuthResourceClient>(),
                             get<com.qlink.auth.client.NaverAuthResourceClient>(),
+                            get<com.qlink.auth.client.AppleAuthResourceClient>(),
                         ),
                 )
             }
