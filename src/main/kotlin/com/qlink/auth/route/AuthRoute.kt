@@ -90,8 +90,8 @@ private fun Route.webRefreshRoute(refreshAuthTokenService: RefreshAuthTokenServi
 
         postWithoutResource(webRefreshAuthTokenDocs()) {
             val refreshToken =
-                call.request.headers[REFRESH_TOKEN_HEADER_NAME]
-                    ?.takeIf { it.isNotBlank() }
+                call.request.cookies[REFRESH_TOKEN_COOKIE_NAME]?.takeIf { it.isNotBlank() }
+                    ?: call.request.headers[REFRESH_TOKEN_HEADER_NAME]?.takeIf { it.isNotBlank() }
                     ?: throw BusinessException(ErrorCode.AUTH_NO_CREDENTIALS)
             val response = refreshAuthTokenService.refresh(refreshToken)
 
