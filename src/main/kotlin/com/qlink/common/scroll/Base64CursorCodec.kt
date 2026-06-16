@@ -14,7 +14,7 @@ object Base64CursorCodec {
             val payload = Base64.getDecoder().decode(encodedValue)
             json.decodeFromString<T>(payload.decodeToString())
         }.getOrElse {
-            throw BusinessException(ErrorCode.COMMON_BAD_REQUEST, it)
+            throw BusinessException(ErrorCode.COMMON_CURSOR_MALFORMED, it)
         }
 
     inline fun <reified T> encode(value: T): String = Base64.getEncoder().encodeToString(json.encodeToString(value).encodeToByteArray())

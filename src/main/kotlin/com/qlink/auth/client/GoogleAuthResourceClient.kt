@@ -22,18 +22,18 @@ class GoogleAuthResourceClient(
                     bearerAuth(token)
                 }
             }.getOrElse {
-                throw BusinessException(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED, it)
+                throw BusinessException(ErrorCode.AUTH_PROVIDER_COMMUNICATION_FAILED, it)
             }
 
         if (!response.status.isSuccess()) {
-            throw BusinessException(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED)
+            throw BusinessException(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID)
         }
 
         val body =
             runCatching {
                 response.body<GoogleUserResponse>()
             }.getOrElse {
-                throw BusinessException(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED, it)
+                throw BusinessException(ErrorCode.AUTH_PROVIDER_COMMUNICATION_FAILED, it)
             }
 
         return AuthResource(

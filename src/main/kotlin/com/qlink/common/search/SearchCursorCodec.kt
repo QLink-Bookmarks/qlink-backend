@@ -13,7 +13,7 @@ object SearchCursorCodec {
         val decoded = Base64CursorCodec.decode<SearchCursor<T>>(encodedCursor)
 
         if (decoded.order != expectedOrder) {
-            throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+            throw BusinessException(ErrorCode.COMMON_CURSOR_ORDER_MISMATCH)
         }
 
         validate(decoded.value, expectedOrder)

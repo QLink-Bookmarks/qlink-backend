@@ -59,7 +59,7 @@ class AuthTokenServiceTest :
                 }
 
                 Then("인증 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_INVALID_CREDENTIALS.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_REFRESH_TOKEN_INVALID.message) {
                         verify()
                     }
                 }
@@ -77,7 +77,7 @@ class AuthTokenServiceTest :
                 }
 
                 Then("인증 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_INVALID_CREDENTIALS.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_REFRESH_TOKEN_INVALID.message) {
                         verify()
                     }
                 }
@@ -95,7 +95,7 @@ class AuthTokenServiceTest :
                 }
 
                 Then("인증 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_INVALID_CREDENTIALS.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_REFRESH_TOKEN_INVALID.message) {
                         verify()
                     }
                 }
