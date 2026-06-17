@@ -12,8 +12,8 @@ fun ResponsesConfig.authErrorResponse() {
         description = "인증 실패"
         body<ApiResponse<ErrorDetail>> {
             examples(
-                ErrorCode.AUTH_NO_CREDENTIALS,
-                ErrorCode.AUTH_INVALID_CREDENTIALS,
+                ErrorCode.AUTH_ACCESS_TOKEN_MISSING,
+                ErrorCode.AUTH_ACCESS_TOKEN_INVALID,
                 ErrorCode.AUTH_WRONG_CREDENTIALS,
                 ErrorCode.AUTH_UNEXPECTED_CREDENTIALS,
             )

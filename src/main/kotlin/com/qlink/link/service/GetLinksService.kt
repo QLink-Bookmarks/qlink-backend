@@ -38,7 +38,8 @@ class GetLinksService(
             userRepository.emptyById(loginId).requireFalse(ErrorCode.LINK_OWNER_NOT_FOUND)
 
             val normalizedOrder =
-                LinkSearchOrder.from(order.ifBlank { DEFAULT_LINK_SEARCH_ORDER }) ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+                LinkSearchOrder.from(order.ifBlank { DEFAULT_LINK_SEARCH_ORDER })
+                    ?: throw BusinessException(ErrorCode.COMMON_INVALID_SORT_ORDER)
             val cursor = scrollRequest.cursor?.let { SearchCursorCodec.decode(it, normalizedOrder, ::validateCursorValue) }
             val size = scrollRequest.size.takeIf { it > 0 } ?: DEFAULT_SCROLL_SIZE
             val queries =
@@ -91,17 +92,17 @@ class GetLinksService(
     ) {
         when (expectedOrder) {
             LinkSearchOrder.LATEST, LinkSearchOrder.EARLIEST -> {
-                value.id ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+                value.id ?: throw BusinessException(ErrorCode.COMMON_CURSOR_FIELD_MISSING)
             }
 
             LinkSearchOrder.LAXICO -> {
-                value.title ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
-                value.id ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+                value.title ?: throw BusinessException(ErrorCode.COMMON_CURSOR_FIELD_MISSING)
+                value.id ?: throw BusinessException(ErrorCode.COMMON_CURSOR_FIELD_MISSING)
             }
 
             LinkSearchOrder.SIMILAR -> {
-                value.score ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
-                value.id ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+                value.score ?: throw BusinessException(ErrorCode.COMMON_CURSOR_FIELD_MISSING)
+                value.id ?: throw BusinessException(ErrorCode.COMMON_CURSOR_FIELD_MISSING)
             }
         }
     }

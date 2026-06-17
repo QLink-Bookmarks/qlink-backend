@@ -72,8 +72,8 @@ class GoogleAuthResourceClientTest :
                         status = HttpStatusCode.Unauthorized,
                     )
 
-                Then("외부 client 실패 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                Then("토큰 무효 예외가 발생한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID.message) {
                         googleClient.getResource("token", AuthPlatform.WEB)
                     }
                 }
@@ -82,8 +82,8 @@ class GoogleAuthResourceClientTest :
             When("응답 본문에 sub가 없으면") {
                 val googleClient = client(content = """{"email":"user@example.com"}""")
 
-                Then("외부 client 실패 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                Then("통신 실패 예외가 발생한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_COMMUNICATION_FAILED.message) {
                         googleClient.getResource("token", AuthPlatform.WEB)
                     }
                 }
@@ -107,8 +107,8 @@ class GoogleAuthResourceClientTest :
                 val googleClient = client(content = GoogleTestKeys.jwks())
                 val token = GoogleTestKeys.idToken(subject = "u", audience = "other.apps.googleusercontent.com")
 
-                Then("외부 client 실패 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                Then("토큰 무효 예외가 발생한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID.message) {
                         googleClient.getResource(token, AuthPlatform.NATIVE)
                     }
                 }
@@ -122,8 +122,8 @@ class GoogleAuthResourceClientTest :
                         expiresAt = Date(System.currentTimeMillis() - 3_600_000),
                     )
 
-                Then("외부 client 실패 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                Then("토큰 무효 예외가 발생한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID.message) {
                         googleClient.getResource(token, AuthPlatform.NATIVE)
                     }
                 }
@@ -133,8 +133,8 @@ class GoogleAuthResourceClientTest :
                 val googleClient = client(content = GoogleTestKeys.jwks())
                 val token = GoogleTestKeys.idToken(subject = "u", issuer = "https://evil.example.com")
 
-                Then("외부 client 실패 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                Then("토큰 무효 예외가 발생한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID.message) {
                         googleClient.getResource(token, AuthPlatform.NATIVE)
                     }
                 }
@@ -144,8 +144,8 @@ class GoogleAuthResourceClientTest :
                 val googleClient = client(content = GoogleTestKeys.jwks())
                 val token = GoogleTestKeys.idToken(subject = "u", signWithWrongKey = true)
 
-                Then("외부 client 실패 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                Then("토큰 무효 예외가 발생한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID.message) {
                         googleClient.getResource(token, AuthPlatform.NATIVE)
                     }
                 }
@@ -155,8 +155,8 @@ class GoogleAuthResourceClientTest :
                 val googleClient = client(content = GoogleTestKeys.jwks(), status = HttpStatusCode.InternalServerError)
                 val token = GoogleTestKeys.idToken(subject = "u")
 
-                Then("외부 client 실패 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                Then("통신 실패 예외가 발생한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_COMMUNICATION_FAILED.message) {
                         googleClient.getResource(token, AuthPlatform.NATIVE)
                     }
                 }

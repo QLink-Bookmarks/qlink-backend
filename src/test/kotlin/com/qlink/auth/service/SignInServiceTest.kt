@@ -107,7 +107,7 @@ class SignInServiceTest :
 
             When("외부 인증 client가 실패하면") {
                 authResourceClient.reset()
-                authResourceClient.failure = BusinessException(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED)
+                authResourceClient.failure = BusinessException(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID)
                 val signIn =
                     suspend {
                         service.signIn(
@@ -120,7 +120,7 @@ class SignInServiceTest :
                     }
 
                 Then("외부 client 실패 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID.message) {
                         signIn()
                     }
                 }
@@ -234,7 +234,7 @@ class SignInServiceTest :
                     }
 
                 Then("외부 client 실패 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID.message) {
                         signIn()
                     }
                 }
@@ -287,7 +287,7 @@ class SignInServiceTest :
                     }
 
                 Then("외부 client 실패 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID.message) {
                         signIn()
                     }
                 }

@@ -540,7 +540,7 @@ class GetLinksServiceTest :
                     }
 
                 Then("예외를 반환한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.COMMON_BAD_REQUEST.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.COMMON_CURSOR_MALFORMED.message) {
                         getLinks()
                     }
                 }
@@ -559,7 +559,7 @@ class GetLinksServiceTest :
                     }
 
                 Then("예외를 반환한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.COMMON_BAD_REQUEST.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.COMMON_INVALID_SORT_ORDER.message) {
                         getLinks()
                     }
                 }
@@ -585,7 +585,7 @@ class GetLinksServiceTest :
                     }
 
                 Then("예외를 반환한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.COMMON_BAD_REQUEST.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.COMMON_CURSOR_ORDER_MISMATCH.message) {
                         getLinks()
                     }
                 }

@@ -63,7 +63,7 @@ class AppleAuthResourceClientTest :
                 val token = AppleTestKeys.idToken(subject = "u", audience = "com.someone.else")
 
                 Then("외부 client 실패 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID.message) {
                         appleClient.getResource(token, AuthPlatform.NATIVE)
                     }
                 }
@@ -78,7 +78,7 @@ class AppleAuthResourceClientTest :
                     )
 
                 Then("외부 client 실패 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID.message) {
                         appleClient.getResource(token, AuthPlatform.NATIVE)
                     }
                 }
@@ -89,7 +89,7 @@ class AppleAuthResourceClientTest :
                 val token = AppleTestKeys.idToken(subject = "u", issuer = "https://evil.example.com")
 
                 Then("외부 client 실패 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID.message) {
                         appleClient.getResource(token, AuthPlatform.NATIVE)
                     }
                 }
@@ -100,7 +100,7 @@ class AppleAuthResourceClientTest :
                 val token = AppleTestKeys.idToken(subject = "u", signWithWrongKey = true)
 
                 Then("서명 검증 실패로 외부 client 실패 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID.message) {
                         appleClient.getResource(token, AuthPlatform.NATIVE)
                     }
                 }
@@ -111,7 +111,7 @@ class AppleAuthResourceClientTest :
                 val token = AppleTestKeys.idToken(subject = "u")
 
                 Then("외부 client 실패 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID.message) {
                         appleClient.getResource(token, AuthPlatform.NATIVE)
                     }
                 }
@@ -122,7 +122,7 @@ class AppleAuthResourceClientTest :
                 val token = AppleTestKeys.idToken(subject = "u")
 
                 Then("외부 client 실패 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_COMMUNICATION_FAILED.message) {
                         appleClient.getResource(token, AuthPlatform.NATIVE)
                     }
                 }

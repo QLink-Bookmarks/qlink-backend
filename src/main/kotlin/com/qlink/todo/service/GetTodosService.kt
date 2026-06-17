@@ -36,7 +36,7 @@ class GetTodosService(
             val normalizedOrder = normalizeOrder(order)
             val cursor = scrollRequest.cursor?.let { SearchCursorCodec.decode(it, normalizedOrder, ::validateCursorValue) }
             val size = scrollRequest.size.takeIf { it > 0 } ?: DEFAULT_TODO_SCROLL_SIZE
-            val reminderFilter = reminderAt?.let { TodoReminderFilter.from(it) ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST) }
+            val reminderFilter = reminderAt?.let { TodoReminderFilter.from(it) ?: throw BusinessException(ErrorCode.COMMON_INVALID_FILTER) }
             val queries =
                 todoRepository.search(
                     ownerId = loginId,
@@ -60,10 +60,10 @@ class GetTodosService(
     private fun normalizeOrder(order: String): TodoSearchOrder {
         val normalizedOrder =
             SearchOrder.from(order.ifBlank { DEFAULT_TODO_SEARCH_ORDER })
-                ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+                ?: throw BusinessException(ErrorCode.COMMON_INVALID_SORT_ORDER)
 
         if (normalizedOrder != SearchOrder.LATEST) {
-            throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+            throw BusinessException(ErrorCode.COMMON_INVALID_SORT_ORDER)
         }
 
         return normalizedOrder
@@ -74,8 +74,8 @@ class GetTodosService(
         expectedOrder: TodoSearchOrder,
     ) {
         when (expectedOrder) {
-            SearchOrder.LATEST -> value.id ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
-            else -> throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+            SearchOrder.LATEST -> value.id ?: throw BusinessException(ErrorCode.COMMON_CURSOR_FIELD_MISSING)
+            else -> throw BusinessException(ErrorCode.COMMON_CURSOR_FIELD_MISSING)
         }
     }
 

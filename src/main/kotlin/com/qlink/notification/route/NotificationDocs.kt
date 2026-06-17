@@ -29,7 +29,12 @@ internal fun getNotificationsDocs(): RouteConfig.() -> Unit =
             code(HttpStatusCode.BadRequest) {
                 description = "알림 목록 조회 요청이 올바르지 않음"
                 body<ApiResponse<ErrorDetail>> {
-                    examples(ErrorCode.COMMON_BAD_REQUEST)
+                    examples(
+                        ErrorCode.COMMON_INVALID_SORT_ORDER,
+                        ErrorCode.COMMON_CURSOR_MALFORMED,
+                        ErrorCode.COMMON_CURSOR_ORDER_MISMATCH,
+                        ErrorCode.COMMON_CURSOR_FIELD_MISSING,
+                    )
                 }
             }
             authErrorResponse()

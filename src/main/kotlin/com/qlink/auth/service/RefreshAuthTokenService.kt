@@ -17,12 +17,12 @@ class RefreshAuthTokenService(
     private val authTokenService: AuthTokenService,
 ) {
     suspend fun refresh(refreshToken: String?): AuthTokenResponse {
-        val token = refreshToken?.takeIf { it.isNotBlank() } ?: throw BusinessException(ErrorCode.AUTH_NO_CREDENTIALS)
+        val token = refreshToken?.takeIf { it.isNotBlank() } ?: throw BusinessException(ErrorCode.AUTH_REFRESH_TOKEN_MISSING)
         val claims = authTokenService.verifyRefreshToken(token)
         val now = Clock.System.now()
 
         return tx.required {
-            val user = userRepository.findById(claims.userId) ?: throw BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS)
+            val user = userRepository.findById(claims.userId) ?: throw BusinessException(ErrorCode.AUTH_REFRESH_TOKEN_INVALID)
             val newRefreshToken =
                 authTokenService.issueRefreshToken(
                     userId = claims.userId,
@@ -47,10 +47,10 @@ class RefreshAuthTokenService(
                 refreshTokenRepository.findLatestByUserIdAndFamilyId(
                     userId = claims.userId,
                     familyId = claims.familyId,
-                ) ?: throw BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS)
+                ) ?: throw BusinessException(ErrorCode.AUTH_REFRESH_TOKEN_REUSED)
 
             if (latest.isExpired(now) || !latest.issuedWithin(now = now, duration = 1.minutes)) {
-                throw BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS)
+                throw BusinessException(ErrorCode.AUTH_REFRESH_TOKEN_REUSED)
             }
 
             user.toAuthTokenResponse(refreshToken = latest.token)

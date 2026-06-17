@@ -33,8 +33,8 @@ class OidcIdTokenVerifier(
     ): String {
         val keyId =
             runCatching { JWT.decode(idToken).keyId }
-                .getOrElse { throw clientFailed(it) }
-                ?: throw clientFailed()
+                .getOrElse { throw tokenInvalid(it) }
+                ?: throw tokenInvalid()
 
         val publicKey = fetchPublicKey(keyId)
 
@@ -45,7 +45,7 @@ class OidcIdTokenVerifier(
                     .withIssuer(*issuers.toTypedArray())
                     .build()
                     .verify(idToken)
-            }.getOrElse { throw clientFailed(it) }
+            }.getOrElse { throw tokenInvalid(it) }
 
         if (allowedAudiences.none { it in verified.audience.orEmpty() }) {
             log.warn(
@@ -54,35 +54,38 @@ class OidcIdTokenVerifier(
                 verified.audience.orEmpty(),
                 allowedAudiences,
             )
-            throw clientFailed()
+            throw tokenInvalid()
         }
 
-        return verified.subject?.takeIf(String::isNotBlank) ?: throw clientFailed()
+        return verified.subject?.takeIf(String::isNotBlank) ?: throw tokenInvalid()
     }
 
     private suspend fun fetchPublicKey(keyId: String): RSAPublicKey {
         val response =
             runCatching { httpClient.get(jwksUrl) }
-                .getOrElse { throw clientFailed(it) }
+                .getOrElse { throw communicationFailed(it) }
 
         if (!response.status.isSuccess()) {
-            throw clientFailed()
+            throw communicationFailed()
         }
 
         val keys =
             runCatching { response.body<JsonWebKeySet>() }
-                .getOrElse { throw clientFailed(it) }
+                .getOrElse { throw communicationFailed(it) }
 
         val jwk =
             keys.keys.firstOrNull { it.kid == keyId }
-                ?: throw clientFailed()
+                ?: throw tokenInvalid()
 
         return runCatching { jwk.toRsaPublicKey() }
-            .getOrElse { throw clientFailed(it) }
+            .getOrElse { throw communicationFailed(it) }
     }
 
-    private fun clientFailed(cause: Throwable? = null): BusinessException =
-        BusinessException(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED, cause)
+    private fun tokenInvalid(cause: Throwable? = null): BusinessException =
+        BusinessException(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID, cause)
+
+    private fun communicationFailed(cause: Throwable? = null): BusinessException =
+        BusinessException(ErrorCode.AUTH_PROVIDER_COMMUNICATION_FAILED, cause)
 
     private companion object {
         val log = LoggerFactory.getLogger(OidcIdTokenVerifier::class.java)

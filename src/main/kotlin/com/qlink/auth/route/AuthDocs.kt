@@ -29,7 +29,7 @@ internal fun signInDocs(): RouteConfig.() -> Unit =
             code(HttpStatusCode.UnprocessableEntity) {
                 description = "외부 인증 제공자 요청 실패"
                 body<ApiResponse<ErrorDetail>> {
-                    examples(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED)
+                    examples(ErrorCode.AUTH_PROVIDER_COMMUNICATION_FAILED, ErrorCode.AUTH_PROVIDER_TOKEN_INVALID)
                 }
             }
         }
@@ -46,7 +46,11 @@ internal fun webRefreshAuthTokenDocs(): RouteConfig.() -> Unit =
             code(HttpStatusCode.Unauthorized) {
                 description = "refresh token 인증 실패"
                 body<ApiResponse<ErrorDetail>> {
-                    examples(ErrorCode.AUTH_NO_CREDENTIALS, ErrorCode.AUTH_INVALID_CREDENTIALS)
+                    examples(
+                        ErrorCode.AUTH_REFRESH_TOKEN_MISSING,
+                        ErrorCode.AUTH_REFRESH_TOKEN_INVALID,
+                        ErrorCode.AUTH_REFRESH_TOKEN_REUSED,
+                    )
                 }
             }
             code(HttpStatusCode.Forbidden) {
@@ -94,7 +98,11 @@ internal fun nativeRefreshAuthTokenDocs(): RouteConfig.() -> Unit =
             code(HttpStatusCode.Unauthorized) {
                 description = "refresh token 인증 실패"
                 body<ApiResponse<ErrorDetail>> {
-                    examples(ErrorCode.AUTH_NO_CREDENTIALS, ErrorCode.AUTH_INVALID_CREDENTIALS)
+                    examples(
+                        ErrorCode.AUTH_REFRESH_TOKEN_MISSING,
+                        ErrorCode.AUTH_REFRESH_TOKEN_INVALID,
+                        ErrorCode.AUTH_REFRESH_TOKEN_REUSED,
+                    )
                 }
             }
         }
