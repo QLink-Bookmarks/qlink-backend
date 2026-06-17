@@ -22,7 +22,8 @@ data class SignInRequest(
 data class NativeRefreshTokenRequest(
     val refreshToken: String? = null,
 ) {
-    fun requireRefreshToken(): String = refreshToken?.takeIf { it.isNotBlank() } ?: throw BusinessException(ErrorCode.AUTH_NO_CREDENTIALS)
+    fun requireRefreshToken(): String =
+        refreshToken?.takeIf { it.isNotBlank() } ?: throw BusinessException(ErrorCode.AUTH_REFRESH_TOKEN_MISSING)
 }
 
 @Serializable

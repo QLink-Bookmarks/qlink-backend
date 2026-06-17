@@ -33,8 +33,8 @@ class AppleAuthResourceClient(
     override suspend fun getResource(token: String): AuthResource {
         val keyId =
             runCatching { JWT.decode(token).keyId }
-                .getOrElse { throw BusinessException(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED, it) }
-                ?: throw BusinessException(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED)
+                .getOrElse { throw BusinessException(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID, it) }
+                ?: throw BusinessException(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID)
 
         val publicKey = fetchPublicKey(keyId)
 
@@ -46,7 +46,7 @@ class AppleAuthResourceClient(
                     .build()
                     .verify(token)
             }.getOrElse {
-                throw BusinessException(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED, it)
+                throw BusinessException(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID, it)
             }
 
         if (appleConfig.clientIds.none { it in verified.audience.orEmpty() }) {
@@ -55,12 +55,12 @@ class AppleAuthResourceClient(
                 verified.audience.orEmpty(),
                 appleConfig.clientIds,
             )
-            throw BusinessException(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED)
+            throw BusinessException(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID)
         }
 
         val subject =
             verified.subject?.takeIf(String::isNotBlank)
-                ?: throw BusinessException(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED)
+                ?: throw BusinessException(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID)
 
         return AuthResource(
             providerType = providerType,
@@ -71,22 +71,22 @@ class AppleAuthResourceClient(
     private suspend fun fetchPublicKey(keyId: String): RSAPublicKey {
         val response =
             runCatching { httpClient.get(APPLE_PUBLIC_KEYS_URL) }
-                .getOrElse { throw BusinessException(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED, it) }
+                .getOrElse { throw BusinessException(ErrorCode.AUTH_PROVIDER_COMMUNICATION_FAILED, it) }
 
         if (!response.status.isSuccess()) {
-            throw BusinessException(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED)
+            throw BusinessException(ErrorCode.AUTH_PROVIDER_COMMUNICATION_FAILED)
         }
 
         val keys =
             runCatching { response.body<ApplePublicKeys>() }
-                .getOrElse { throw BusinessException(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED, it) }
+                .getOrElse { throw BusinessException(ErrorCode.AUTH_PROVIDER_COMMUNICATION_FAILED, it) }
 
         val jwk =
             keys.keys.firstOrNull { it.kid == keyId }
-                ?: throw BusinessException(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED)
+                ?: throw BusinessException(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID)
 
         return runCatching { jwk.toRsaPublicKey() }
-            .getOrElse { throw BusinessException(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED, it) }
+            .getOrElse { throw BusinessException(ErrorCode.AUTH_PROVIDER_COMMUNICATION_FAILED, it) }
     }
 
     private companion object {

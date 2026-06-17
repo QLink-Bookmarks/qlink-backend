@@ -56,10 +56,10 @@ class GetNotificationsService(
     private fun normalizeOrder(order: String): NotificationSearchOrder {
         val normalizedOrder =
             SearchOrder.from(order.ifBlank { DEFAULT_NOTIFICATION_SEARCH_ORDER })
-                ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+                ?: throw BusinessException(ErrorCode.COMMON_INVALID_SORT_ORDER)
 
         if (normalizedOrder != SearchOrder.LATEST) {
-            throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+            throw BusinessException(ErrorCode.COMMON_INVALID_SORT_ORDER)
         }
 
         return normalizedOrder
@@ -70,8 +70,8 @@ class GetNotificationsService(
         expectedOrder: NotificationSearchOrder,
     ) {
         when (expectedOrder) {
-            SearchOrder.LATEST -> value.id ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
-            else -> throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+            SearchOrder.LATEST -> value.id ?: throw BusinessException(ErrorCode.COMMON_CURSOR_FIELD_MISSING)
+            else -> throw BusinessException(ErrorCode.COMMON_CURSOR_FIELD_MISSING)
         }
     }
 

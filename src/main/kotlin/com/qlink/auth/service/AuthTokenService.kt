@@ -64,7 +64,7 @@ class AuthTokenService(
             runCatching {
                 String(Base64.getUrlDecoder().decode(refreshToken), Charsets.UTF_8)
             }.getOrElse {
-                throw BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS, it)
+                throw BusinessException(ErrorCode.AUTH_REFRESH_TOKEN_INVALID, it)
             }
 
         val decoded =
@@ -74,18 +74,18 @@ class AuthTokenService(
                     .build()
                     .verify(jwt)
             } catch (exception: JWTVerificationException) {
-                throw BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS, exception)
+                throw BusinessException(ErrorCode.AUTH_REFRESH_TOKEN_INVALID, exception)
             } catch (exception: IllegalArgumentException) {
-                throw BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS, exception)
+                throw BusinessException(ErrorCode.AUTH_REFRESH_TOKEN_INVALID, exception)
             }
 
-        val userId = decoded.subject?.toLongOrNull() ?: throw BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS)
+        val userId = decoded.subject?.toLongOrNull() ?: throw BusinessException(ErrorCode.AUTH_REFRESH_TOKEN_INVALID)
         val familyId =
             decoded
                 .getClaim("familyId")
                 .asString()
                 ?.takeIf { it.isNotBlank() }
-                ?: throw BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS)
+                ?: throw BusinessException(ErrorCode.AUTH_REFRESH_TOKEN_INVALID)
 
         return RefreshTokenClaims(
             userId = userId,

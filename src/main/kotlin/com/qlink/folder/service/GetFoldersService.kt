@@ -33,7 +33,7 @@ class GetFoldersService(
 
             val normalizedOrder =
                 FolderSearchOrder.from(order.ifBlank { DEFAULT_FOLDER_SEARCH_ORDER })
-                    ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+                    ?: throw BusinessException(ErrorCode.COMMON_INVALID_SORT_ORDER)
             val cursor = scrollRequest.cursor?.let { SearchCursorCodec.decode(it, normalizedOrder, ::validateCursorValue) }
             val size = scrollRequest.size.takeIf { it > 0 } ?: DEFAULT_SCROLL_SIZE
             val queries =
@@ -73,17 +73,17 @@ class GetFoldersService(
     ) {
         when (expectedOrder) {
             FolderSearchOrder.LATEST, FolderSearchOrder.EARLIEST -> {
-                value.id ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+                value.id ?: throw BusinessException(ErrorCode.COMMON_CURSOR_FIELD_MISSING)
             }
 
             FolderSearchOrder.LAXICO -> {
-                value.name ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
-                value.id ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+                value.name ?: throw BusinessException(ErrorCode.COMMON_CURSOR_FIELD_MISSING)
+                value.id ?: throw BusinessException(ErrorCode.COMMON_CURSOR_FIELD_MISSING)
             }
 
             FolderSearchOrder.SIMILAR -> {
-                value.score ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
-                value.id ?: throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
+                value.score ?: throw BusinessException(ErrorCode.COMMON_CURSOR_FIELD_MISSING)
+                value.id ?: throw BusinessException(ErrorCode.COMMON_CURSOR_FIELD_MISSING)
             }
         }
     }

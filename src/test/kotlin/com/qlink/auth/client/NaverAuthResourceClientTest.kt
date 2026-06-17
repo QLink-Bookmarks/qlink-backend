@@ -67,7 +67,7 @@ class NaverAuthResourceClientTest :
                     )
 
                 Then("외부 client 실패 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID.message) {
                         naverClient.getResource("token")
                     }
                 }
@@ -77,7 +77,7 @@ class NaverAuthResourceClientTest :
                 val naverClient = client(content = """{"resultcode":"024","message":"Authentication failed"}""")
 
                 Then("외부 client 실패 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_COMMUNICATION_FAILED.message) {
                         naverClient.getResource("token")
                     }
                 }

@@ -51,8 +51,8 @@ fun Application.configureSecurity() {
 
                 val errorCode =
                     when (cause) {
-                        is AuthenticationFailedCause.NoCredentials -> ErrorCode.AUTH_NO_CREDENTIALS
-                        is AuthenticationFailedCause.InvalidCredentials -> ErrorCode.AUTH_INVALID_CREDENTIALS
+                        is AuthenticationFailedCause.NoCredentials -> ErrorCode.AUTH_ACCESS_TOKEN_MISSING
+                        is AuthenticationFailedCause.InvalidCredentials -> ErrorCode.AUTH_ACCESS_TOKEN_INVALID
                         is AuthenticationFailedCause.Error -> ErrorCode.AUTH_WRONG_CREDENTIALS
                         else -> ErrorCode.AUTH_UNEXPECTED_CREDENTIALS
                     }

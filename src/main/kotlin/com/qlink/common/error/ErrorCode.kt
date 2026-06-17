@@ -7,17 +7,26 @@ enum class ErrorCode(
 ) {
     // Common
     COMMON_BAD_REQUEST("COM_400_0001", 400, "유효하지 않은 요청이에요"),
+    COMMON_INVALID_SORT_ORDER("COM_400_0002", 400, "지원하지 않는 정렬 기준이에요"),
+    COMMON_INVALID_FILTER("COM_400_0003", 400, "요청 필터 값이 올바르지 않아요"),
+    COMMON_CURSOR_MALFORMED("COM_400_0004", 400, "스크롤 커서를 해석할 수 없어요"),
+    COMMON_CURSOR_ORDER_MISMATCH("COM_400_0005", 400, "커서의 정렬 기준이 요청과 일치하지 않아요"),
+    COMMON_CURSOR_FIELD_MISSING("COM_400_0006", 400, "커서에 필요한 값이 없어요"),
     COMMON_URL_NOT_FOUND("COM_404_0001", 404, "등록되지 않은 URL이에요"),
     COMMON_INTERNAL_SERVER_ERROR("COM_500_0001", 500, "예기치 못한 서버 에러가 발생했어요"),
 
     // Auth
-    AUTH_NO_CREDENTIALS("AUTH_401_0001", 401, "인증 정보가 제공되지 않은 요청이에요"),
-    AUTH_INVALID_CREDENTIALS("AUTH_401_0002", 401, "만료되거나 변조된 인증 정보에요"),
+    AUTH_ACCESS_TOKEN_MISSING("AUTH_401_0001", 401, "로그인이 필요해요 (액세스 토큰이 없어요)"),
+    AUTH_ACCESS_TOKEN_INVALID("AUTH_401_0002", 401, "액세스 토큰이 만료되었거나 유효하지 않아요"),
     AUTH_WRONG_CREDENTIALS("AUTH_401_0003", 401, "인증 형태가 유효하지 않아요"),
     AUTH_UNEXPECTED_CREDENTIALS("AUTH_401_0004", 401, "예기치 못한 인증 오류가 발생했어요"),
+    AUTH_REFRESH_TOKEN_MISSING("AUTH_401_0005", 401, "리프레시 토큰이 없어요"),
+    AUTH_REFRESH_TOKEN_INVALID("AUTH_401_0006", 401, "리프레시 토큰이 만료되었거나 유효하지 않아요"),
+    AUTH_REFRESH_TOKEN_REUSED("AUTH_401_0007", 401, "세션이 만료되었어요. 다시 로그인해 주세요"),
     AUTH_PROVIDER_NOT_SUPPORTED("AUTH_400_0001", 400, "지원하지 않는 인증 제공자에요"),
     AUTH_CSRF_TOKEN_INVALID("AUTH_403_0001", 403, "요청 보안 토큰이 유효하지 않아요"),
-    AUTH_EXTERNAL_CLIENT_FAILED("AUTH_422_0001", 422, "외부 인증 제공자 요청에 실패했어요"),
+    AUTH_PROVIDER_COMMUNICATION_FAILED("AUTH_422_0001", 422, "소셜 로그인 제공자와 통신에 실패했어요"),
+    AUTH_PROVIDER_TOKEN_INVALID("AUTH_422_0002", 422, "소셜 로그인 토큰이 유효하지 않아요"),
 
     // User
     USER_THEME_NOT_SUPPORTED("USER_400_0001", 400, "지원하지 않는 화면 테마에요"),

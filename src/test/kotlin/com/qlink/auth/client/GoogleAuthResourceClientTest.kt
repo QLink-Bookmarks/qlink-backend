@@ -67,7 +67,7 @@ class GoogleAuthResourceClientTest :
                     )
 
                 Then("외부 client 실패 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID.message) {
                         googleClient.getResource("token")
                     }
                 }
@@ -77,7 +77,7 @@ class GoogleAuthResourceClientTest :
                 val googleClient = client(content = """{"email":"user@example.com"}""")
 
                 Then("외부 client 실패 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_COMMUNICATION_FAILED.message) {
                         googleClient.getResource("token")
                     }
                 }

@@ -87,7 +87,7 @@ class RefreshAuthTokenServiceTest :
                     }
 
                 Then("인증 정보 없음 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_NO_CREDENTIALS.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_REFRESH_TOKEN_MISSING.message) {
                         refresh()
                     }
                 }
@@ -100,7 +100,7 @@ class RefreshAuthTokenServiceTest :
                     }
 
                 Then("인증 실패 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_INVALID_CREDENTIALS.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_REFRESH_TOKEN_INVALID.message) {
                         refresh()
                     }
                 }
@@ -113,7 +113,7 @@ class RefreshAuthTokenServiceTest :
                     }
 
                 Then("인증 실패 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_INVALID_CREDENTIALS.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_REFRESH_TOKEN_INVALID.message) {
                         refresh()
                     }
                 }
@@ -132,7 +132,7 @@ class RefreshAuthTokenServiceTest :
                     }
 
                 Then("인증 실패 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_INVALID_CREDENTIALS.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_REFRESH_TOKEN_REUSED.message) {
                         refresh()
                     }
                 }
@@ -162,7 +162,7 @@ class RefreshAuthTokenServiceTest :
                     }
 
                 Then("인증 실패 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_INVALID_CREDENTIALS.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_REFRESH_TOKEN_REUSED.message) {
                         refresh()
                     }
                 }
@@ -193,7 +193,7 @@ class RefreshAuthTokenServiceTest :
                     }
 
                 Then("인증 실패 예외가 발생한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_INVALID_CREDENTIALS.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_REFRESH_TOKEN_REUSED.message) {
                         refresh()
                     }
                 }
