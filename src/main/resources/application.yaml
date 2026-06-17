@@ -90,3 +90,6 @@ apple:
   clientIds:
     - com.qlinkapps.qlink
     - com.qlinkapps.qlink.web
+
+google:
+  clientIds: []

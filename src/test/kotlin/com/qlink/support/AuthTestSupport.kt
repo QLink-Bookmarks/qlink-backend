@@ -5,6 +5,7 @@ package com.qlink.support
 import com.qlink.auth.client.AuthResource
 import com.qlink.auth.client.AuthResourceClient
 import com.qlink.auth.domain.AuthProviderType
+import com.qlink.auth.dto.AuthPlatform
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -58,7 +59,10 @@ class FakeAuthResourceClient : AuthResourceClient {
     var failure: Throwable? = null
     val requestedTokens: MutableList<String> = mutableListOf()
 
-    override suspend fun getResource(token: String): AuthResource {
+    override suspend fun getResource(
+        token: String,
+        platform: AuthPlatform,
+    ): AuthResource {
         requestedTokens.add(token)
         failure?.let { throw it }
 

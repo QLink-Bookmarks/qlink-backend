@@ -1,6 +1,7 @@
 package com.qlink.auth.client
 
 import com.qlink.auth.domain.AuthProviderType
+import com.qlink.auth.dto.AuthPlatform
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import io.ktor.client.HttpClient
@@ -15,7 +16,10 @@ class NaverAuthResourceClient(
 ) : AuthResourceClient {
     override val providerType: AuthProviderType = AuthProviderType.NAVER
 
-    override suspend fun getResource(token: String): AuthResource {
+    override suspend fun getResource(
+        token: String,
+        platform: AuthPlatform,
+    ): AuthResource {
         val response =
             runCatching {
                 httpClient.get(NAVER_USER_INFO_URL) {

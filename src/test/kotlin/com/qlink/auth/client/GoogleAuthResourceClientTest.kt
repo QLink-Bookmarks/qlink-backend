@@ -1,8 +1,11 @@
 package com.qlink.auth.client
 
 import com.qlink.auth.domain.AuthProviderType
+import com.qlink.auth.dto.AuthPlatform
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
+import com.qlink.config.GoogleConfig
+import com.qlink.support.GoogleTestKeys
 import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
@@ -15,12 +18,14 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import java.util.Date
 
 class GoogleAuthResourceClientTest :
     BehaviorSpec({
         fun client(
             content: String,
             status: HttpStatusCode = HttpStatusCode.OK,
+            clientIds: List<String> = listOf(GoogleTestKeys.CLIENT_ID),
             onRequest: (String?) -> Unit = {},
         ): GoogleAuthResourceClient =
             GoogleAuthResourceClient(
@@ -41,16 +46,17 @@ class GoogleAuthResourceClientTest :
                             }
                         }
                     },
+                googleConfig = GoogleConfig(clientIds = clientIds),
             )
 
-        Given("구글 userinfo 응답이 주어졌을 때") {
+        Given("WEB 플랫폼 - access token으로 userinfo를 조회할 때") {
             When("정상 응답이면") {
                 var capturedAuthorization: String? = null
                 val resource =
                     client(
                         content = """{"sub":"google-123","email":"user@example.com"}""",
                         onRequest = { capturedAuthorization = it },
-                    ).getResource("google-access-token")
+                    ).getResource("google-access-token", AuthPlatform.WEB)
 
                 Then("sub로 providerId를 추출하고 bearer 토큰으로 요청한다") {
                     resource.providerType shouldBe AuthProviderType.GOOGLE
@@ -68,7 +74,7 @@ class GoogleAuthResourceClientTest :
 
                 Then("외부 client 실패 예외가 발생한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
-                        googleClient.getResource("token")
+                        googleClient.getResource("token", AuthPlatform.WEB)
                     }
                 }
             }
@@ -78,7 +84,80 @@ class GoogleAuthResourceClientTest :
 
                 Then("외부 client 실패 예외가 발생한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
-                        googleClient.getResource("token")
+                        googleClient.getResource("token", AuthPlatform.WEB)
+                    }
+                }
+            }
+        }
+
+        Given("NATIVE 플랫폼 - id_token을 JWKS로 검증할 때") {
+            When("유효한 id_token이면") {
+                val sub = "google-native-1234"
+                val resource =
+                    client(content = GoogleTestKeys.jwks())
+                        .getResource(GoogleTestKeys.idToken(subject = sub), AuthPlatform.NATIVE)
+
+                Then("구글 공개키로 검증하고 sub를 providerId로 추출한다") {
+                    resource.providerType shouldBe AuthProviderType.GOOGLE
+                    resource.providerId shouldBe sub
+                }
+            }
+
+            When("aud가 허용된 client id 목록에 없으면") {
+                val googleClient = client(content = GoogleTestKeys.jwks())
+                val token = GoogleTestKeys.idToken(subject = "u", audience = "other.apps.googleusercontent.com")
+
+                Then("외부 client 실패 예외가 발생한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                        googleClient.getResource(token, AuthPlatform.NATIVE)
+                    }
+                }
+            }
+
+            When("만료된 id_token이면") {
+                val googleClient = client(content = GoogleTestKeys.jwks())
+                val token =
+                    GoogleTestKeys.idToken(
+                        subject = "u",
+                        expiresAt = Date(System.currentTimeMillis() - 3_600_000),
+                    )
+
+                Then("외부 client 실패 예외가 발생한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                        googleClient.getResource(token, AuthPlatform.NATIVE)
+                    }
+                }
+            }
+
+            When("issuer가 구글이 아니면") {
+                val googleClient = client(content = GoogleTestKeys.jwks())
+                val token = GoogleTestKeys.idToken(subject = "u", issuer = "https://evil.example.com")
+
+                Then("외부 client 실패 예외가 발생한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                        googleClient.getResource(token, AuthPlatform.NATIVE)
+                    }
+                }
+            }
+
+            When("JWKS 공개키와 다른 키로 서명되었으면") {
+                val googleClient = client(content = GoogleTestKeys.jwks())
+                val token = GoogleTestKeys.idToken(subject = "u", signWithWrongKey = true)
+
+                Then("외부 client 실패 예외가 발생한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                        googleClient.getResource(token, AuthPlatform.NATIVE)
+                    }
+                }
+            }
+
+            When("JWKS 응답이 2xx가 아니면") {
+                val googleClient = client(content = GoogleTestKeys.jwks(), status = HttpStatusCode.InternalServerError)
+                val token = GoogleTestKeys.idToken(subject = "u")
+
+                Then("외부 client 실패 예외가 발생한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_EXTERNAL_CLIENT_FAILED.message) {
+                        googleClient.getResource(token, AuthPlatform.NATIVE)
                     }
                 }
             }

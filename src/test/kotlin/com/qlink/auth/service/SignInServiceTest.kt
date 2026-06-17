@@ -11,6 +11,7 @@ import com.qlink.common.error.ErrorCode
 import com.qlink.support.AppleTestKeys
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.FakeAuthResourceClient
+import com.qlink.support.GoogleTestKeys
 import com.qlink.support.MockAuthHttpEngine
 import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.koinGet
@@ -125,7 +126,7 @@ class SignInServiceTest :
                 }
             }
 
-            When("등록되지 않은 google provider user면") {
+            When("등록되지 않은 google WEB provider user면") {
                 mockAuthHttpEngine.reset()
                 val providerId = "google-${RandomFixture.randomId()}"
                 mockAuthHttpEngine.respondJson("""{"sub":"$providerId","email":"user@example.com"}""")
@@ -135,6 +136,37 @@ class SignInServiceTest :
                         SignInRequest(
                             provider = "google",
                             token = "google-access-token",
+                            platform = AuthPlatform.WEB,
+                        ),
+                    )
+                val refreshTokenClaims = authTokenService.verifyRefreshToken(response.refreshToken)
+                val authProvider =
+                    authProviderRepository.findByProvider(
+                        providerType = AuthProviderType.GOOGLE,
+                        providerId = providerId,
+                    )
+                val user = userRepository.findById(refreshTokenClaims.userId)
+
+                Then("access token userinfo의 sub로 회원가입 후 token을 발급한다") {
+                    response.accessToken.shouldNotBeNull()
+                    authProvider.shouldNotBeNull()
+                    authProvider.providerType shouldBe AuthProviderType.GOOGLE
+                    authProvider.userId shouldBe refreshTokenClaims.userId
+                    user.shouldNotBeNull()
+                }
+            }
+
+            When("등록되지 않은 google NATIVE provider user면") {
+                mockAuthHttpEngine.reset()
+                mockAuthHttpEngine.respondJson(GoogleTestKeys.jwks())
+                val providerId = "google-native-${RandomFixture.randomId()}"
+                val idToken = GoogleTestKeys.idToken(subject = providerId)
+
+                val response =
+                    service.signIn(
+                        SignInRequest(
+                            provider = "google",
+                            token = idToken,
                             platform = AuthPlatform.NATIVE,
                         ),
                     )
@@ -146,7 +178,7 @@ class SignInServiceTest :
                     )
                 val user = userRepository.findById(refreshTokenClaims.userId)
 
-                Then("google userinfo의 id로 회원가입 후 token을 발급한다") {
+                Then("id_token의 sub로 회원가입 후 token을 발급한다") {
                     response.accessToken.shouldNotBeNull()
                     authProvider.shouldNotBeNull()
                     authProvider.providerType shouldBe AuthProviderType.GOOGLE
@@ -187,7 +219,7 @@ class SignInServiceTest :
                 }
             }
 
-            When("google userinfo 요청이 실패 응답을 주면") {
+            When("google WEB userinfo 요청이 실패 응답을 주면") {
                 mockAuthHttpEngine.reset()
                 mockAuthHttpEngine.respondJson("""{"error":"invalid_token"}""", HttpStatusCode.Unauthorized)
                 val signIn =
@@ -196,7 +228,7 @@ class SignInServiceTest :
                             SignInRequest(
                                 provider = "google",
                                 token = "invalid-google-token",
-                                platform = AuthPlatform.NATIVE,
+                                platform = AuthPlatform.WEB,
                             ),
                         )
                     }

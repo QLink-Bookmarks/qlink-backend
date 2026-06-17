@@ -28,6 +28,7 @@ class SignInService(
             authResourceClientRouter.getResource(
                 providerType = providerType,
                 token = request.token,
+                platform = request.platform,
             )
 
         return tx.required {

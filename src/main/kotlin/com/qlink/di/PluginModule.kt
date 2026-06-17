@@ -4,6 +4,7 @@ import com.qlink.common.error.ApiExceptionHandler
 import com.qlink.config.AppleConfig
 import com.qlink.config.CorsConfig
 import com.qlink.config.DocumentationConfig
+import com.qlink.config.GoogleConfig
 import com.qlink.config.HttpLoggingConfig
 import com.qlink.config.HttpPluginConfig
 import com.qlink.config.MonitoringConfig
@@ -66,6 +67,10 @@ fun pluginModule(config: ApplicationConfig) =
 
         single {
             AppleConfig.from(config)
+        }
+
+        single {
+            GoogleConfig.from(config)
         }
 
         single {

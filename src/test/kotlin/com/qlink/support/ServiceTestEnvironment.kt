@@ -215,8 +215,13 @@ object ServiceTestEnvironment {
             }
 
             single {
+                com.qlink.config.GoogleConfig(clientIds = listOf(GoogleTestKeys.CLIENT_ID))
+            }
+
+            single {
                 com.qlink.auth.client.GoogleAuthResourceClient(
                     httpClient = get<MockAuthHttpEngine>().client,
+                    googleConfig = get(),
                 )
             }
 
