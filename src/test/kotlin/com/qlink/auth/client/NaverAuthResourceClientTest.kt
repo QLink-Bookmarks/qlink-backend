@@ -1,6 +1,7 @@
 package com.qlink.auth.client
 
 import com.qlink.auth.domain.AuthProviderType
+import com.qlink.auth.dto.AuthPlatform
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import io.kotest.assertions.throwables.shouldThrowWithMessage
@@ -50,7 +51,7 @@ class NaverAuthResourceClientTest :
                     client(
                         content = """{"resultcode":"00","message":"success","response":{"id":"naver-abc","email":"user@naver.com"}}""",
                         onRequest = { capturedAuthorization = it },
-                    ).getResource("naver-access-token")
+                    ).getResource("naver-access-token", AuthPlatform.NATIVE)
 
                 Then("중첩된 response에서 providerId를 추출하고 bearer 토큰으로 요청한다") {
                     resource.providerType shouldBe AuthProviderType.NAVER
@@ -66,9 +67,9 @@ class NaverAuthResourceClientTest :
                         status = HttpStatusCode.Unauthorized,
                     )
 
-                Then("외부 client 실패 예외가 발생한다") {
+                Then("토큰 무효 예외가 발생한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID.message) {
-                        naverClient.getResource("token")
+                        naverClient.getResource("token", AuthPlatform.NATIVE)
                     }
                 }
             }
@@ -76,9 +77,9 @@ class NaverAuthResourceClientTest :
             When("응답 본문에 response가 없으면") {
                 val naverClient = client(content = """{"resultcode":"024","message":"Authentication failed"}""")
 
-                Then("외부 client 실패 예외가 발생한다") {
+                Then("통신 실패 예외가 발생한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_COMMUNICATION_FAILED.message) {
-                        naverClient.getResource("token")
+                        naverClient.getResource("token", AuthPlatform.NATIVE)
                     }
                 }
             }

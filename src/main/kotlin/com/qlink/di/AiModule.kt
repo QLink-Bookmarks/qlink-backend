@@ -79,6 +79,7 @@ fun aiModule(
     single {
         GoogleAuthResourceClient(
             httpClient = get(),
+            googleConfig = get(),
         )
     }
 

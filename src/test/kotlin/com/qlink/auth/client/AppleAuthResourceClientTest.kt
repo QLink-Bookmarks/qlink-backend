@@ -1,6 +1,7 @@
 package com.qlink.auth.client
 
 import com.qlink.auth.domain.AuthProviderType
+import com.qlink.auth.dto.AuthPlatform
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.config.AppleConfig
@@ -49,7 +50,7 @@ class AppleAuthResourceClientTest :
         Given("애플 id_token 검증 테스트") {
             When("유효한 id_token이면") {
                 val sub = "apple-user-1234"
-                val resource = client().getResource(AppleTestKeys.idToken(subject = sub))
+                val resource = client().getResource(AppleTestKeys.idToken(subject = sub), AuthPlatform.NATIVE)
 
                 Then("JWKS 공개키로 검증하고 sub를 providerId로 추출한다") {
                     resource.providerType shouldBe AuthProviderType.APPLE
@@ -63,7 +64,7 @@ class AppleAuthResourceClientTest :
 
                 Then("외부 client 실패 예외가 발생한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID.message) {
-                        appleClient.getResource(token)
+                        appleClient.getResource(token, AuthPlatform.NATIVE)
                     }
                 }
             }
@@ -78,7 +79,7 @@ class AppleAuthResourceClientTest :
 
                 Then("외부 client 실패 예외가 발생한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID.message) {
-                        appleClient.getResource(token)
+                        appleClient.getResource(token, AuthPlatform.NATIVE)
                     }
                 }
             }
@@ -89,7 +90,7 @@ class AppleAuthResourceClientTest :
 
                 Then("외부 client 실패 예외가 발생한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID.message) {
-                        appleClient.getResource(token)
+                        appleClient.getResource(token, AuthPlatform.NATIVE)
                     }
                 }
             }
@@ -100,7 +101,7 @@ class AppleAuthResourceClientTest :
 
                 Then("서명 검증 실패로 외부 client 실패 예외가 발생한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID.message) {
-                        appleClient.getResource(token)
+                        appleClient.getResource(token, AuthPlatform.NATIVE)
                     }
                 }
             }
@@ -111,7 +112,7 @@ class AppleAuthResourceClientTest :
 
                 Then("외부 client 실패 예외가 발생한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID.message) {
-                        appleClient.getResource(token)
+                        appleClient.getResource(token, AuthPlatform.NATIVE)
                     }
                 }
             }
@@ -122,7 +123,7 @@ class AppleAuthResourceClientTest :
 
                 Then("외부 client 실패 예외가 발생한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_COMMUNICATION_FAILED.message) {
-                        appleClient.getResource(token)
+                        appleClient.getResource(token, AuthPlatform.NATIVE)
                     }
                 }
             }
