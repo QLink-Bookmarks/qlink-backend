@@ -83,6 +83,8 @@ class UpdateLinkAiSummaryServiceTest :
                     actualJob.userProviderId shouldBe userProvider.id
                     actualJob.requestModelId shouldBe model.id
                     actualJob.requestedUrl shouldBe request.url
+                    actualJob.prompt.contains("## Fixed Title") shouldBe true
+                    actualJob.prompt.contains("- 요청 제목") shouldBe true
                     actualJob.prompt.contains("## Folders") shouldBe true
                     actualJob.prompt.contains("\"id\":null,\"title\":\"미분류\"") shouldBe true
                     actualJob.prompt.contains("\"id\":${folder.id},\"title\":\"${folder.name}\"") shouldBe true
@@ -111,6 +113,7 @@ class UpdateLinkAiSummaryServiceTest :
                     actualLink.status shouldBe LinkStatus.G
                     actualLink.title.startsWith("AI 생성 대기 중 -") shouldBe true
                     actualLink.folderId shouldBe folder.id
+                    actualJobs.first().prompt.contains("## Fixed Title") shouldBe false
                     actualJobs.first().prompt.contains("## Fixed Folder ID") shouldBe true
                     actualJobs.first().prompt.contains("- ${folder.id}") shouldBe true
                     actualJobs shouldHaveSize 1
