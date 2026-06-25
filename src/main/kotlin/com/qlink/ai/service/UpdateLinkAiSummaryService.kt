@@ -74,6 +74,10 @@ class UpdateLinkAiSummaryService(
                                     ).copyAiStatus(status = LinkStatus.G, workModelId = requestModel.id),
                             )
                         } ?: createAiPendingLink(loginId, request)
+                val titlePrompt =
+                    request.title
+                        ?.let { FixedTitlePrompt(it) }
+                        ?: AutoTitlePrompt
                 val folderPrompt =
                     fixedFolder
                         ?.let { FixedFolderPrompt(it.id!!) }
@@ -85,7 +89,13 @@ class UpdateLinkAiSummaryService(
                         userProviderId = userProvider.id!!,
                         requestModelId = requestModel.id!!,
                         requestedUrl = request.url,
-                        prompt = createPrompt(linkId = link.id, requestedUrl = request.url, folderPrompt = folderPrompt),
+                        prompt =
+                            createPrompt(
+                                linkId = link.id,
+                                requestedUrl = request.url,
+                                titlePrompt = titlePrompt,
+                                folderPrompt = folderPrompt,
+                            ),
                     ),
                 )
             }
@@ -170,15 +180,16 @@ fun Link.copyAiStatus(
 private fun createPrompt(
     linkId: Long,
     requestedUrl: String,
+    titlePrompt: TitlePrompt,
     folderPrompt: FolderPrompt,
 ): String =
     """
     ## Instruction
     - Understand the contents in the URL given below by the user as a bookmark.
-    - Paraphrase, summarize the contents in one line and entitle the link to highlight what the user wants to know. Mention the deadline/state if included in the content.
+    - Paraphrase, summarize the contents in one line. Mention the deadline/state if included in the content.
+    - ${titlePrompt.toInstruction()}
     - If the URL contents include any task with a deadline after today, add reasonable tasks which the user should do, including the final task for the deadline.
-    - If fixed folder id is given, return the fixed folder id in the response as `folderId`.
-    - If fixed folder id is not given and folders are given, choose the most suitable folder id from the folders. If no folder seems to be suitable, set null in the `folderId` in the response
+    - ${folderPrompt.toInstruction()}
 
     ## Link ID
     - $linkId
@@ -186,16 +197,45 @@ private fun createPrompt(
     ## URL
     - $requestedUrl
 
+    ${titlePrompt.toPromptSection()}
     ${folderPrompt.toPromptSection()}
     """.trimIndent()
 
+private sealed interface TitlePrompt {
+    fun toInstruction(): String
+
+    fun toPromptSection(): String
+}
+
+private data class FixedTitlePrompt(
+    val title: String,
+) : TitlePrompt {
+    override fun toInstruction(): String = "Return the fixed title given below as `title` unchanged."
+
+    override fun toPromptSection(): String =
+        """
+        ## Fixed Title
+        - $title
+        """.trimIndent()
+}
+
+private data object AutoTitlePrompt : TitlePrompt {
+    override fun toInstruction(): String = "Entitle the link to highlight what the user wants to know."
+
+    override fun toPromptSection(): String = ""
+}
+
 private sealed interface FolderPrompt {
+    fun toInstruction(): String
+
     fun toPromptSection(): String
 }
 
 private data class FixedFolderPrompt(
     val folderId: Long,
 ) : FolderPrompt {
+    override fun toInstruction(): String = "Return the fixed folder id given below as `folderId`."
+
     override fun toPromptSection(): String =
         """
         ## Fixed Folder ID
@@ -206,6 +246,9 @@ private data class FixedFolderPrompt(
 private data class AutoFolderPrompt(
     val foldersJson: String,
 ) : FolderPrompt {
+    override fun toInstruction(): String =
+        "Choose the most suitable folder id from the folders below. If none is suitable, set `folderId` null."
+
     override fun toPromptSection(): String =
         """
         ## Folders
