@@ -26,8 +26,10 @@ class Folder(
         emoji?.let(::validateEmoji)
     }
 
+    fun isOwnedBy(userId: Long): Boolean = ownerId == userId
+
     fun validateOwner(ownerId: Long) {
-        if (this.ownerId != ownerId) {
+        if (!isOwnedBy(ownerId)) {
             throw BusinessException(ErrorCode.FOLDER_DIFFERENT_OWNER)
         }
     }

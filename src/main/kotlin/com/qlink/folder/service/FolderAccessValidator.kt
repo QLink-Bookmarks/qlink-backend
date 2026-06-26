@@ -18,11 +18,17 @@ class FolderAccessValidator(
             folderRepository.findById(folderId)
                 ?: throw BusinessException(ErrorCode.LINK_FOLDER_NOT_FOUND)
 
-        if (folder.ownerId == userId) {
+        if (folder.isOwnedBy(userId)) {
             return folder
         }
 
-        if (folder.sharedAt != null && folderMemberRepository.existsByFolderIdAndUserId(folderId, userId)) {
+        val member =
+            if (folder.sharedAt != null) {
+                folderMemberRepository.findByFolderIdAndUserId(folderId, userId)
+            } else {
+                null
+            }
+        if (member?.canWriteLink() == true) {
             return folder
         }
 

@@ -11,6 +11,8 @@ data class FolderMember(
     val createdAt: Instant,
     val updatedAt: Instant,
 ) {
+    fun canWriteLink(): Boolean = role.canWriteLink()
+
     companion object {
         fun owner(
             folderId: Long,

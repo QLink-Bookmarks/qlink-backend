@@ -80,5 +80,16 @@ class FolderMemberTest :
                     folderMember.updatedAt shouldBe now
                 }
             }
+
+            When("링크 쓰기 권한을 확인하면") {
+                val now = Clock.System.now()
+
+                Then("OWNER와 MEMBER 모두 링크를 쓸 수 있다") {
+                    MemberRole.OWNER.canWriteLink() shouldBe true
+                    MemberRole.MEMBER.canWriteLink() shouldBe true
+                    FolderMember.owner(folderId = 1, userId = 2, userName = "owner", joinedAt = now).canWriteLink() shouldBe true
+                    FolderMember.member(folderId = 1, userId = 3, userName = "member", joinedAt = now).canWriteLink() shouldBe true
+                }
+            }
         }
     })
