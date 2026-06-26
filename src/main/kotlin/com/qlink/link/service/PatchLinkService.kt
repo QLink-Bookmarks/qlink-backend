@@ -4,7 +4,7 @@ import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireFalse
 import com.qlink.common.transaction.TransactionRunner
-import com.qlink.folder.repository.FolderRepository
+import com.qlink.folder.service.FolderAccessValidator
 import com.qlink.link.domain.Link
 import com.qlink.link.dto.PatchLinkRequest
 import com.qlink.link.dto.PatchLinkResponse
@@ -21,7 +21,7 @@ class PatchLinkService(
     private val linkRepository: LinkRepository,
     private val todoRepository: TodoRepository,
     private val userRepository: UserRepository,
-    private val folderRepository: FolderRepository,
+    private val folderAccessValidator: FolderAccessValidator,
     private val scheduleTodoNotificationService: ScheduleTodoNotificationService,
 ) {
     suspend fun patchLink(
@@ -100,8 +100,7 @@ class PatchLinkService(
             return null
         }
 
-        folderRepository.findById(folderId)?.also { it.validateOwner(loginId) }
-            ?: throw BusinessException(ErrorCode.LINK_FOLDER_NOT_FOUND)
+        folderAccessValidator.validateWritable(folderId, loginId)
 
         return folderId
     }

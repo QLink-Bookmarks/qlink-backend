@@ -14,6 +14,7 @@ import com.qlink.folder.service.CreateFolderInvitationService
 import com.qlink.folder.service.CreateFolderService
 import com.qlink.folder.service.DeleteFolderMemberService
 import com.qlink.folder.service.DeleteFolderService
+import com.qlink.folder.service.FolderAccessValidator
 import com.qlink.folder.service.GetFolderMembersService
 import com.qlink.folder.service.GetFoldersService
 import com.qlink.folder.service.UpdateFolderService
@@ -155,6 +156,13 @@ fun serviceModule() =
         }
 
         single {
+            FolderAccessValidator(
+                folderRepository = get(),
+                folderMemberRepository = get(),
+            )
+        }
+
+        single {
             CreateFolderService(
                 tx = get(),
                 folderRepository = get(),
@@ -232,7 +240,7 @@ fun serviceModule() =
                 linkRepository = get(),
                 todoRepository = get(),
                 userRepository = get(),
-                folderRepository = get(),
+                folderAccessValidator = get(),
                 scheduleTodoNotificationService = get(),
             )
         }
@@ -259,7 +267,7 @@ fun serviceModule() =
                 tx = get(),
                 linkRepository = get(),
                 userRepository = get(),
-                folderRepository = get(),
+                folderAccessValidator = get(),
             )
         }
 
@@ -269,7 +277,7 @@ fun serviceModule() =
                 linkRepository = get(),
                 todoRepository = get(),
                 userRepository = get(),
-                folderRepository = get(),
+                folderAccessValidator = get(),
                 scheduleTodoNotificationService = get(),
             )
         }
@@ -329,6 +337,7 @@ fun serviceModule() =
                 tx = get(),
                 userRepository = get(),
                 folderRepository = get(),
+                folderAccessValidator = get(),
                 linkRepository = get(),
                 userProviderRepository = get(),
                 availableModelRepository = get(),

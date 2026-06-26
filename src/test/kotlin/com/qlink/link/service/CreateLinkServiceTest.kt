@@ -4,6 +4,7 @@ import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.folder.domain.Folder
 import com.qlink.folder.repository.FolderRepository
+import com.qlink.foldermember.repository.FolderMemberRepository
 import com.qlink.link.domain.SourceType
 import com.qlink.link.dto.CreateLinkRequest
 import com.qlink.link.dto.CreateLinkTodoRequest
@@ -13,6 +14,7 @@ import com.qlink.notification.domain.NotificationContext
 import com.qlink.notification.repository.NotificationRepository
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.FolderFixture
+import com.qlink.support.fixture.FolderMemberFixture
 import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
@@ -37,6 +39,7 @@ class CreateLinkServiceTest :
         val userRepository = koinGet<UserRepository>()
         val linkRepository = koinGet<LinkRepository>()
         val folderRepository = koinGet<FolderRepository>()
+        val folderMemberRepository = koinGet<FolderMemberRepository>()
         val todoRepository = koinGet<TodoRepository>()
         val notificationRepository = koinGet<NotificationRepository>()
 
@@ -182,6 +185,56 @@ class CreateLinkServiceTest :
                 Then("예외를 반환한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_FOLDER_NOT_FOUND.message) {
                         create()
+                    }
+                }
+            }
+
+            When("공유 폴더의 멤버가 해당 폴더로 링크 생성을") {
+                Then("성공한다") {
+                    val owner = userRepository.insert(UserFixture.createRandomValidUser())
+                    val sharedFolder =
+                        folderRepository.insert(
+                            FolderFixture.createFolderWith(ownerId = owner.id!!, sharedAt = Clock.System.now()),
+                        )
+                    folderMemberRepository.insertIfAbsent(
+                        FolderMemberFixture.createMember(folderId = sharedFolder.id!!, userId = user.id!!),
+                    )
+                    val request =
+                        CreateLinkRequest(
+                            folderId = sharedFolder.id,
+                            url = RandomFixture.randomUrl(),
+                            title = RandomFixture.randomSentenceWithMax(300),
+                            sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
+                            tags = RandomFixture.randomSentenceList(),
+                        )
+
+                    val response = createLinkService.createLink(user.id!!, request)
+                    val createdLink = linkRepository.findById(response.id)
+
+                    createdLink shouldNotBe null
+                    createdLink!!.ownerId shouldBe user.id
+                    createdLink.folderId shouldBe sharedFolder.id
+                }
+            }
+
+            When("공유 폴더의 멤버가 아닌 사용자가 해당 폴더로 링크 생성을") {
+                Then("예외를 반환한다") {
+                    val owner = userRepository.insert(UserFixture.createRandomValidUser())
+                    val sharedFolder =
+                        folderRepository.insert(
+                            FolderFixture.createFolderWith(ownerId = owner.id!!, sharedAt = Clock.System.now()),
+                        )
+                    val request =
+                        CreateLinkRequest(
+                            folderId = sharedFolder.id,
+                            url = RandomFixture.randomUrl(),
+                            title = RandomFixture.randomSentenceWithMax(300),
+                            sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
+                            tags = RandomFixture.randomSentenceList(),
+                        )
+
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_FOLDER_ACCESS_DENIED.message) {
+                        createLinkService.createLink(user.id!!, request)
                     }
                 }
             }
