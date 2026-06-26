@@ -26,6 +26,6 @@ class FolderAccessValidator(
             return folder
         }
 
-        throw BusinessException(ErrorCode.FOLDER_DIFFERENT_OWNER)
+        throw BusinessException(ErrorCode.LINK_FOLDER_ACCESS_DENIED)
     }
 }

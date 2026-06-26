@@ -56,6 +56,7 @@ enum class ErrorCode(
     LINK_OWNER_NOT_FOUND("LINK_404_0002", 404, "로그인 사용자를 찾을 수 없어요"),
     LINK_FOLDER_NOT_FOUND("LINK_404_0003", 404, "폴더를 찾을 수 없어요"),
     LINK_SHARED_FOLDER_ACCESS_DENIED("LINK_403_0002", 403, "공유 폴더 링크에 대한 권한이 없어요"),
+    LINK_FOLDER_ACCESS_DENIED("LINK_403_0003", 403, "링크 폴더에 대한 권한이 없어요"),
     LINK_SHARE_FOLDER_NOT_FOUND("LINK_404_0004", 404, "공유 폴더를 찾을 수 없어요"),
     LINK_COPY_LINK_FOLDER_NOT_FOUND("LINK_404_0005", 404, "링크의 폴더를 찾을 수 없어요"),
     LINK_TARGET_FOLDER_NOT_FOUND("LINK_404_0006", 404, "대상 폴더를 찾을 수 없어요"),

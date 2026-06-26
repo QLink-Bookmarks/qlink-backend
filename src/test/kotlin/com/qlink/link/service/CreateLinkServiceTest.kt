@@ -233,7 +233,7 @@ class CreateLinkServiceTest :
                             tags = RandomFixture.randomSentenceList(),
                         )
 
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.FOLDER_DIFFERENT_OWNER.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_FOLDER_ACCESS_DENIED.message) {
                         createLinkService.createLink(user.id!!, request)
                     }
                 }

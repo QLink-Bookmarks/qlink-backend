@@ -411,7 +411,7 @@ class PatchLinkServiceTest :
                     }
 
                 Then("예외를 반환한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.FOLDER_DIFFERENT_OWNER.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_FOLDER_ACCESS_DENIED.message) {
                         patch()
                     }
                 }
