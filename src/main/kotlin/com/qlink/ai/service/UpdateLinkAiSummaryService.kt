@@ -12,6 +12,7 @@ import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireFalse
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.folder.repository.FolderRepository
+import com.qlink.folder.service.FolderAccessValidator
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.domain.SourceType
@@ -27,6 +28,7 @@ class UpdateLinkAiSummaryService(
     private val tx: TransactionRunner,
     private val userRepository: UserRepository,
     private val folderRepository: FolderRepository,
+    private val folderAccessValidator: FolderAccessValidator,
     private val linkRepository: LinkRepository,
     private val userProviderRepository: UserProviderRepository,
     private val availableModelRepository: AvailableModelRepository,
@@ -51,7 +53,7 @@ class UpdateLinkAiSummaryService(
                         .findById(request.modelId)
                         ?.takeIf { it.providerId == userProvider.providerId }
                         ?: throw BusinessException(ErrorCode.AI_MODEL_NOT_FOUND)
-                val fixedFolder = request.folderId?.let { findOwnedFolder(loginId, it) }
+                val fixedFolder = request.folderId?.let { findWritableFolder(loginId, it) }
                 val link =
                     request.id
                         ?.let { linkId ->
@@ -109,7 +111,7 @@ class UpdateLinkAiSummaryService(
         loginId: Long,
         request: AiSummaryRequest,
     ): Link {
-        val folder = request.folderId?.let { findOwnedFolder(loginId, it) }
+        val folder = request.folderId?.let { findWritableFolder(loginId, it) }
 
         return linkRepository.insert(
             Link(
@@ -130,11 +132,10 @@ class UpdateLinkAiSummaryService(
         return "AI 생성 대기 중 - $host"
     }
 
-    private suspend fun findOwnedFolder(
+    private suspend fun findWritableFolder(
         ownerId: Long,
         folderId: Long,
-    ) = folderRepository.findById(folderId)?.also { it.validateOwner(ownerId) }
-        ?: throw BusinessException(ErrorCode.LINK_FOLDER_NOT_FOUND)
+    ) = folderAccessValidator.validateWritable(folderId, ownerId)
 
     private suspend fun findPromptFoldersJson(ownerId: Long): String =
         buildJsonArray {

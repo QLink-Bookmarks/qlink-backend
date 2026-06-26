@@ -4,7 +4,7 @@ import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireFalse
 import com.qlink.common.transaction.TransactionRunner
-import com.qlink.folder.repository.FolderRepository
+import com.qlink.folder.service.FolderAccessValidator
 import com.qlink.link.domain.Link
 import com.qlink.link.dto.UpdateLinkRequest
 import com.qlink.link.dto.UpdateLinkResponse
@@ -15,7 +15,7 @@ class UpdateLinkService(
     private val tx: TransactionRunner,
     private val linkRepository: LinkRepository,
     private val userRepository: UserRepository,
-    private val folderRepository: FolderRepository,
+    private val folderAccessValidator: FolderAccessValidator,
 ) {
     suspend fun updateLink(
         loginId: Long,
@@ -28,10 +28,7 @@ class UpdateLinkService(
             val link = linkRepository.findById(linkId) ?: throw BusinessException(ErrorCode.LINK_NOT_FOUND)
             link.validateOwner(loginId)
 
-            request.folderId?.let {
-                folderRepository.findById(it)?.also { folder -> folder.validateOwner(loginId) }
-                    ?: throw BusinessException(ErrorCode.LINK_FOLDER_NOT_FOUND)
-            }
+            request.folderId?.let { folderAccessValidator.validateWritable(it, loginId) }
 
             val updatedLink =
                 link.update(
