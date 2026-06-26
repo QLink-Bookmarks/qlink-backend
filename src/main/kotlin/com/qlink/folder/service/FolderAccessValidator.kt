@@ -22,13 +22,10 @@ class FolderAccessValidator(
             return folder
         }
 
-        val member =
-            if (folder.sharedAt != null) {
-                folderMemberRepository.findByFolderIdAndUserId(folderId, userId)
-            } else {
-                null
-            }
-        if (member?.canWriteLink() == true) {
+        val isWritableMember =
+            folder.sharedAt != null &&
+                folderMemberRepository.findByFolderIdAndUserId(folderId, userId)?.canWriteLink() == true
+        if (isWritableMember) {
             return folder
         }
 
