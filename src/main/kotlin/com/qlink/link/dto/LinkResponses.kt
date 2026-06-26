@@ -15,6 +15,11 @@ data class CreateLinkResponse(
 )
 
 @Serializable
+data class CopyLinkResponse(
+    val id: Long,
+)
+
+@Serializable
 data class GetLinkDetailResponse(
     val id: Long,
     val url: String,

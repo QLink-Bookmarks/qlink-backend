@@ -26,5 +26,10 @@ class LinkResources(
         class Favorite(
             val parent: ById,
         )
+
+        @Resource("copy")
+        class Copy(
+            val parent: ById,
+        )
     }
 }
