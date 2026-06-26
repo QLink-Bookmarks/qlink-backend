@@ -75,6 +75,23 @@ class Link(
             updatedAt = updatedAt,
         )
 
+    fun addToFolder(
+        newOwnerId: Long,
+        folderId: Long,
+    ): Link =
+        Link(
+            ownerId = newOwnerId,
+            folderId = folderId,
+            url = url,
+            title = title,
+            summary = summary,
+            memo = null,
+            tags = tags,
+            thumbnailUrl = thumbnailUrl,
+            sourceType = SourceType.COPY,
+            status = LinkStatus.C,
+        )
+
     fun changeFavorite(
         isFavorite: Boolean?,
         now: Instant = Clock.System.now(),

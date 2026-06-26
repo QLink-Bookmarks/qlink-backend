@@ -46,3 +46,9 @@ data class UpdateLinkRequest(
 data class SetLinkFavoriteRequest(
     val isFavorite: Boolean? = null,
 )
+
+@Serializable
+data class CopyLinkRequest(
+    val fromFolderId: Long,
+    val toFolderId: Long,
+)

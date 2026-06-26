@@ -9,6 +9,8 @@ import com.qlink.common.response.ApiResponse
 import com.qlink.common.response.EmptySuccessResponse
 import com.qlink.common.response.ErrorDetail
 import com.qlink.common.scroll.ScrollResponse
+import com.qlink.link.dto.CopyLinkRequest
+import com.qlink.link.dto.CopyLinkResponse
 import com.qlink.link.dto.CreateLinkRequest
 import com.qlink.link.dto.CreateLinkResponse
 import com.qlink.link.dto.GetLinkDetailResponse
@@ -290,6 +292,55 @@ internal fun setLinkFavoriteDocs(): RouteConfig.() -> Unit =
                         ErrorCode.LINK_OWNER_NOT_FOUND,
                         ErrorCode.LINK_NOT_FOUND,
                     )
+                }
+            }
+        }
+    }
+
+internal fun copyLinkDocs(): RouteConfig.() -> Unit =
+    {
+        summary = "공유 폴더 링크 복사 API"
+        request {
+            pathParameter<Long>("id") { description = "복사할 링크 ID" }
+            body<CopyLinkRequest>()
+        }
+        response {
+            code(HttpStatusCode.Created) {
+                description = "공유 폴더 링크 복사 성공"
+                body<ApiResponse<CopyLinkResponse>>()
+            }
+            code(HttpStatusCode.BadRequest) {
+                description = "공유 폴더 링크 복사 요청 유효성 검증 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.LINK_COPY_FOLDER_MISMATCH)
+                }
+            }
+            authErrorResponse()
+            code(HttpStatusCode.Forbidden) {
+                description = "공유 폴더 링크 복사 권한 검증 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(
+                        ErrorCode.LINK_SHARED_FOLDER_ACCESS_DENIED,
+                        ErrorCode.FOLDER_DIFFERENT_OWNER,
+                    )
+                }
+            }
+            code(HttpStatusCode.NotFound) {
+                description = "공유 폴더 링크 복사에 필요한 리소스 조회 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(
+                        ErrorCode.LINK_OWNER_NOT_FOUND,
+                        ErrorCode.LINK_SHARE_FOLDER_NOT_FOUND,
+                        ErrorCode.LINK_TARGET_FOLDER_NOT_FOUND,
+                        ErrorCode.LINK_NOT_FOUND,
+                        ErrorCode.LINK_COPY_LINK_FOLDER_NOT_FOUND,
+                    )
+                }
+            }
+            code(HttpStatusCode.UnprocessableEntity) {
+                description = "공유 폴더 링크 복사 대상이 공유 폴더가 아님"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.LINK_COPY_NOT_SHARED_FOLDER)
                 }
             }
         }

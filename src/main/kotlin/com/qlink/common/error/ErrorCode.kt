@@ -48,6 +48,7 @@ enum class ErrorCode(
     LINK_URL_WRONG_HOST("LINK_400_0004", 400, "잘못된 호스트에요"),
     LINK_TITLE_BLANK("LINK_400_0005", 400, "링크 제목이 입력되지 않았어요"),
     LINK_TITLE_OVER_MAX("LINK_400_0006", 400, "링크 제목은 최대 300자에요"),
+    LINK_COPY_FOLDER_MISMATCH("LINK_400_0007", 400, "링크가 요청한 공유 폴더에 속해있지 않아요"),
 
     LINK_DIFFERENT_OWNER("LINK_403_0001", 403, "링크에 대한 권한이 없어요"),
 
@@ -55,6 +56,11 @@ enum class ErrorCode(
     LINK_OWNER_NOT_FOUND("LINK_404_0002", 404, "로그인 사용자를 찾을 수 없어요"),
     LINK_FOLDER_NOT_FOUND("LINK_404_0003", 404, "폴더를 찾을 수 없어요"),
     LINK_SHARED_FOLDER_ACCESS_DENIED("LINK_403_0002", 403, "공유 폴더 링크에 대한 권한이 없어요"),
+    LINK_SHARE_FOLDER_NOT_FOUND("LINK_404_0004", 404, "공유 폴더를 찾을 수 없어요"),
+    LINK_COPY_LINK_FOLDER_NOT_FOUND("LINK_404_0005", 404, "링크의 폴더를 찾을 수 없어요"),
+    LINK_TARGET_FOLDER_NOT_FOUND("LINK_404_0006", 404, "대상 폴더를 찾을 수 없어요"),
+
+    LINK_COPY_NOT_SHARED_FOLDER("LINK_422_0001", 422, "공유 폴더가 아니에요"),
 
     // AI
     AI_PROVIDER_NOT_SUPPORTED("AI_400_0001", 400, "지원하지 않는 AI 제공자에요"),

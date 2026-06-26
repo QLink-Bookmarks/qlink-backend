@@ -5,10 +5,12 @@ import com.qlink.ai.service.UpdateLinkAiSummaryService
 import com.qlink.auth.domain.JwtPrincipal
 import com.qlink.common.response.respondSuccess
 import com.qlink.common.scroll.ScrollRequest
+import com.qlink.link.dto.CopyLinkRequest
 import com.qlink.link.dto.CreateLinkRequest
 import com.qlink.link.dto.PatchLinkRequest
 import com.qlink.link.dto.SetLinkFavoriteRequest
 import com.qlink.link.dto.UpdateLinkRequest
+import com.qlink.link.service.CopyLinkService
 import com.qlink.link.service.CreateLinkService
 import com.qlink.link.service.DeleteLinkService
 import com.qlink.link.service.GetLinkDetailService
@@ -36,6 +38,7 @@ fun Route.linkRoutes() {
     val patchLinkService by inject<PatchLinkService>()
     val deleteLinkService by inject<DeleteLinkService>()
     val setLinkFavoriteService by inject<SetLinkFavoriteService>()
+    val copyLinkService by inject<CopyLinkService>()
     val updateLinkAiSummaryService by inject<UpdateLinkAiSummaryService>()
 
     authenticate {
@@ -115,6 +118,16 @@ fun Route.linkRoutes() {
             setLinkFavoriteService.setFavorite(principal.userId, resource.parent.id, request.isFavorite)
 
             call.respondSuccess(HttpStatusCode.OK)
+        }
+    }
+
+    authenticate {
+        post<LinkResources.ById.Copy>(copyLinkDocs()) { resource ->
+            val principal = call.principal<JwtPrincipal>()!!
+            val request = call.receive<CopyLinkRequest>()
+            val response = copyLinkService.copyLink(principal.userId, resource.parent.id, request)
+
+            call.respondSuccess(HttpStatusCode.Created, response)
         }
     }
 
