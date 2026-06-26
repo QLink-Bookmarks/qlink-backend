@@ -88,7 +88,7 @@ class Link(
             memo = null,
             tags = tags,
             thumbnailUrl = thumbnailUrl,
-            sourceType = sourceType,
+            sourceType = SourceType.COPY,
             status = LinkStatus.C,
         )
 

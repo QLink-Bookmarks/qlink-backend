@@ -6,6 +6,7 @@ import com.qlink.folder.domain.Folder
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.foldermember.repository.FolderMemberRepository
 import com.qlink.link.domain.Link
+import com.qlink.link.domain.SourceType
 import com.qlink.link.dto.CopyLinkRequest
 import com.qlink.link.repository.LinkRepository
 import com.qlink.support.BaseServiceTest
@@ -92,7 +93,7 @@ class CopyLinkServiceTest :
                     copied.summary shouldBe sharedLink.summary
                     copied.tags shouldBe sharedLink.tags
                     copied.thumbnailUrl shouldBe sharedLink.thumbnailUrl
-                    copied.sourceType shouldBe sharedLink.sourceType
+                    copied.sourceType shouldBe SourceType.COPY
                     copied.memo shouldBe null
                     copied.favoriteAt shouldBe null
                 }
