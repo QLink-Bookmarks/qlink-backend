@@ -13,22 +13,15 @@ class FolderAccessValidator(
     suspend fun validateWritable(
         folderId: Long,
         userId: Long,
-    ): Folder {
-        val folder =
-            folderRepository.findById(folderId)
-                ?: throw BusinessException(ErrorCode.LINK_FOLDER_NOT_FOUND)
+    ): Folder =
+        (folderRepository.findById(folderId) ?: throw BusinessException(ErrorCode.LINK_FOLDER_NOT_FOUND))
+            .takeIf { it.isOwnedBy(userId) || canMemberWrite(it, userId) }
+            ?: throw BusinessException(ErrorCode.LINK_FOLDER_ACCESS_DENIED)
 
-        if (folder.isOwnedBy(userId)) {
-            return folder
-        }
-
-        val isWritableMember =
-            folder.sharedAt != null &&
-                folderMemberRepository.findByFolderIdAndUserId(folderId, userId)?.canWriteLink() == true
-        if (isWritableMember) {
-            return folder
-        }
-
-        throw BusinessException(ErrorCode.LINK_FOLDER_ACCESS_DENIED)
-    }
+    private suspend fun canMemberWrite(
+        folder: Folder,
+        userId: Long,
+    ): Boolean =
+        folder.sharedAt != null &&
+            folderMemberRepository.findByFolderIdAndUserId(folder.id!!, userId)?.canWriteLink() == true
 }
