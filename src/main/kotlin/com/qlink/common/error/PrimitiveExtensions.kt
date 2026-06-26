@@ -3,6 +3,8 @@ package com.qlink.common.error
 private const val ZERO_WIDTH_JOINER = 0x200D
 private const val VARIATION_SELECTOR_16 = 0xFE0F
 
+fun <T : Any> T?.orThrow(errorCode: ErrorCode): T = this ?: throw BusinessException(errorCode)
+
 fun Boolean.requireTrue(errorCode: ErrorCode) {
     if (!this) {
         throw BusinessException(errorCode)

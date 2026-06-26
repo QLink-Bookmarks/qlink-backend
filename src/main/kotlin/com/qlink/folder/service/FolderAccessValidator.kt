@@ -2,6 +2,7 @@ package com.qlink.folder.service
 
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
+import com.qlink.common.error.orThrow
 import com.qlink.folder.domain.Folder
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.foldermember.repository.FolderMemberRepository
@@ -14,7 +15,7 @@ class FolderAccessValidator(
         folderId: Long,
         userId: Long,
     ): Folder =
-        (folderRepository.findById(folderId) ?: throw BusinessException(ErrorCode.LINK_FOLDER_NOT_FOUND))
+        folderRepository.findById(folderId).orThrow(ErrorCode.LINK_FOLDER_NOT_FOUND)
             .takeIf { it.isOwnedBy(userId) || canMemberWrite(it, userId) }
             ?: throw BusinessException(ErrorCode.LINK_FOLDER_ACCESS_DENIED)
 
