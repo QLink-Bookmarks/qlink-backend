@@ -333,6 +333,7 @@ internal fun copyLinkDocs(): RouteConfig.() -> Unit =
                         ErrorCode.LINK_COPY_SHARED_FOLDER_NOT_FOUND,
                         ErrorCode.LINK_FOLDER_NOT_FOUND,
                         ErrorCode.LINK_NOT_FOUND,
+                        ErrorCode.LINK_COPY_LINK_FOLDER_NOT_FOUND,
                     )
                 }
             }

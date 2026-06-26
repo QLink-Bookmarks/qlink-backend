@@ -43,7 +43,10 @@ class CopyLinkService(
             val link =
                 linkRepository.findById(linkId)
                     ?: throw BusinessException(ErrorCode.LINK_NOT_FOUND)
-            (link.folderId == request.fromFolderId).requireTrue(ErrorCode.LINK_COPY_FOLDER_MISMATCH)
+            val linkFolderId =
+                link.folderId
+                    ?: throw BusinessException(ErrorCode.LINK_COPY_LINK_FOLDER_NOT_FOUND)
+            (linkFolderId == request.fromFolderId).requireTrue(ErrorCode.LINK_COPY_FOLDER_MISMATCH)
 
             val copiedLink =
                 linkRepository.insert(

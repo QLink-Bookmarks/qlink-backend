@@ -246,7 +246,7 @@ class CopyLinkServiceTest :
                     }
 
                 Then("예외를 반환한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_COPY_FOLDER_MISMATCH.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_COPY_LINK_FOLDER_NOT_FOUND.message) {
                         copy()
                     }
                 }
