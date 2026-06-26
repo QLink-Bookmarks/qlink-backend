@@ -126,7 +126,7 @@ class CopyLinkServiceTest :
                     }
 
                 Then("예외를 반환한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_COPY_SHARED_FOLDER_NOT_FOUND.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_SHARE_FOLDER_NOT_FOUND.message) {
                         copy()
                     }
                 }
@@ -183,7 +183,7 @@ class CopyLinkServiceTest :
                     }
 
                 Then("예외를 반환한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_FOLDER_NOT_FOUND.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_TARGET_FOLDER_NOT_FOUND.message) {
                         copy()
                     }
                 }

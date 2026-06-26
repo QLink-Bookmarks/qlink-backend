@@ -330,8 +330,8 @@ internal fun copyLinkDocs(): RouteConfig.() -> Unit =
                 body<ApiResponse<ErrorDetail>> {
                     examples(
                         ErrorCode.LINK_OWNER_NOT_FOUND,
-                        ErrorCode.LINK_COPY_SHARED_FOLDER_NOT_FOUND,
-                        ErrorCode.LINK_FOLDER_NOT_FOUND,
+                        ErrorCode.LINK_SHARE_FOLDER_NOT_FOUND,
+                        ErrorCode.LINK_TARGET_FOLDER_NOT_FOUND,
                         ErrorCode.LINK_NOT_FOUND,
                         ErrorCode.LINK_COPY_LINK_FOLDER_NOT_FOUND,
                     )

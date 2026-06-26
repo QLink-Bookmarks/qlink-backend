@@ -29,7 +29,7 @@ class CopyLinkService(
 
             val sharedFolder =
                 folderRepository.findById(request.fromFolderId)
-                    ?: throw BusinessException(ErrorCode.LINK_COPY_SHARED_FOLDER_NOT_FOUND)
+                    ?: throw BusinessException(ErrorCode.LINK_SHARE_FOLDER_NOT_FOUND)
             sharedFolder.sharedAt ?: throw BusinessException(ErrorCode.LINK_COPY_NOT_SHARED_FOLDER)
             folderMemberRepository
                 .existsByFolderIdAndUserId(folderId = sharedFolder.id!!, userId = loginId)
@@ -37,7 +37,7 @@ class CopyLinkService(
 
             val personalFolder =
                 folderRepository.findById(request.toFolderId)
-                    ?: throw BusinessException(ErrorCode.LINK_FOLDER_NOT_FOUND)
+                    ?: throw BusinessException(ErrorCode.LINK_TARGET_FOLDER_NOT_FOUND)
             personalFolder.validateOwner(loginId)
 
             val link =
