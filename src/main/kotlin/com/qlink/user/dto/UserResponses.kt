@@ -20,6 +20,13 @@ data class GetMySettingsResponse(
     val display: UserDisplaySettingsResponse,
     val behavior: UserBehaviorSettingsResponse,
     val ai: UserAiSettingsResponse,
+    val providers: List<UserAuthProviderResponse>,
+)
+
+@Serializable
+data class UserAuthProviderResponse(
+    val id: Long,
+    val type: String,
 )
 
 @Serializable

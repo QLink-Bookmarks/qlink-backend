@@ -4,6 +4,7 @@ import com.qlink.ai.service.GetAiProviderModelsService
 import com.qlink.ai.service.PutAiUserProviderService
 import com.qlink.ai.service.UpdateLinkAiSummaryService
 import com.qlink.auth.service.AuthTokenService
+import com.qlink.auth.service.ConnectAuthProviderService
 import com.qlink.auth.service.RandomUserNameGenerator
 import com.qlink.auth.service.RefreshAuthTokenService
 import com.qlink.auth.service.SignInService
@@ -78,6 +79,15 @@ fun serviceModule() =
         }
 
         single {
+            ConnectAuthProviderService(
+                tx = get(),
+                userRepository = get(),
+                authProviderRepository = get(),
+                authResourceClientRouter = get(),
+            )
+        }
+
+        single {
             SignOutService(
                 tx = get(),
                 userRepository = get(),
@@ -98,6 +108,7 @@ fun serviceModule() =
                 userRepository = get(),
                 aiProviderRepository = get(),
                 availableModelRepository = get(),
+                authProviderRepository = get(),
             )
         }
 

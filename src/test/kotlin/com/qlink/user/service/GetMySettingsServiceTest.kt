@@ -4,6 +4,9 @@ import com.qlink.ai.domain.AiProvider
 import com.qlink.ai.domain.AvailableModel
 import com.qlink.ai.repository.AiProviderRepository
 import com.qlink.ai.repository.AvailableModelRepository
+import com.qlink.auth.domain.AuthProvider
+import com.qlink.auth.domain.AuthProviderType
+import com.qlink.auth.repository.AuthProviderRepository
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.support.BaseServiceTest
@@ -14,8 +17,10 @@ import com.qlink.support.koinGet
 import com.qlink.user.domain.User
 import com.qlink.user.domain.UserAccent
 import com.qlink.user.domain.UserTheme
+import com.qlink.user.dto.UserAuthProviderResponse
 import com.qlink.user.repository.UserRepository
 import io.kotest.assertions.throwables.shouldThrowWithMessage
+import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.shouldBe
 
 class GetMySettingsServiceTest :
@@ -24,6 +29,7 @@ class GetMySettingsServiceTest :
         val userRepository = koinGet<UserRepository>()
         val aiProviderRepository = koinGet<AiProviderRepository>()
         val availableModelRepository = koinGet<AvailableModelRepository>()
+        val authProviderRepository = koinGet<AuthProviderRepository>()
 
         Given("내 설정 조회 서비스 테스트") {
             lateinit var provider: AiProvider
@@ -71,6 +77,40 @@ class GetMySettingsServiceTest :
                     response.ai.defaultProvider.type shouldBe provider.type.name
                     response.ai.defaultModel.id shouldBe model.id
                     response.ai.defaultModel.model shouldBe model.model
+                }
+            }
+
+            When("연동된 인증 제공자가 있으면") {
+                lateinit var kakao: AuthProvider
+                lateinit var naver: AuthProvider
+
+                beforeTest {
+                    kakao =
+                        authProviderRepository.insert(
+                            AuthProvider(
+                                userId = user.id!!,
+                                providerType = AuthProviderType.KAKAO,
+                                providerId = "kakao-${RandomFixture.randomId()}",
+                            ),
+                        )
+                    naver =
+                        authProviderRepository.insert(
+                            AuthProvider(
+                                userId = user.id!!,
+                                providerType = AuthProviderType.NAVER,
+                                providerId = "naver-${RandomFixture.randomId()}",
+                            ),
+                        )
+                }
+
+                Then("연동된 인증 제공자 목록을 반환한다") {
+                    val response = getMySettingsService.getMySettings(loginId = user.id!!)
+
+                    response.providers shouldContainExactlyInAnyOrder
+                        listOf(
+                            UserAuthProviderResponse(id = kakao.id!!, type = AuthProviderType.KAKAO.name),
+                            UserAuthProviderResponse(id = naver.id!!, type = AuthProviderType.NAVER.name),
+                        )
                 }
             }
 

@@ -24,6 +24,7 @@ enum class ErrorCode(
     AUTH_REFRESH_TOKEN_INVALID("AUTH_401_0006", 401, "리프레시 토큰이 만료되었거나 유효하지 않아요"),
     AUTH_REFRESH_TOKEN_REUSED("AUTH_401_0007", 401, "세션이 만료되었어요. 다시 로그인해 주세요"),
     AUTH_PROVIDER_NOT_SUPPORTED("AUTH_400_0001", 400, "지원하지 않는 인증 제공자에요"),
+    AUTH_PROVIDER_ALREADY_CONNECTED("AUTH_409_0001", 409, "이미 연동된 인증 제공자에요"),
     AUTH_CSRF_TOKEN_INVALID("AUTH_403_0001", 403, "요청 보안 토큰이 유효하지 않아요"),
     AUTH_PROVIDER_COMMUNICATION_FAILED("AUTH_422_0001", 422, "소셜 로그인 제공자와 통신에 실패했어요"),
     AUTH_PROVIDER_TOKEN_INVALID("AUTH_422_0002", 422, "소셜 로그인 토큰이 유효하지 않아요"),

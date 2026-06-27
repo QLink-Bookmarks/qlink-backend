@@ -14,6 +14,11 @@ class AuthResources {
         val parent: AuthResources = AuthResources(),
     )
 
+    @Resource("connection")
+    class Connection(
+        val parent: AuthResources = AuthResources(),
+    )
+
     @Resource("token")
     class Token(
         val parent: AuthResources = AuthResources(),
