@@ -19,6 +19,12 @@ data class SignInRequest(
 )
 
 @Serializable
+data class ConnectAuthProviderRequest(
+    val provider: String,
+    val token: String,
+)
+
+@Serializable
 data class NativeRefreshTokenRequest(
     val refreshToken: String? = null,
 ) {

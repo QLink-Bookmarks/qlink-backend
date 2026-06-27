@@ -23,6 +23,12 @@ class DbAuthProviderRepository : AuthProviderRepository {
             }.singleOrNull()
             ?.toAuthProviderDomain()
 
+    override suspend fun findAllByUserId(userId: Long): List<AuthProvider> =
+        AuthProviders
+            .selectAll()
+            .where { AuthProviders.userId eq userId }
+            .map { it.toAuthProviderDomain() }
+
     override suspend fun insert(authProvider: AuthProvider): AuthProvider =
         AuthProviders
             .insertReturning {

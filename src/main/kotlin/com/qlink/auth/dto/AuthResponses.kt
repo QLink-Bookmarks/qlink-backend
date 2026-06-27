@@ -9,3 +9,8 @@ data class AuthTokenResponse(
     val accessToken: String,
     val refreshToken: String,
 )
+
+@Serializable
+data class ConnectAuthProviderResponse(
+    val id: Long,
+)

@@ -2,9 +2,11 @@ package com.qlink.auth.route
 
 import com.qlink.auth.domain.JwtPrincipal
 import com.qlink.auth.dto.AuthPlatform
+import com.qlink.auth.dto.ConnectAuthProviderRequest
 import com.qlink.auth.dto.NativeRefreshTokenRequest
 import com.qlink.auth.dto.SignInRequest
 import com.qlink.auth.dto.SignOutRequest
+import com.qlink.auth.service.ConnectAuthProviderService
 import com.qlink.auth.service.RefreshAuthTokenService
 import com.qlink.auth.service.SignInService
 import com.qlink.auth.service.SignOutService
@@ -36,6 +38,7 @@ fun Route.authRoutes() {
     val signInService by inject<SignInService>()
     val refreshAuthTokenService by inject<RefreshAuthTokenService>()
     val signOutService by inject<SignOutService>()
+    val connectAuthProviderService by inject<ConnectAuthProviderService>()
 
     post<AuthResources.Sign>(signInDocs()) {
         val request = call.receive<SignInRequest>()
@@ -58,6 +61,21 @@ fun Route.authRoutes() {
     }
 
     signOutRoute(signOutService)
+
+    connectionRoute(connectAuthProviderService)
+}
+
+private fun Route.connectionRoute(connectAuthProviderService: ConnectAuthProviderService) {
+    authenticate {
+        post<AuthResources.Connection>(connectAuthProviderDocs()) {
+            val principal = call.principal<JwtPrincipal>()!!
+            val request = call.receive<ConnectAuthProviderRequest>()
+
+            val response = connectAuthProviderService.connect(principal.userId, request)
+
+            call.respondSuccess(HttpStatusCode.Created, response)
+        }
+    }
 }
 
 private fun Route.signOutRoute(signOutService: SignOutService) {

@@ -9,5 +9,7 @@ interface AuthProviderRepository {
         providerId: String,
     ): AuthProvider?
 
+    suspend fun findAllByUserId(userId: Long): List<AuthProvider>
+
     suspend fun insert(authProvider: AuthProvider): AuthProvider
 }
