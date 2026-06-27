@@ -62,10 +62,6 @@ fun Route.authRoutes() {
 
     signOutRoute(signOutService)
 
-    connectionRoute(connectAuthProviderService)
-}
-
-private fun Route.connectionRoute(connectAuthProviderService: ConnectAuthProviderService) {
     authenticate {
         post<AuthResources.Connection>(connectAuthProviderDocs()) {
             val principal = call.principal<JwtPrincipal>()!!

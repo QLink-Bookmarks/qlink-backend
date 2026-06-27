@@ -2,6 +2,7 @@ package com.qlink.auth.service
 
 import com.qlink.auth.domain.AuthProvider
 import com.qlink.auth.domain.AuthProviderType
+import com.qlink.auth.dto.AuthPlatform
 import com.qlink.auth.dto.ConnectAuthProviderRequest
 import com.qlink.auth.repository.AuthProviderRepository
 import com.qlink.common.error.BusinessException
@@ -44,7 +45,12 @@ class ConnectAuthProviderServiceTest :
                 val response =
                     service.connect(
                         loginId = userId,
-                        request = ConnectAuthProviderRequest(provider = "kakao", token = "oauth-token"),
+                        request =
+                            ConnectAuthProviderRequest(
+                                provider = "kakao",
+                                token = "oauth-token",
+                                platform = AuthPlatform.NATIVE,
+                            ),
                     )
                 val persisted =
                     authProviderRepository.findByProvider(
@@ -67,7 +73,12 @@ class ConnectAuthProviderServiceTest :
                     suspend {
                         service.connect(
                             loginId = RandomFixture.randomId(),
-                            request = ConnectAuthProviderRequest(provider = "kakao", token = "oauth-token"),
+                            request =
+                                ConnectAuthProviderRequest(
+                                    provider = "kakao",
+                                    token = "oauth-token",
+                                    platform = AuthPlatform.NATIVE,
+                                ),
                         )
                     }
 
@@ -93,7 +104,12 @@ class ConnectAuthProviderServiceTest :
                     suspend {
                         service.connect(
                             loginId = userId,
-                            request = ConnectAuthProviderRequest(provider = "KAKAO", token = "oauth-token"),
+                            request =
+                                ConnectAuthProviderRequest(
+                                    provider = "KAKAO",
+                                    token = "oauth-token",
+                                    platform = AuthPlatform.NATIVE,
+                                ),
                         )
                     }
 

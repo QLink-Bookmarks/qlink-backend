@@ -22,6 +22,7 @@ data class SignInRequest(
 data class ConnectAuthProviderRequest(
     val provider: String,
     val token: String,
+    val platform: AuthPlatform,
 )
 
 @Serializable
