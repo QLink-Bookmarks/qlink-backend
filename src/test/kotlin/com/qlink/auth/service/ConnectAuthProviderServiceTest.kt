@@ -119,5 +119,38 @@ class ConnectAuthProviderServiceTest :
                     }
                 }
             }
+
+            When("요청한 소셜 계정이 이미 다른 사용자에게 연동되어 있으면") {
+                authResourceClient.reset()
+                val otherUserId = insertUser()
+                val userId = insertUser()
+                val providerId = "kakao-${RandomFixture.randomId()}"
+                authProviderRepository.insert(
+                    AuthProvider(
+                        userId = otherUserId,
+                        providerType = AuthProviderType.KAKAO,
+                        providerId = providerId,
+                    ),
+                )
+                authResourceClient.providerId = providerId
+                val connect =
+                    suspend {
+                        service.connect(
+                            loginId = userId,
+                            request =
+                                ConnectAuthProviderRequest(
+                                    provider = "KAKAO",
+                                    token = "oauth-token",
+                                    platform = AuthPlatform.NATIVE,
+                                ),
+                        )
+                    }
+
+                Then("AUTH_PROVIDER_ALREADY_LINKED 예외가 발생한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_PROVIDER_ALREADY_LINKED.message) {
+                        connect()
+                    }
+                }
+            }
         }
     })

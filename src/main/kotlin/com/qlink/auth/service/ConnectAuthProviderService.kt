@@ -43,6 +43,15 @@ class ConnectAuthProviderService(
             )
 
         return tx.required {
+            val existing =
+                authProviderRepository.findByProvider(
+                    providerType = resource.providerType,
+                    providerId = resource.providerId,
+                )
+            if (existing != null) {
+                throw BusinessException(ErrorCode.AUTH_PROVIDER_ALREADY_LINKED)
+            }
+
             val authProvider =
                 authProviderRepository.insert(
                     AuthProvider(
