@@ -62,9 +62,12 @@ internal fun connectAuthProviderDocs(): RouteConfig.() -> Unit =
                 }
             }
             code(HttpStatusCode.Conflict) {
-                description = "이미 연동된 인증 제공자"
+                description = "이미 연동된 인증 제공자이거나 다른 계정에 연동된 소셜 계정"
                 body<ApiResponse<ErrorDetail>> {
-                    examples(ErrorCode.AUTH_PROVIDER_ALREADY_CONNECTED)
+                    examples(
+                        ErrorCode.AUTH_PROVIDER_ALREADY_CONNECTED,
+                        ErrorCode.AUTH_PROVIDER_ALREADY_LINKED,
+                    )
                 }
             }
             code(HttpStatusCode.UnprocessableEntity) {
