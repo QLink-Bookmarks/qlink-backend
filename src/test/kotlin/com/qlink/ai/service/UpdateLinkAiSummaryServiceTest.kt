@@ -6,6 +6,7 @@ import com.qlink.ai.repository.AiJobRepository
 import com.qlink.ai.repository.AiProviderRepository
 import com.qlink.ai.repository.AvailableModelRepository
 import com.qlink.ai.repository.UserProviderRepository
+import com.qlink.auth.domain.Role
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.folder.repository.FolderRepository
@@ -39,13 +40,16 @@ class UpdateLinkAiSummaryServiceTest :
         val aiJobRepository = koinGet<AiJobRepository>()
         val commandChannel = koinGet<Channel<Long>>()
 
-        suspend fun insertAiContext(userId: Long) =
-            insertAiContext(
-                userId = userId,
-                aiProviderRepository = aiProviderRepository,
-                availableModelRepository = availableModelRepository,
-                userProviderRepository = userProviderRepository,
-            )
+        suspend fun insertAiContext(
+            userId: Long,
+            role: Role = Role.NORMAL,
+        ) = insertAiContext(
+            userId = userId,
+            aiProviderRepository = aiProviderRepository,
+            availableModelRepository = availableModelRepository,
+            userProviderRepository = userProviderRepository,
+            role = role,
+        )
 
         Given("링크 AI 요약 요청 서비스 테스트") {
             lateinit var user: User
@@ -117,6 +121,46 @@ class UpdateLinkAiSummaryServiceTest :
                     actualJobs.first().prompt.contains("## Fixed Folder ID") shouldBe true
                     actualJobs.first().prompt.contains("- ${folder.id}") shouldBe true
                     actualJobs shouldHaveSize 1
+                }
+            }
+
+            When("기본(SUPER_ADMIN) 제공자로 AI 요약 요청을") {
+                Then("본인 제공자가 아니어도 작업을 만든다") {
+                    val admin = userRepository.insert(UserFixture.createRandomValidUser())
+                    val (defaultProvider, model) = insertAiContext(userId = admin.id!!, role = Role.SUPER_ADMIN)
+                    val request =
+                        AiSummaryRequest(
+                            id = link.id!!,
+                            userProviderId = defaultProvider.id!!,
+                            modelId = model.id!!,
+                            url = link.url,
+                        )
+
+                    val response = service.updateLinkAiSummary(user.id!!, request)
+                    val jobId = withTimeout(1_000) { commandChannel.receive() }
+                    val actualJob = aiJobRepository.findById(jobId)!!
+
+                    response.id shouldBe link.id!!
+                    actualJob.userProviderId shouldBe defaultProvider.id
+                }
+            }
+
+            When("본인 것도 기본도 아닌 제공자로 AI 요약 요청을") {
+                Then("권한 예외를 반환한다") {
+                    val otherUser = userRepository.insert(UserFixture.createRandomValidUser())
+                    val (otherProvider, model) = insertAiContext(userId = otherUser.id!!)
+                    val request =
+                        AiSummaryRequest(
+                            id = link.id!!,
+                            userProviderId = otherProvider.id!!,
+                            modelId = model.id!!,
+                            url = link.url,
+                        )
+                    val update = suspend { service.updateLinkAiSummary(user.id!!, request) }
+
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AI_USER_PROVIDER_ACCESS_DENIED.message) {
+                        update()
+                    }
                 }
             }
 
