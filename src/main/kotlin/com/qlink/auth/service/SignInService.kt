@@ -4,8 +4,8 @@ import com.qlink.auth.client.AuthResourceClientRouter
 import com.qlink.auth.domain.AuthProvider
 import com.qlink.auth.domain.AuthProviderType
 import com.qlink.auth.domain.RefreshToken
-import com.qlink.auth.dto.AuthTokenResponse
 import com.qlink.auth.dto.SignInRequest
+import com.qlink.auth.dto.SignInResponse
 import com.qlink.auth.repository.AuthProviderRepository
 import com.qlink.auth.repository.RefreshTokenRepository
 import com.qlink.common.transaction.TransactionRunner
@@ -22,7 +22,7 @@ class SignInService(
     private val authTokenService: AuthTokenService,
     private val randomUserNameGenerator: RandomUserNameGenerator,
 ) {
-    suspend fun signIn(request: SignInRequest): AuthTokenResponse {
+    suspend fun signIn(request: SignInRequest): SignInResponse {
         val providerType = AuthProviderType.fromRequestName(request.provider)
         val resource =
             authResourceClientRouter.getResource(
@@ -76,7 +76,7 @@ class SignInService(
         return user
     }
 
-    private suspend fun issueTokenResponse(user: User): AuthTokenResponse {
+    private suspend fun issueTokenResponse(user: User): SignInResponse {
         val userId = requireNotNull(user.id)
         val now = Clock.System.now()
         val expiredAt = authTokenService.refreshTokenExpiredAt(now)
@@ -92,13 +92,15 @@ class SignInService(
             ),
         )
 
-        return AuthTokenResponse(
+        return SignInResponse(
             accessToken =
                 authTokenService.issueAccessToken(
                     userId = userId,
                     role = user.role,
                 ),
             refreshToken = refreshToken,
+            allowsPrivacy = user.allowsPrivacy,
+            allowsAiUsage = user.allowsAiUsage,
         )
     }
 }

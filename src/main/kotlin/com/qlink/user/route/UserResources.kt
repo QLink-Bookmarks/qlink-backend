@@ -12,5 +12,10 @@ class UserResources {
         class Settings(
             val parent: Me = Me(),
         )
+
+        @Resource("agreements")
+        class Agreements(
+            val parent: Me = Me(),
+        )
     }
 }

@@ -11,6 +11,14 @@ data class AuthTokenResponse(
 )
 
 @Serializable
+data class SignInResponse(
+    val accessToken: String,
+    val refreshToken: String,
+    val allowsPrivacy: Boolean,
+    val allowsAiUsage: Boolean,
+)
+
+@Serializable
 data class ConnectAuthProviderResponse(
     val id: Long,
 )

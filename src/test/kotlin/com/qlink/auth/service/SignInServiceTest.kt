@@ -58,6 +58,8 @@ class SignInServiceTest :
                 Then("회원가입 후 token을 발급하고 저장한다") {
                     authResourceClient.requestedTokens shouldContain "oauth-token"
                     response.accessToken.shouldNotBeNull()
+                    response.allowsPrivacy shouldBe false
+                    response.allowsAiUsage shouldBe false
                     authProvider.shouldNotBeNull()
                     authProvider.userId shouldBe refreshTokenClaims.userId
                     user.shouldNotBeNull()

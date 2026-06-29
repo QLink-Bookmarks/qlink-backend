@@ -26,6 +26,8 @@ object Users : Table("users") {
     val theme = varchar("theme", 1).default(UserTheme.LIGHT.code)
     val accent = varchar("accent", 1).default(UserAccent.GRAY.code)
     val allowsReminder = bool("allows_reminder").default(true)
+    val allowsPrivacy = bool("allows_privacy").default(false)
+    val allowsAiUsage = bool("allows_ai_usage").default(false)
     val defaultAiProviderId =
         reference("default_ai_provider_id", AiProviders.id, onDelete = ReferenceOption.SET_NULL)
             .nullable()
@@ -53,6 +55,8 @@ fun ResultRow.toUserDomain(): User =
         theme = UserTheme.fromCode(this[Users.theme]),
         accent = UserAccent.fromCode(this[Users.accent]),
         allowsReminder = this[Users.allowsReminder],
+        allowsPrivacy = this[Users.allowsPrivacy],
+        allowsAiUsage = this[Users.allowsAiUsage],
         defaultAiProviderId = this[Users.defaultAiProviderId],
         defaultModelId = this[Users.defaultModelId],
         createdAt = this[Users.createdAt].toKotlinInstant(),
@@ -68,6 +72,8 @@ fun UpdateBuilder<*>.fromDomain(user: User) {
     this[Users.theme] = user.theme.code
     this[Users.accent] = user.accent.code
     this[Users.allowsReminder] = user.allowsReminder
+    this[Users.allowsPrivacy] = user.allowsPrivacy
+    this[Users.allowsAiUsage] = user.allowsAiUsage
     this[Users.defaultAiProviderId] = user.defaultAiProviderId
     this[Users.defaultModelId] = user.defaultModelId
 }

@@ -5,6 +5,7 @@ import com.qlink.auth.dto.ConnectAuthProviderRequest
 import com.qlink.auth.dto.ConnectAuthProviderResponse
 import com.qlink.auth.dto.NativeRefreshTokenRequest
 import com.qlink.auth.dto.SignInRequest
+import com.qlink.auth.dto.SignInResponse
 import com.qlink.auth.dto.SignOutRequest
 import com.qlink.common.docs.authErrorResponse
 import com.qlink.common.docs.examples
@@ -21,7 +22,7 @@ internal fun signInDocs(): RouteConfig.() -> Unit =
         response {
             code(HttpStatusCode.Created) {
                 description = "인증 성공"
-                body<ApiResponse<AuthTokenResponse>>()
+                body<ApiResponse<SignInResponse>>()
             }
             code(HttpStatusCode.BadRequest) {
                 description = "지원하지 않는 인증 제공자"
