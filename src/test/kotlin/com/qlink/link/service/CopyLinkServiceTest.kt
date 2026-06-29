@@ -99,6 +99,29 @@ class CopyLinkServiceTest :
                 }
             }
 
+            When("개인 폴더를 지정하지 않고 복사하면") {
+                val copy =
+                    suspend {
+                        copyLinkService.copyLink(
+                            loginId = member.id!!,
+                            linkId = sharedLink.id!!,
+                            request = CopyLinkRequest(fromFolderId = sharedFolder.id!!, toFolderId = null),
+                        )
+                    }
+
+                Then("미분류(폴더 없음) 상태로 본인 소유 복사된다") {
+                    val response = copy()
+                    val copied = linkRepository.findById(response.id)
+
+                    copied shouldNotBe null
+                    copied!!.id shouldNotBe sharedLink.id
+                    copied.ownerId shouldBe member.id
+                    copied.folderId shouldBe null
+                    copied.url shouldBe sharedLink.url
+                    copied.sourceType shouldBe SourceType.COPY
+                }
+            }
+
             When("로그인 사용자가 없으면") {
                 val copy =
                     suspend {
