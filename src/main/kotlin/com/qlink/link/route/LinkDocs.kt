@@ -89,13 +89,20 @@ internal fun updateLinkAiSummaryDocs(): RouteConfig.() -> Unit =
             code(HttpStatusCode.Forbidden) {
                 description = "링크 AI 요약 요청 권한 검증 실패"
                 body<ApiResponse<ErrorDetail>> {
-                    examples(ErrorCode.LINK_DIFFERENT_OWNER)
+                    examples(
+                        ErrorCode.LINK_DIFFERENT_OWNER,
+                        ErrorCode.AI_USER_PROVIDER_ACCESS_DENIED,
+                    )
                 }
             }
             code(HttpStatusCode.NotFound) {
                 description = "링크 AI 요약 요청 대상 리소스 조회 실패"
                 body<ApiResponse<ErrorDetail>> {
-                    examples(ErrorCode.LINK_NOT_FOUND)
+                    examples(
+                        ErrorCode.LINK_NOT_FOUND,
+                        ErrorCode.AI_USER_PROVIDER_NOT_FOUND,
+                        ErrorCode.AI_MODEL_NOT_FOUND,
+                    )
                 }
             }
         }

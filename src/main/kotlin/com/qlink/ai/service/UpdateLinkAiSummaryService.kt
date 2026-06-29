@@ -46,7 +46,7 @@ class UpdateLinkAiSummaryService(
                 val userProvider =
                     userProviderRepository
                         .findById(request.userProviderId)
-                        ?.takeIf { it.userId == loginId }
+                        ?.also { it.validateAccessibleBy(loginId) }
                         ?: throw BusinessException(ErrorCode.AI_USER_PROVIDER_NOT_FOUND)
                 val requestModel =
                     availableModelRepository
