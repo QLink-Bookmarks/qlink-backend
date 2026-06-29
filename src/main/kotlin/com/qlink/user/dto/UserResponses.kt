@@ -13,6 +13,8 @@ data class GetMyProfileResponse(
     val role: Role,
     val avatarUrl: String?,
     val avatarEmoji: String?,
+    val allowsPrivacy: Boolean,
+    val allowsAiUsage: Boolean,
 )
 
 @Serializable

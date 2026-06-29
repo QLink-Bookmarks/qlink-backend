@@ -25,7 +25,7 @@ class GetMyProfileServiceTest :
                     userRepository.insert(
                         UserFixture
                             .createRandomValidUser()
-                            .copyForProfile(role = Role.ADMIN),
+                            .copyForProfile(role = Role.ADMIN, allowsPrivacy = true, allowsAiUsage = true),
                     )
             }
 
@@ -45,6 +45,8 @@ class GetMyProfileServiceTest :
                     response.role shouldBe Role.ADMIN
                     response.avatarUrl shouldBe persisted.avatarUrl
                     response.avatarEmoji shouldBe persisted.avatarEmoji
+                    response.allowsPrivacy shouldBe true
+                    response.allowsAiUsage shouldBe true
                 }
             }
 
@@ -63,7 +65,11 @@ class GetMyProfileServiceTest :
         }
     })
 
-private fun User.copyForProfile(role: Role): User =
+private fun User.copyForProfile(
+    role: Role,
+    allowsPrivacy: Boolean = false,
+    allowsAiUsage: Boolean = false,
+): User =
     User(
         id = id,
         username = username,
@@ -74,6 +80,8 @@ private fun User.copyForProfile(role: Role): User =
         theme = theme,
         accent = accent,
         allowsReminder = allowsReminder,
+        allowsPrivacy = allowsPrivacy,
+        allowsAiUsage = allowsAiUsage,
         defaultAiProviderId = defaultAiProviderId,
         defaultModelId = defaultModelId,
         createdAt = createdAt,
