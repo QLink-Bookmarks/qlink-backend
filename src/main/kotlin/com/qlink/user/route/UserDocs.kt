@@ -8,6 +8,7 @@ import com.qlink.common.response.EmptySuccessResponse
 import com.qlink.common.response.ErrorDetail
 import com.qlink.user.dto.GetMyProfileResponse
 import com.qlink.user.dto.GetMySettingsResponse
+import com.qlink.user.dto.UpdateMyAgreementsRequest
 import com.qlink.user.dto.UpdateMyProfileRequest
 import com.qlink.user.dto.UpdateMySettingsRequest
 import io.github.smiley4.ktoropenapi.config.RouteConfig
@@ -134,6 +135,25 @@ internal fun updateMySettingsDocs(): RouteConfig.() -> Unit =
                         ErrorCode.AI_PROVIDER_NOT_FOUND,
                         ErrorCode.AI_MODEL_NOT_FOUND,
                     )
+                }
+            }
+        }
+    }
+
+internal fun updateMyAgreementsDocs(): RouteConfig.() -> Unit =
+    {
+        summary = "필수 동의 변경 API"
+        request { body<UpdateMyAgreementsRequest>() }
+        response {
+            code(HttpStatusCode.OK) {
+                description = "필수 동의 변경 성공"
+                body<ApiResponse<EmptySuccessResponse>>()
+            }
+            authErrorResponse()
+            code(HttpStatusCode.NotFound) {
+                description = "로그인 사용자 조회 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.USER_NOT_FOUND)
                 }
             }
         }

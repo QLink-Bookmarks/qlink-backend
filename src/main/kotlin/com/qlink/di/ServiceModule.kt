@@ -41,6 +41,7 @@ import com.qlink.todo.service.UpdateTodoService
 import com.qlink.user.service.DeleteAccountService
 import com.qlink.user.service.GetMyProfileService
 import com.qlink.user.service.GetMySettingsService
+import com.qlink.user.service.UpdateMyAgreementsService
 import com.qlink.user.service.UpdateMyProfileService
 import com.qlink.user.service.UpdateMySettingsService
 import org.koin.dsl.module
@@ -134,6 +135,13 @@ fun serviceModule() =
                 userRepository = get(),
                 aiProviderRepository = get(),
                 availableModelRepository = get(),
+            )
+        }
+
+        single {
+            UpdateMyAgreementsService(
+                tx = get(),
+                userRepository = get(),
             )
         }
 

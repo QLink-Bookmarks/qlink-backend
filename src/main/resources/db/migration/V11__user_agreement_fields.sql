@@ -1,0 +1,3 @@
+ALTER TABLE users
+ADD COLUMN allows_privacy BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN allows_ai_usage BOOLEAN NOT NULL DEFAULT false;

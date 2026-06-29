@@ -20,3 +20,9 @@ data class UpdateMyProfileRequest(
     val avatarEmoji: String? = null,
     val avatarUrl: String? = null,
 )
+
+@Serializable
+data class UpdateMyAgreementsRequest(
+    val allowsPrivacy: Boolean = false,
+    val allowsAiUsage: Boolean = false,
+)
