@@ -26,5 +26,7 @@ class GetMyProfileService(
             role = role,
             avatarUrl = avatarUrl,
             avatarEmoji = avatarEmoji,
+            allowsPrivacy = allowsPrivacy,
+            allowsAiUsage = allowsAiUsage,
         )
 }
