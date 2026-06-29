@@ -77,7 +77,7 @@ class Link(
 
     fun addToFolder(
         newOwnerId: Long,
-        folderId: Long,
+        folderId: Long?,
     ): Link =
         Link(
             ownerId = newOwnerId,

@@ -50,5 +50,5 @@ data class SetLinkFavoriteRequest(
 @Serializable
 data class CopyLinkRequest(
     val fromFolderId: Long,
-    val toFolderId: Long,
+    val toFolderId: Long? = null,
 )
