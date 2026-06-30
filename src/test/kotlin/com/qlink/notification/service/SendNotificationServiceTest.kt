@@ -53,6 +53,7 @@ class SendNotificationServiceTest :
                 deviceTokenRepository = deviceTokenRepository,
                 senderRouter = PushNotificationSenderRouter(listOf(fcmSender, expoSender)),
                 todoRepository = todoRepository,
+                linkRepository = linkRepository,
             )
 
         beforeTest {
@@ -79,7 +80,10 @@ class SendNotificationServiceTest :
                         ),
                     )
 
-                return notificationRepository.insert(Notification.todo(todo)!!).id!!
+                return notificationRepository
+                    .insert(
+                        Notification.todo(todo = todo, linkTitle = link.title, linkUrl = link.url)!!,
+                    ).id!!
             }
 
             When("사용자의 FCM과 Expo 토큰이 모두 성공하면") {
@@ -240,7 +244,10 @@ class SendNotificationServiceTest :
                             platform = DevicePlatform.WEB,
                         ),
                     )
-                    notificationId = notificationRepository.insert(Notification.todo(todo)!!).id!!
+                    notificationId =
+                        notificationRepository
+                            .insert(Notification.todo(todo = todo, linkTitle = link.title, linkUrl = link.url)!!)
+                            .id!!
                 }
 
                 Then("다음 반복 알림 notification을 만든다") {
@@ -278,7 +285,10 @@ class SendNotificationServiceTest :
                             platform = DevicePlatform.WEB,
                         ),
                     )
-                    notificationId = notificationRepository.insert(Notification.todo(todo)!!).id!!
+                    notificationId =
+                        notificationRepository
+                            .insert(Notification.todo(todo = todo, linkTitle = link.title, linkUrl = link.url)!!)
+                            .id!!
                 }
 
                 Then("다음 notification을 만들지 않는다") {

@@ -4,12 +4,14 @@ import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireNotOver
 import com.qlink.common.error.requireTrue
+import com.qlink.common.text.truncate
 import com.qlink.todo.domain.Todo
 import kotlin.time.Instant
 
 private const val MAX_TITLE_LENGTH = 50
 private const val MAX_MESSAGE_LENGTH = 200
-private const val TODO_NOTIFICATION_MESSAGE = "할 일 알림 시간이에요"
+private const val MAX_LINK_TITLE_LENGTH = 20
+private const val MAX_LINK_URL_LENGTH = 30
 
 class Notification(
     val id: Long? = null,
@@ -126,7 +128,11 @@ class Notification(
         )
 
     companion object {
-        fun todo(todo: Todo): Notification? {
+        fun todo(
+            todo: Todo,
+            linkTitle: String,
+            linkUrl: String,
+        ): Notification? {
             val todoId = todo.id ?: return null
             val reminderAt = todo.reminderAt ?: return null
             if (todo.isCompleted) return null
@@ -134,11 +140,16 @@ class Notification(
             return Notification(
                 userId = todo.ownerId,
                 title = todo.title,
-                message = TODO_NOTIFICATION_MESSAGE,
+                message = todoMessage(linkTitle, linkUrl),
                 context = NotificationContext.TODO,
                 contextId = todoId,
                 willFireAt = reminderAt,
             )
         }
+
+        private fun todoMessage(
+            linkTitle: String,
+            linkUrl: String,
+        ): String = "북마크 링크: ${linkTitle.truncate(MAX_LINK_TITLE_LENGTH)} (${linkUrl.truncate(MAX_LINK_URL_LENGTH)})"
     }
 }

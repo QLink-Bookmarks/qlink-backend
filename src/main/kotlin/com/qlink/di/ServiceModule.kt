@@ -424,6 +424,7 @@ fun serviceModule() =
             ScheduleTodoNotificationService(
                 tx = get(),
                 notificationRepository = get(),
+                linkRepository = get(),
                 taskScheduler = get(),
             )
         }
@@ -436,6 +437,7 @@ fun serviceModule() =
                 deviceTokenRepository = get(),
                 senderRouter = get(),
                 todoRepository = get(),
+                linkRepository = get(),
             )
         }
 

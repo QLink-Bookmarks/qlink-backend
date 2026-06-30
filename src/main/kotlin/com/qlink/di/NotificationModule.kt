@@ -18,6 +18,7 @@ fun notificationModule(
             tx = get(),
             notificationRepository = get(),
             todoRepository = get(),
+            linkRepository = get(),
             sendNotificationService = get(),
             log = log,
         )
