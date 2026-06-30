@@ -94,7 +94,31 @@ class UpdateLinkAiSummaryServiceTest :
                     actualJob.prompt.contains("\"id\":${folder.id},\"title\":\"${folder.name}\"") shouldBe true
                     actualJob.prompt.contains("\"id\":null,\"title\":\"${folder.name}\"") shouldBe false
                     actualJob.prompt.contains("\"id\":${otherFolder.id},\"title\":\"${otherFolder.name}\"") shouldBe false
+                    actualJob.prompt.contains("Do not generate any tasks") shouldBe true
+                    actualJob.prompt.contains("add reasonable tasks") shouldBe false
                     actualJob.status shouldBe AiJobStatus.P
+                }
+            }
+
+            When("generateTodo=true로 AI 요약 요청을") {
+                Then("할일 생성 지시가 프롬프트에 포함된다") {
+                    val (userProvider, model) = insertAiContext(userId = user.id!!)
+                    val request =
+                        AiSummaryRequest(
+                            id = link.id!!,
+                            userProviderId = userProvider.id!!,
+                            modelId = model.id!!,
+                            url = link.url,
+                            generateTodo = true,
+                        )
+
+                    val response = service.updateLinkAiSummary(user.id!!, request)
+                    val jobId = withTimeout(1_000) { commandChannel.receive() }
+                    val actualJob = aiJobRepository.findById(jobId)!!
+
+                    response.id shouldBe link.id!!
+                    actualJob.prompt.contains("add reasonable tasks") shouldBe true
+                    actualJob.prompt.contains("Do not generate any tasks") shouldBe false
                 }
             }
 
