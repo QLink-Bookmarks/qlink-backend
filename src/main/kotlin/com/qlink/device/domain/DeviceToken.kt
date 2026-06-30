@@ -1,5 +1,6 @@
 package com.qlink.device.domain
 
+import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireNotBlank
 import kotlin.time.Instant
@@ -14,5 +15,11 @@ class DeviceToken(
 ) {
     init {
         token.requireNotBlank(ErrorCode.DEVICE_TOKEN_BLANK)
+    }
+
+    fun validateOwner(ownerId: Long) {
+        if (userId != ownerId) {
+            throw BusinessException(ErrorCode.DEVICE_DIFFERENT_OWNER)
+        }
     }
 }

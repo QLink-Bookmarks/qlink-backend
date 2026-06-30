@@ -6,6 +6,7 @@ import com.qlink.device.repository.table.fromDomain
 import com.qlink.device.repository.table.toDeviceTokenDomain
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.selectAll
 
@@ -30,4 +31,8 @@ class DbDeviceTokenRepository : DeviceTokenRepository {
             .where { DeviceTokens.userId eq userId }
             .orderBy(DeviceTokens.id to SortOrder.ASC)
             .map { it.toDeviceTokenDomain() }
+
+    override suspend fun deleteByToken(token: String) {
+        DeviceTokens.deleteWhere { DeviceTokens.token eq token }
+    }
 }

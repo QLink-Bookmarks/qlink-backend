@@ -105,6 +105,7 @@ enum class ErrorCode(
     // Device
     DEVICE_PLATFORM_NOT_SUPPORTED("DEVICE_400_0001", 400, "지원하지 않는 디바이스 플랫폼이에요"),
     DEVICE_TOKEN_BLANK("DEVICE_400_0002", 400, "디바이스 토큰이 입력되지 않았어요"),
+    DEVICE_DIFFERENT_OWNER("DEVICE_403_0001", 403, "디바이스 토큰에 대한 권한이 없어요"),
 
     // Push
     PUSH_PLATFORM_NOT_SUPPORTED("PUSH_400_0001", 400, "지원하지 않는 푸시 플랫폼이에요"),
