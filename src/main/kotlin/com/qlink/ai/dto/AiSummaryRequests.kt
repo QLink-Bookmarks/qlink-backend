@@ -12,4 +12,5 @@ data class AiSummaryRequest(
     val modelId: Long,
     val url: String,
     val title: String? = null,
+    val generateTodo: Boolean = false,
 )

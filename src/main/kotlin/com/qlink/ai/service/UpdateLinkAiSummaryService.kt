@@ -84,6 +84,7 @@ class UpdateLinkAiSummaryService(
                     fixedFolder
                         ?.let { FixedFolderPrompt(it.id!!) }
                         ?: AutoFolderPrompt(findPromptFoldersJson(loginId))
+                val todoPrompt = if (request.generateTodo) GenerateTodoPrompt else SkipTodoPrompt
 
                 aiJobRepository.insert(
                     AiJob(
@@ -97,6 +98,7 @@ class UpdateLinkAiSummaryService(
                                 requestedUrl = request.url,
                                 titlePrompt = titlePrompt,
                                 folderPrompt = folderPrompt,
+                                todoPrompt = todoPrompt,
                             ),
                     ),
                 )
@@ -183,13 +185,14 @@ private fun createPrompt(
     requestedUrl: String,
     titlePrompt: TitlePrompt,
     folderPrompt: FolderPrompt,
+    todoPrompt: TodoPrompt,
 ): String =
     """
     ## Instruction
     - Understand the contents in the URL given below by the user as a bookmark.
     - Paraphrase, summarize the contents in one line. Mention the deadline/state if included in the content.
     - ${titlePrompt.toInstruction()}
-    - If the URL contents include any task with a deadline after today, add reasonable tasks which the user should do, including the final task for the deadline.
+    - ${todoPrompt.toInstruction()}
     - ${folderPrompt.toInstruction()}
 
     ## Link ID
@@ -255,4 +258,18 @@ private data class AutoFolderPrompt(
         ## Folders
         $foldersJson
         """.trimIndent()
+}
+
+private sealed interface TodoPrompt {
+    fun toInstruction(): String
+}
+
+private data object GenerateTodoPrompt : TodoPrompt {
+    override fun toInstruction(): String =
+        "If the URL contents include any task with a deadline after today, add reasonable tasks which the user " +
+            "should do, including the final task for the deadline."
+}
+
+private data object SkipTodoPrompt : TodoPrompt {
+    override fun toInstruction(): String = "Do not generate any tasks. Return an empty `todos` array."
 }
