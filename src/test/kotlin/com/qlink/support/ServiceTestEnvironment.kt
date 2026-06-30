@@ -191,6 +191,7 @@ object ServiceTestEnvironment {
                     tx = get(),
                     notificationRepository = get(),
                     todoRepository = get(),
+                    linkRepository = get(),
                     sendNotificationService = get(),
                     log = LoggerFactory.getLogger("TestTaskScheduler"),
                 )

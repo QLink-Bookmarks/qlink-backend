@@ -3,6 +3,7 @@ package com.qlink.notification.worker
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.transaction.TransactionRunner
+import com.qlink.link.repository.LinkRepository
 import com.qlink.notification.domain.Notification
 import com.qlink.notification.domain.NotificationContext
 import com.qlink.notification.repository.NotificationRepository
@@ -36,6 +37,7 @@ class TaskScheduler(
     private val tx: TransactionRunner,
     private val notificationRepository: NotificationRepository,
     private val todoRepository: TodoRepository,
+    private val linkRepository: LinkRepository,
     private val sendNotificationService: SendNotificationService,
     private val log: Logger,
 ) {
@@ -128,7 +130,10 @@ class TaskScheduler(
                         ).any { it.isFrom(todo) }
                 if (alreadyExists) return@forEach
 
-                Notification.todo(todo)?.let { notificationRepository.insert(it) }
+                val link = linkRepository.findById(todo.linkId) ?: return@forEach
+                Notification
+                    .todo(todo = todo, linkTitle = link.title, linkUrl = link.url)
+                    ?.let { notificationRepository.insert(it) }
             }
     }
 

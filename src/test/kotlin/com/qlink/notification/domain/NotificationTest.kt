@@ -25,12 +25,13 @@ class NotificationTest :
                 )
 
             When("알림 있는 할 일로 notification 생성을") {
-                val actual = Notification.todo(todo)
+                val actual = Notification.todo(todo = todo, linkTitle = "내 북마크", linkUrl = "https://example.com/a")
 
                 Then("성공한다") {
                     actual shouldNotBe null
                     actual!!.userId shouldBe todo.ownerId
                     actual.title shouldBe todo.title
+                    actual.message shouldBe "북마크 링크: 내 북마크 (https://example.com/a)"
                     actual.context shouldBe NotificationContext.TODO
                     actual.contextId shouldBe todo.id
                     actual.willFireAt shouldBe reminderAt
@@ -38,8 +39,24 @@ class NotificationTest :
                 }
             }
 
+            When("링크 제목과 url이 길면") {
+                val longTitle = "가".repeat(40)
+                val longUrl = "https://example.com/${"path/".repeat(20)}"
+                val actual = Notification.todo(todo = todo, linkTitle = longTitle, linkUrl = longUrl)
+
+                Then("제목은 20자, url은 30자로 잘리고 …가 붙는다") {
+                    actual shouldNotBe null
+                    actual!!.message shouldBe "북마크 링크: ${"가".repeat(19)}… (${longUrl.take(29)}…)"
+                }
+            }
+
             When("알림 없는 할 일로 notification 생성을") {
-                val actual = Notification.todo(Todo(linkId = todo.linkId, ownerId = todo.ownerId, title = todo.title))
+                val actual =
+                    Notification.todo(
+                        todo = Todo(linkId = todo.linkId, ownerId = todo.ownerId, title = todo.title),
+                        linkTitle = "내 북마크",
+                        linkUrl = "https://example.com/a",
+                    )
 
                 Then("생성하지 않는다") {
                     actual shouldBe null
@@ -47,7 +64,12 @@ class NotificationTest :
             }
 
             When("완료된 할 일로 notification 생성을") {
-                val actual = Notification.todo(todo.complete(Clock.System.now()))
+                val actual =
+                    Notification.todo(
+                        todo = todo.complete(Clock.System.now()),
+                        linkTitle = "내 북마크",
+                        linkUrl = "https://example.com/a",
+                    )
 
                 Then("생성하지 않는다") {
                     actual shouldBe null
@@ -65,7 +87,7 @@ class NotificationTest :
                     title = RandomFixture.randomSentenceWithMax(50),
                     reminderAt = reminderAt,
                 )
-            val notification = Notification.todo(todo)!!
+            val notification = Notification.todo(todo = todo, linkTitle = "내 북마크", linkUrl = "https://example.com/a")!!
 
             When("같은 할 일로 판별하면") {
                 Then("true 를 반환한다") {

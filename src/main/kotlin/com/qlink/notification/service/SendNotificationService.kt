@@ -5,6 +5,7 @@ import com.qlink.common.error.ErrorCode
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.device.domain.DeviceToken
 import com.qlink.device.repository.DeviceTokenRepository
+import com.qlink.link.repository.LinkRepository
 import com.qlink.notification.domain.Notification
 import com.qlink.notification.domain.NotificationContext
 import com.qlink.notification.repository.NotificationRepository
@@ -21,6 +22,7 @@ class SendNotificationService(
     private val deviceTokenRepository: DeviceTokenRepository,
     private val senderRouter: PushNotificationSenderRouter,
     private val todoRepository: TodoRepository,
+    private val linkRepository: LinkRepository,
 ) {
     suspend fun send(notificationId: Long): SendNotificationResult {
         val target = findSendTarget(notificationId)
@@ -111,8 +113,9 @@ class SendNotificationService(
         }
 
         val savedTodo = todoRepository.update(todo.setNextReminder(Clock.System.now()))
+        val link = linkRepository.findById(savedTodo.linkId) ?: return
         Notification
-            .todo(savedTodo)
+            .todo(todo = savedTodo, linkTitle = link.title, linkUrl = link.url)
             ?.takeUnless { nextNotification ->
                 notificationRepository
                     .findPendingByContext(
