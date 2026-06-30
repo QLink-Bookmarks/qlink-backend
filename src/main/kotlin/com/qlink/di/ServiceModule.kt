@@ -9,6 +9,7 @@ import com.qlink.auth.service.RandomUserNameGenerator
 import com.qlink.auth.service.RefreshAuthTokenService
 import com.qlink.auth.service.SignInService
 import com.qlink.auth.service.SignOutService
+import com.qlink.device.service.DeleteDeviceService
 import com.qlink.device.service.PutDeviceService
 import com.qlink.folder.service.AcceptFolderInvitationService
 import com.qlink.folder.service.CreateFolderInvitationService
@@ -168,6 +169,14 @@ fun serviceModule() =
 
         single {
             PutDeviceService(
+                tx = get(),
+                userRepository = get(),
+                deviceTokenRepository = get(),
+            )
+        }
+
+        single {
+            DeleteDeviceService(
                 tx = get(),
                 userRepository = get(),
                 deviceTokenRepository = get(),

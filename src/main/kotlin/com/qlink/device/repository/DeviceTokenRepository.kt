@@ -8,4 +8,6 @@ interface DeviceTokenRepository {
     suspend fun findByToken(token: String): DeviceToken?
 
     suspend fun findAllByUserId(userId: Long): List<DeviceToken>
+
+    suspend fun deleteByToken(token: String)
 }
