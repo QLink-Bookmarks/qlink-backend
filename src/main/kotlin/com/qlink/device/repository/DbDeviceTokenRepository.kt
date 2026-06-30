@@ -3,18 +3,28 @@ package com.qlink.device.repository
 import com.qlink.device.domain.DeviceToken
 import com.qlink.device.repository.table.DeviceTokens
 import com.qlink.device.repository.table.fromDomain
+import com.qlink.device.repository.table.refreshDeviceTokenUpdatedAt
 import com.qlink.device.repository.table.toDeviceTokenDomain
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.updateReturning
 
 class DbDeviceTokenRepository : DeviceTokenRepository {
     override suspend fun insert(deviceToken: DeviceToken): DeviceToken =
         DeviceTokens
             .insertReturning {
                 it.fromDomain(deviceToken)
+            }.single()
+            .toDeviceTokenDomain()
+
+    override suspend fun update(deviceToken: DeviceToken): DeviceToken =
+        DeviceTokens
+            .updateReturning(where = { DeviceTokens.id eq deviceToken.id!! }) {
+                it.fromDomain(deviceToken)
+                it.refreshDeviceTokenUpdatedAt()
             }.single()
             .toDeviceTokenDomain()
 
