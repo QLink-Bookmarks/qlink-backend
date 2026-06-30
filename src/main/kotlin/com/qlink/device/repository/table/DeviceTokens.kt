@@ -9,6 +9,8 @@ import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import org.jetbrains.exposed.v1.javatime.CurrentTimestamp
 import org.jetbrains.exposed.v1.javatime.timestamp
+import kotlin.time.Clock
+import kotlin.time.toJavaInstant
 import kotlin.time.toKotlinInstant
 
 object DeviceTokens : Table("device_tokens") {
@@ -41,4 +43,8 @@ fun UpdateBuilder<*>.fromDomain(deviceToken: DeviceToken) {
     this[DeviceTokens.userId] = deviceToken.userId
     this[DeviceTokens.platform] = deviceToken.platform
     this[DeviceTokens.token] = deviceToken.token
+}
+
+fun UpdateBuilder<*>.refreshDeviceTokenUpdatedAt() {
+    this[DeviceTokens.updatedAt] = Clock.System.now().toJavaInstant()
 }

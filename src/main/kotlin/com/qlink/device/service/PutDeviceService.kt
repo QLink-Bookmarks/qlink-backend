@@ -23,7 +23,9 @@ class PutDeviceService(
             userRepository.emptyById(loginId).requireFalse(ErrorCode.USER_NOT_FOUND)
 
             val deviceToken =
-                deviceTokenRepository.findByToken(request.token)
+                deviceTokenRepository
+                    .findByToken(request.token)
+                    ?.let { deviceTokenRepository.update(it.changeOwner(loginId)) }
                     ?: DeviceToken(
                         userId = loginId,
                         platform = DevicePlatform.fromName(request.platform),

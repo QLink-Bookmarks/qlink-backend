@@ -74,18 +74,19 @@ class PutDeviceServiceTest :
             }
 
             When("기존 토큰을 다른 사용자가 등록하면") {
-                Then("기존 디바이스 토큰을 그대로 반환한다") {
+                Then("같은 토큰의 소유자를 새 로그인 사용자로 덮어쓴다") {
                     val otherUser = userRepository.insert(UserFixture.createRandomValidUser())
                     val token = DeviceTokenFixture.randomDeviceToken()
 
-                    service.putDevice(
-                        loginId = user.id!!,
-                        request =
-                            PutDeviceRequest(
-                                platform = DevicePlatform.NATIVE.name,
-                                token = token,
-                            ),
-                    )
+                    val firstResponse =
+                        service.putDevice(
+                            loginId = user.id!!,
+                            request =
+                                PutDeviceRequest(
+                                    platform = DevicePlatform.NATIVE.name,
+                                    token = token,
+                                ),
+                        )
                     val response =
                         service.putDevice(
                             loginId = otherUser.id!!,
@@ -97,10 +98,11 @@ class PutDeviceServiceTest :
                         )
 
                     val actual = deviceTokenRepository.findByToken(token)!!
+                    response.id shouldBe firstResponse.id
                     response.id shouldBe actual.id
-                    actual.userId shouldBe user.id
-                    deviceTokenRepository.findAllByUserId(user.id!!) shouldHaveSize 1
-                    deviceTokenRepository.findAllByUserId(otherUser.id) shouldHaveSize 0
+                    actual.userId shouldBe otherUser.id
+                    deviceTokenRepository.findAllByUserId(user.id!!) shouldHaveSize 0
+                    deviceTokenRepository.findAllByUserId(otherUser.id) shouldHaveSize 1
                 }
             }
 

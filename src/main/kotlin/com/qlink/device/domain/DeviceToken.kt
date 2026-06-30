@@ -22,4 +22,14 @@ class DeviceToken(
             throw BusinessException(ErrorCode.DEVICE_DIFFERENT_OWNER)
         }
     }
+
+    fun changeOwner(ownerId: Long): DeviceToken =
+        DeviceToken(
+            id = id,
+            userId = ownerId,
+            platform = platform,
+            token = token,
+            createdAt = createdAt,
+            updatedAt = updatedAt,
+        )
 }
