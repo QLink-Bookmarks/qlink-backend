@@ -24,6 +24,11 @@ resource "aws_iam_role_policy_attachment" "ecs_instance_role_policy" {
   policy_arn = var.ecs_instance_role_policy_arn
 }
 
+resource "aws_iam_role_policy_attachment" "ecs_instance_ssm_policy" {
+  role       = aws_iam_role.ecs_instance_role.name
+  policy_arn = var.ecs_instance_ssm_policy_arn
+}
+
 resource "aws_iam_instance_profile" "ecs_instance_profile" {
   name = var.ecs_instance_profile_name
   role = aws_iam_role.ecs_instance_role.name
@@ -128,6 +133,47 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
   policy_arn = var.task_execution_role_policy_arn
 }
 
+locals {
+  task_secret_keys = nonsensitive(toset(keys(var.task_secret_values)))
+}
+
+data "aws_kms_alias" "ssm" {
+  name = "alias/aws/ssm"
+}
+
+resource "aws_ssm_parameter" "task_secret" {
+  for_each = local.task_secret_keys
+
+  name  = "${var.ssm_parameter_prefix}${each.key}"
+  type  = "SecureString"
+  value = var.task_secret_values[each.key]
+}
+
+resource "aws_iam_role_policy" "ecs_task_execution_ssm" {
+  count = length(local.task_secret_keys) > 0 ? 1 : 0
+
+  name = "${var.task_execution_role_name}-ssm"
+  role = aws_iam_role.ecs_task_execution_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "ReadTaskSecrets"
+        Effect   = "Allow"
+        Action   = ["ssm:GetParameters"]
+        Resource = [for p in aws_ssm_parameter.task_secret : p.arn]
+      },
+      {
+        Sid      = "DecryptTaskSecrets"
+        Effect   = "Allow"
+        Action   = ["kms:Decrypt"]
+        Resource = [data.aws_kms_alias.ssm.target_key_arn]
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role" "ecs_task_role" {
   name = var.task_role_name
 
@@ -207,6 +253,12 @@ resource "aws_ecs_task_definition" "qlink_task" {
         for key, value in var.task_environment : {
           name  = key
           value = value
+        }
+      ]
+      secrets = [
+        for key, param in aws_ssm_parameter.task_secret : {
+          name      = key
+          valueFrom = param.arn
         }
       ]
       environmentFiles = []

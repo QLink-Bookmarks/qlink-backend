@@ -9,6 +9,7 @@ COPY src/main/resources/application.yaml /app/config/application.yaml
 COPY src/main/resources/application-dev.yaml /app/config/application-dev.yaml
 
 ENV APP_ENV=${APP_ENV}
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=70"
 
 EXPOSE 8080
 
