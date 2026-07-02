@@ -18,6 +18,11 @@ variable "ecs_instance_role_policy_arn" {
   type = string
 }
 
+variable "ecs_instance_ssm_policy_arn" {
+  type    = string
+  default = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
 variable "ecs_instance_profile_name" {
   type = string
 }

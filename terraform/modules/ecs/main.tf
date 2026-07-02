@@ -24,6 +24,11 @@ resource "aws_iam_role_policy_attachment" "ecs_instance_role_policy" {
   policy_arn = var.ecs_instance_role_policy_arn
 }
 
+resource "aws_iam_role_policy_attachment" "ecs_instance_ssm_policy" {
+  role       = aws_iam_role.ecs_instance_role.name
+  policy_arn = var.ecs_instance_ssm_policy_arn
+}
+
 resource "aws_iam_instance_profile" "ecs_instance_profile" {
   name = var.ecs_instance_profile_name
   role = aws_iam_role.ecs_instance_role.name
