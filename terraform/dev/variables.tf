@@ -264,6 +264,11 @@ variable "ecs_task_family" {
   type = string
 }
 
+variable "ssm_parameter_prefix" {
+  type    = string
+  default = "/qlink/dev/"
+}
+
 variable "ecs_task_cpu" {
   type = string
 }

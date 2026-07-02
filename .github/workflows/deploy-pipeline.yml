@@ -132,6 +132,8 @@ jobs:
           terraform plan \
             -input=false \
             -out=tfplan \
+            -target=module.ecs.aws_ssm_parameter.task_secret \
+            -target=module.ecs.aws_iam_role_policy.ecs_task_execution_ssm \
             -target=module.ecs.aws_ecs_task_definition.qlink_task \
             -target=module.ecs.aws_ecs_service.qlink_ecs_service
 

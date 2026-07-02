@@ -162,20 +162,23 @@ module "ecs" {
   task_app_protocol   = var.ecs_task_app_protocol
   task_image          = "${module.ecr.repository_url}:${var.ecs_image_tag}"
   task_environment = {
-    DB_JDBC_URL              = local.rds_jdbc_url
-    DB_USERNAME              = var.rds_username
+    DB_JDBC_URL             = local.rds_jdbc_url
+    DB_USERNAME             = var.rds_username
+    DB_DRIVER_CLASS_NAME    = "org.postgresql.Driver"
+    APPLE_CLIENT_IDS        = var.apple_client_ids
+    GOOGLE_CLIENT_IDS       = var.google_client_ids
+    AWS_S3_REGION           = var.aws_region
+    AWS_S3_BUCKET           = module.s3.bucket_name
+    AWS_S3_ENDPOINT         = ""
+    AWS_S3_FORCE_PATH_STYLE = "false"
+    AWS_S3_PUBLIC_BASE_URL  = module.cloudfront.public_base_url
+  }
+  task_secret_values = {
     DB_PASSWORD              = var.db_password
-    DB_DRIVER_CLASS_NAME     = "org.postgresql.Driver"
     FCM_SERVICE_ACCOUNT_JSON = var.fcm_service_account_json
     EXPO_ACCESS_TOKEN        = var.expo_access_token
-    APPLE_CLIENT_IDS         = var.apple_client_ids
-    GOOGLE_CLIENT_IDS        = var.google_client_ids
-    AWS_S3_REGION            = var.aws_region
-    AWS_S3_BUCKET            = module.s3.bucket_name
-    AWS_S3_ENDPOINT          = ""
-    AWS_S3_FORCE_PATH_STYLE  = "false"
-    AWS_S3_PUBLIC_BASE_URL   = module.cloudfront.public_base_url
   }
+  ssm_parameter_prefix     = var.ssm_parameter_prefix
   task_healthcheck_command = var.ecs_task_healthcheck_command
   task_definition_tag_name = var.ecs_task_definition_tag_name
 

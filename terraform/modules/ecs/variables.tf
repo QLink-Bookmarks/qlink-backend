@@ -142,6 +142,17 @@ variable "task_environment" {
   type = map(string)
 }
 
+variable "task_secret_values" {
+  type      = map(string)
+  default   = {}
+  sensitive = true
+}
+
+variable "ssm_parameter_prefix" {
+  type    = string
+  default = "/qlink/"
+}
+
 variable "task_healthcheck_command" {
   type = string
 }
