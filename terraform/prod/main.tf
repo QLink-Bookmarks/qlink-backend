@@ -138,8 +138,6 @@ module "ecs" {
     DB_JDBC_URL             = local.rds_jdbc_url
     DB_USERNAME             = var.rds_username
     DB_DRIVER_CLASS_NAME    = "org.postgresql.Driver"
-    APPLE_CLIENT_IDS        = var.apple_client_ids
-    GOOGLE_CLIENT_IDS       = var.google_client_ids
     AWS_S3_REGION           = var.aws_region
     AWS_S3_BUCKET           = var.aws_s3_bucket_name
     AWS_S3_ENDPOINT         = ""
@@ -147,10 +145,11 @@ module "ecs" {
     AWS_S3_PUBLIC_BASE_URL  = "https://${var.images_domain}"
   }
   task_secret_values = {
-    DB_PASSWORD              = var.db_password
-    FCM_SERVICE_ACCOUNT_JSON = var.fcm_service_account_json
-    EXPO_ACCESS_TOKEN        = var.expo_access_token
-    JWT_SECRET               = var.jwt_secret
+    DB_PASSWORD                      = var.db_password
+    FCM_SERVICE_ACCOUNT_JSON         = var.fcm_service_account_json
+    EXPO_ACCESS_TOKEN                = var.expo_access_token
+    JWT_SECRET                       = var.jwt_secret
+    AI_API_KEY_ENCRYPTION_KEY_BASE64 = var.ai_api_key_encryption_key_base64
   }
   ssm_parameter_prefix     = var.ssm_parameter_prefix
   task_healthcheck_command = var.ecs_task_healthcheck_command

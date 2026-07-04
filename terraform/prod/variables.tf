@@ -312,15 +312,23 @@ variable "jwt_secret" {
   sensitive = true
 }
 
+variable "ai_api_key_encryption_key_base64" {
+  type      = string
+  sensitive = true
+}
+
+# prod leaves these empty -> app falls back to application.yaml client IDs
 variable "apple_client_ids" {
   type        = string
   sensitive   = true
+  default     = ""
   description = "Comma-separated Apple client IDs (bundle/services IDs) accepted as id_token audience"
 }
 
 variable "google_client_ids" {
   type        = string
   sensitive   = true
+  default     = ""
   description = "Comma-separated Google OAuth client IDs accepted as native id_token audience"
 }
 
