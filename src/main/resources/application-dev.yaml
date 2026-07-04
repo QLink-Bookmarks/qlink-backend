@@ -7,5 +7,5 @@ http:
     allowNonSimpleContentTypes: true
     anyHost: false
     hosts:
-      - dev.qlinkapps.com
-      - dev.api.qlinkapps.com
+      - dev.archivelink.app
+      - dev.api.archivelink.app

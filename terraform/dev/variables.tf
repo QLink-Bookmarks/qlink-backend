@@ -9,7 +9,7 @@ variable "aws_s3_bucket_name" {
 variable "images_domain" {
   description = "Custom domain that serves uploaded images via CloudFront"
   type        = string
-  default     = "images.qlinkapps.com"
+  default     = "images.archivelink.app"
 }
 
 variable "vpc_cidr" {
