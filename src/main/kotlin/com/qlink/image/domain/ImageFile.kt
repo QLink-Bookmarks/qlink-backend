@@ -16,7 +16,7 @@ class ImageFile private constructor(
 
     companion object {
         const val MAX_SIZE_BYTES: Int = 10 * 1024 * 1024
-        const val OBJECT_KEY_PREFIX: String = "qlink_profile_"
+        const val OBJECT_KEY_PREFIX: String = "alink_profile_"
 
         fun of(bytes: ByteArray): ImageFile {
             bytes.isNotEmpty().requireTrue(ErrorCode.IMAGE_FILE_REQUIRED)
