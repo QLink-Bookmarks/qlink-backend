@@ -29,19 +29,19 @@ class GetPostServiceTest :
                 author = userRepository.insert(UserFixture.createRandomValidUser())
             }
 
-            When("ANNOUNCEMENT 상세를 GUEST 가 조회하면") {
+            When("FEEDBACK 상세를 관리자가 조회하면") {
                 Then("작성자/이미지 포함 전체 필드를 반환한다") {
                     val post =
                         postRepository.insert(
-                            Post(title = "공지", contents = "내용", type = PostType.ANNOUNCEMENT, authorId = author.id!!),
+                            Post(title = "피드백", contents = "내용", type = PostType.FEEDBACK, authorId = author.id!!),
                         )
                     postRepository.insertImages(listOf(PostImage(postId = post.id!!, url = "https://images.archivelink.app/a.png")))
 
-                    val response = service.getPost(post.id!!, Role.GUEST)
+                    val response = service.getPost(post.id!!, Role.ADMIN)
 
                     response.id shouldBe post.id
                     response.contents shouldBe "내용"
-                    response.type shouldBe PostType.ANNOUNCEMENT
+                    response.type shouldBe PostType.FEEDBACK
                     response.author shouldBe author.nickname
                     response.imageUrls shouldContainExactly listOf("https://images.archivelink.app/a.png")
                 }
@@ -60,16 +60,18 @@ class GetPostServiceTest :
                 }
             }
 
-            When("FEEDBACK 상세를 관리자가 조회하면") {
+            When("ANNOUNCEMENT 상세를 GUEST 가 조회하면") {
                 Then("이미지 조회 없이 상세를 반환한다") {
                     val post =
                         postRepository.insert(
-                            Post(title = "피드백", contents = "내용", type = PostType.FEEDBACK, authorId = author.id!!),
+                            Post(title = "공지", contents = "내용", type = PostType.ANNOUNCEMENT, authorId = author.id!!),
                         )
+                    postRepository.insertImages(listOf(PostImage(postId = post.id!!, url = "https://images.archivelink.app/a.png")))
 
-                    val response = service.getPost(post.id!!, Role.ADMIN)
+                    val response = service.getPost(post.id!!, Role.GUEST)
 
-                    response.type shouldBe PostType.FEEDBACK
+                    response.type shouldBe PostType.ANNOUNCEMENT
+                    response.author shouldBe author.nickname
                     response.imageUrls shouldContainExactly emptyList()
                 }
             }
