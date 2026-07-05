@@ -9,6 +9,7 @@ data class DocumentationConfig(
     val openApiPath: String,
     val swaggerPath: String,
     val redocPath: String,
+    val swaggerEnabled: Boolean,
 )
 
 data class CorsConfig(

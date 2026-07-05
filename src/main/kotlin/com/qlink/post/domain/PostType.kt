@@ -14,6 +14,15 @@ enum class PostType {
         }
     }
 
+    fun validateReadable(isAdmin: Boolean) {
+        if (this == FEEDBACK && !isAdmin) {
+            throw BusinessException(ErrorCode.POST_FEEDBACK_FORBIDDEN)
+        }
+    }
+
+    val hasImage: Boolean
+        get() = this == ANNOUNCEMENT
+
     companion object {
         fun from(value: String): PostType =
             entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
