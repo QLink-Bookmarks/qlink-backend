@@ -7,6 +7,8 @@ interface UserRepository {
 
     suspend fun findById(userId: Long): User?
 
+    suspend fun findAllIds(): List<Long>
+
     suspend fun existsByUsernameAndIdNot(
         username: String,
         userId: Long,

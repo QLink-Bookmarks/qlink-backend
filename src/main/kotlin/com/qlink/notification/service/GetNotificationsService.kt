@@ -8,6 +8,7 @@ import com.qlink.common.scroll.ScrollResponse
 import com.qlink.common.search.SearchCursorCodec
 import com.qlink.common.search.SearchOrder
 import com.qlink.common.transaction.TransactionRunner
+import com.qlink.notification.domain.NotificationContext
 import com.qlink.notification.dto.DEFAULT_NOTIFICATION_SCROLL_SIZE
 import com.qlink.notification.dto.DEFAULT_NOTIFICATION_SEARCH_ORDER
 import com.qlink.notification.dto.GetNotificationsContentResponse
@@ -25,12 +26,14 @@ class GetNotificationsService(
     suspend fun getNotifications(
         loginId: Long,
         query: String?,
+        type: String? = null,
         order: String,
         scrollRequest: ScrollRequest,
     ): ScrollResponse<GetNotificationsContentResponse> =
         tx.readOnly {
             userRepository.emptyById(loginId).requireFalse(ErrorCode.USER_NOT_FOUND)
 
+            val typeFilter = type?.let { NotificationContext.from(it) ?: throw BusinessException(ErrorCode.COMMON_INVALID_FILTER) }
             val normalizedOrder = normalizeOrder(order)
             val cursor = scrollRequest.cursor?.let { SearchCursorCodec.decode(it, normalizedOrder, ::validateCursorValue) }
             val size = scrollRequest.size.takeIf { it > 0 } ?: DEFAULT_NOTIFICATION_SCROLL_SIZE
@@ -38,6 +41,7 @@ class GetNotificationsService(
                 notificationRepository.search(
                     userId = loginId,
                     query = query,
+                    type = typeFilter,
                     order = normalizedOrder,
                     cursor = cursor,
                     size = size,
@@ -48,7 +52,7 @@ class GetNotificationsService(
             ScrollResponse(
                 isEmpty = contents.isEmpty(),
                 contents = contents.map { it.toResponse() },
-                nextCursor = contents.lastOrNull()?.takeIf { hasNext }?.let { encodeCursor(it, normalizedOrder) },
+                nextCursor = contents.lastOrNull()?.takeIf { hasNext }?.let { encodeCursor(it, typeFilter, normalizedOrder) },
                 hasNext = hasNext,
             )
         }
@@ -77,11 +81,12 @@ class GetNotificationsService(
 
     private fun encodeCursor(
         query: SearchNotificationsQuery,
+        type: NotificationContext?,
         order: NotificationSearchOrder,
     ): String =
         SearchCursorCodec.encode(
             order = order,
-            value = NotificationSearchCursorValue(id = query.id),
+            value = NotificationSearchCursorValue(id = query.id, type = type),
         )
 
     private fun SearchNotificationsQuery.toResponse(): GetNotificationsContentResponse =

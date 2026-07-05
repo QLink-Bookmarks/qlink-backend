@@ -12,6 +12,8 @@ private const val MAX_TITLE_LENGTH = 50
 private const val MAX_MESSAGE_LENGTH = 200
 private const val MAX_LINK_TITLE_LENGTH = 20
 private const val MAX_LINK_URL_LENGTH = 30
+private const val MAX_ANNOUNCE_TITLE_LENGTH = 100
+private const val ANNOUNCE_TITLE = "에이링크 공지사항"
 
 class Notification(
     val id: Long? = null,
@@ -151,5 +153,20 @@ class Notification(
             linkTitle: String,
             linkUrl: String,
         ): String = "북마크 링크: ${linkTitle.truncate(MAX_LINK_TITLE_LENGTH)} (${linkUrl.truncate(MAX_LINK_URL_LENGTH)})"
+
+        fun announce(
+            userId: Long,
+            postId: Long,
+            postTitle: String,
+            at: Instant,
+        ): Notification =
+            Notification(
+                userId = userId,
+                title = ANNOUNCE_TITLE,
+                message = "새로운 공지사항이 있어요. ${postTitle.truncate(MAX_ANNOUNCE_TITLE_LENGTH)}",
+                context = NotificationContext.ANNOUNCE,
+                contextId = postId,
+                willFireAt = at,
+            )
     }
 }

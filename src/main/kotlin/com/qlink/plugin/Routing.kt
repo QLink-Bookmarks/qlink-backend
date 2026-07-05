@@ -9,6 +9,7 @@ import com.qlink.folder.route.folderRoutes
 import com.qlink.image.route.imageRoutes
 import com.qlink.link.route.linkRoutes
 import com.qlink.notification.route.notificationRoutes
+import com.qlink.post.route.postRoutes
 import com.qlink.todo.route.todoRoutes
 import com.qlink.user.route.userRoutes
 import io.github.smiley4.ktoropenapi.get
@@ -70,6 +71,7 @@ fun Application.configureRouting() {
             imageRoutes()
             linkRoutes()
             notificationRoutes()
+            postRoutes()
             todoRoutes()
             userRoutes()
         }
