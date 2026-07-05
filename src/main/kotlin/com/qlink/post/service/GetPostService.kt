@@ -19,10 +19,10 @@ class GetPostService(
     ): GetPostResponse =
         tx.readOnly {
             val post = postRepository.findById(postId) ?: throw BusinessException(ErrorCode.POST_NOT_FOUND)
-            post.type.validateReadable(role)
+            post.type.validateReadable(role.isAdmin)
 
             val author = userRepository.findById(post.authorId)
-            val images = postRepository.findImagesByPostId(postId)
+            val images = if (post.type.hasImage) postRepository.findImagesByPostId(postId) else emptyList()
 
             GetPostResponse(
                 id = post.id!!,

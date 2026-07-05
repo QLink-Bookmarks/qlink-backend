@@ -31,7 +31,7 @@ class GetPostsService(
     ): ScrollResponse<GetPostsContentResponse> =
         tx.readOnly {
             val postType = PostType.from(type ?: DEFAULT_POST_TYPE)
-            postType.validateReadable(role)
+            postType.validateReadable(role.isAdmin)
 
             val normalizedOrder = normalizeOrder(order)
             val cursor = scrollRequest.cursor?.let { SearchCursorCodec.decode(it, normalizedOrder, ::validateCursorValue) }

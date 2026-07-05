@@ -60,6 +60,20 @@ class GetPostServiceTest :
                 }
             }
 
+            When("FEEDBACK 상세를 관리자가 조회하면") {
+                Then("이미지 조회 없이 상세를 반환한다") {
+                    val post =
+                        postRepository.insert(
+                            Post(title = "피드백", contents = "내용", type = PostType.FEEDBACK, authorId = author.id!!),
+                        )
+
+                    val response = service.getPost(post.id!!, Role.ADMIN)
+
+                    response.type shouldBe PostType.FEEDBACK
+                    response.imageUrls shouldContainExactly emptyList()
+                }
+            }
+
             When("존재하지 않는 게시글을 조회하면") {
                 Then("예외를 반환한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.POST_NOT_FOUND.message) {
