@@ -1,6 +1,5 @@
 package com.qlink.post.domain
 
-import com.qlink.auth.domain.Role
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import io.kotest.assertions.throwables.shouldNotThrowAny
@@ -26,17 +25,15 @@ class PostTypeTest :
             }
 
             When("validateManageable 로 권한을 검증하면") {
-                Then("ANNOUNCEMENT 는 ADMIN/SUPER_ADMIN 만 허용된다") {
-                    shouldNotThrowAny { PostType.ANNOUNCEMENT.validateManageable(Role.ADMIN) }
-                    shouldNotThrowAny { PostType.ANNOUNCEMENT.validateManageable(Role.SUPER_ADMIN) }
+                Then("ANNOUNCEMENT 는 관리자만 허용된다") {
+                    shouldNotThrowAny { PostType.ANNOUNCEMENT.validateManageable(isAdmin = true) }
                     shouldThrowWithMessage<BusinessException>(ErrorCode.POST_ANNOUNCEMENT_FORBIDDEN.message) {
-                        PostType.ANNOUNCEMENT.validateManageable(Role.NORMAL)
+                        PostType.ANNOUNCEMENT.validateManageable(isAdmin = false)
                     }
                 }
 
-                Then("FEEDBACK 은 모든 역할이 가능하다") {
-                    shouldNotThrowAny { PostType.FEEDBACK.validateManageable(Role.NORMAL) }
-                    shouldNotThrowAny { PostType.FEEDBACK.validateManageable(Role.GUEST) }
+                Then("FEEDBACK 은 관리자가 아니어도 가능하다") {
+                    shouldNotThrowAny { PostType.FEEDBACK.validateManageable(isAdmin = false) }
                 }
             }
         }

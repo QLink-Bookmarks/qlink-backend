@@ -9,6 +9,7 @@ import com.qlink.notification.repository.NotificationRepository
 import com.qlink.push.client.PushNotificationSendRequest
 import com.qlink.push.client.PushNotificationSenderRouter
 import com.qlink.user.repository.UserRepository
+import org.slf4j.LoggerFactory
 import kotlin.time.Clock
 
 private const val ANNOUNCE_TITLE = "에이링크 공지사항"
@@ -31,6 +32,7 @@ class SendAnnouncementService(
     private val deviceTokenRepository: DeviceTokenRepository,
     private val senderRouter: PushNotificationSenderRouter,
 ) {
+    private val log = LoggerFactory.getLogger(SendAnnouncementService::class.java)
     suspend fun sendForPost(
         postId: Long,
         postTitle: String,
@@ -58,13 +60,26 @@ class SendAnnouncementService(
         postId: Long,
         postTitle: String,
     ) {
+        var successCount = 0
+        var failureCount = 0
+
         deviceTokens.groupBy { it.platform }.forEach { (platform, tokens) ->
             val sender = senderRouter.findByPlatform(platform)
             val chunkSize = MULTICAST_CHUNK_SIZE[platform] ?: DEFAULT_MULTICAST_CHUNK
             tokens.chunked(chunkSize).forEach { chunk ->
-                sender.sendMulticast(chunk.map { announceRequest(it.token, postId, postTitle) })
+                val results = sender.sendMulticast(chunk.map { announceRequest(it.token, postId, postTitle) })
+                successCount += results.count { it.success }
+                failureCount += results.count { !it.success }
             }
         }
+
+        log.info(
+            "[ANNOUNCEMENT] Push done for post={} — tokens={}, success={}, failure={}",
+            postId,
+            deviceTokens.size,
+            successCount,
+            failureCount,
+        )
     }
 
     private fun announceRequest(

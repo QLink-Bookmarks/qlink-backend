@@ -28,7 +28,7 @@ class CreatePostService(
         request: CreatePostRequest,
     ): CreatePostResponse {
         val type = PostType.from(request.type)
-        type.validateManageable(role)
+        type.validateManageable(role.isAdmin)
 
         val post =
             tx.required {
