@@ -17,6 +17,7 @@ internal fun getNotificationsDocs(): RouteConfig.() -> Unit =
         summary = "알림 목록 조회 API"
         request {
             queryParameter<String?>("query") { description = "제목/메시지 검색어" }
+            queryParameter<String?>("type") { description = "알림 타입 필터(TODO, ANNOUNCE), 대소문자 무관" }
             queryParameter<String>("order") { description = "정렬 기준, 기본값: latest" }
             queryParameter<String?>("cursor") { description = "페이지네이션 커서" }
             queryParameter<Int>("size") { description = "페이지 크기, 기본값: 30" }
@@ -31,6 +32,7 @@ internal fun getNotificationsDocs(): RouteConfig.() -> Unit =
                 body<ApiResponse<ErrorDetail>> {
                     examples(
                         ErrorCode.COMMON_INVALID_SORT_ORDER,
+                        ErrorCode.COMMON_INVALID_FILTER,
                         ErrorCode.COMMON_CURSOR_MALFORMED,
                         ErrorCode.COMMON_CURSOR_ORDER_MISMATCH,
                         ErrorCode.COMMON_CURSOR_FIELD_MISSING,

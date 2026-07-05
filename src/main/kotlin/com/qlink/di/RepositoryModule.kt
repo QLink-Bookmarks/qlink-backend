@@ -24,6 +24,8 @@ import com.qlink.link.repository.DbLinkRepository
 import com.qlink.link.repository.LinkRepository
 import com.qlink.notification.repository.DbNotificationRepository
 import com.qlink.notification.repository.NotificationRepository
+import com.qlink.post.repository.DbPostRepository
+import com.qlink.post.repository.PostRepository
 import com.qlink.todo.repository.DbTodoRepository
 import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.repository.DbUserRepository
@@ -54,6 +56,10 @@ fun repositoryModule() =
 
         single<NotificationRepository> {
             DbNotificationRepository()
+        }
+
+        single<PostRepository> {
+            DbPostRepository()
         }
 
         single<DeviceTokenRepository> {

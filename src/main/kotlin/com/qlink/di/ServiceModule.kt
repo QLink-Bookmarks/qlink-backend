@@ -33,7 +33,11 @@ import com.qlink.notification.service.GetNotificationsService
 import com.qlink.notification.service.GetUnreadNotificationCountService
 import com.qlink.notification.service.ReadNotificationService
 import com.qlink.notification.service.ScheduleTodoNotificationService
+import com.qlink.notification.service.SendAnnouncementService
 import com.qlink.notification.service.SendNotificationService
+import com.qlink.post.service.CreatePostService
+import com.qlink.post.service.GetPostService
+import com.qlink.post.service.GetPostsService
 import com.qlink.todo.service.CompleteTodoService
 import com.qlink.todo.service.CreateTodoService
 import com.qlink.todo.service.DeleteTodoService
@@ -341,6 +345,40 @@ fun serviceModule() =
                 tx = get(),
                 notificationRepository = get(),
                 userRepository = get(),
+            )
+        }
+
+        single {
+            SendAnnouncementService(
+                tx = get(),
+                userRepository = get(),
+                notificationRepository = get(),
+                deviceTokenRepository = get(),
+                senderRouter = get(),
+            )
+        }
+
+        single {
+            CreatePostService(
+                tx = get(),
+                postRepository = get(),
+                userRepository = get(),
+                sendAnnouncementService = get(),
+            )
+        }
+
+        single {
+            GetPostService(
+                tx = get(),
+                postRepository = get(),
+                userRepository = get(),
+            )
+        }
+
+        single {
+            GetPostsService(
+                tx = get(),
+                postRepository = get(),
             )
         }
 

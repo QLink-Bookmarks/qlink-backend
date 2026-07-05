@@ -45,6 +45,8 @@ fun pluginModule(config: ApplicationConfig) =
                 openApiPath = config.string("http.documentation.openApiPath"),
                 swaggerPath = config.string("http.documentation.swaggerPath"),
                 redocPath = config.string("http.documentation.redocPath"),
+                // Swagger UI is served everywhere except production (APP_ENV=prod). OpenAPI/Redoc stay on.
+                swaggerEnabled = (System.getenv("APP_ENV") ?: "dev").lowercase() != "prod",
             )
         }
 
