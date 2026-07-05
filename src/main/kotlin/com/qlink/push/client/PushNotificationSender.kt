@@ -6,6 +6,10 @@ interface PushNotificationSender {
     val platform: DevicePlatform
 
     suspend fun send(request: PushNotificationSendRequest): PushNotificationSendResult
+
+    // Multicast a chunk that shares the same title/message/data (e.g. one announcement).
+    // Default falls back to per-token sends; platform clients override with a true batch call.
+    suspend fun sendMulticast(requests: List<PushNotificationSendRequest>): List<PushNotificationSendResult> = requests.map { send(it) }
 }
 
 data class PushNotificationSendRequest(

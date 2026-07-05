@@ -33,6 +33,7 @@ import com.qlink.notification.service.GetNotificationsService
 import com.qlink.notification.service.GetUnreadNotificationCountService
 import com.qlink.notification.service.ReadNotificationService
 import com.qlink.notification.service.ScheduleTodoNotificationService
+import com.qlink.notification.service.SendAnnouncementService
 import com.qlink.notification.service.SendNotificationService
 import com.qlink.post.service.CreatePostService
 import com.qlink.todo.service.CompleteTodoService
@@ -346,11 +347,21 @@ fun serviceModule() =
         }
 
         single {
+            SendAnnouncementService(
+                tx = get(),
+                userRepository = get(),
+                notificationRepository = get(),
+                deviceTokenRepository = get(),
+                senderRouter = get(),
+            )
+        }
+
+        single {
             CreatePostService(
                 tx = get(),
                 postRepository = get(),
                 userRepository = get(),
-                notificationRepository = get(),
+                sendAnnouncementService = get(),
             )
         }
 
