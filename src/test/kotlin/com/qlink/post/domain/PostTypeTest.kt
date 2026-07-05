@@ -51,9 +51,9 @@ class PostTypeTest :
             }
 
             When("hasImage 를 확인하면") {
-                Then("ANNOUNCEMENT 만 이미지를 가진다") {
-                    PostType.ANNOUNCEMENT.hasImage shouldBe true
-                    PostType.FEEDBACK.hasImage shouldBe false
+                Then("FEEDBACK 만 이미지를 가진다") {
+                    PostType.FEEDBACK.hasImage shouldBe true
+                    PostType.ANNOUNCEMENT.hasImage shouldBe false
                 }
             }
         }

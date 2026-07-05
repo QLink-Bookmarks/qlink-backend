@@ -21,7 +21,7 @@ enum class PostType {
     }
 
     val hasImage: Boolean
-        get() = this == ANNOUNCEMENT
+        get() = this == FEEDBACK
 
     companion object {
         fun from(value: String): PostType =
