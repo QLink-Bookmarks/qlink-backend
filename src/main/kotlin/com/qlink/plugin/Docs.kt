@@ -31,6 +31,11 @@ private val apiTags =
         "users" to "유저 API",
         "folders" to "폴더 API",
         "todos" to "투두 API",
+        "notifications" to "알림 API",
+        "posts" to "게시글 API",
+        "auth" to "인증 API",
+        "devices" to "디바이스 API",
+        "images" to "이미지 API",
     )
 
 fun Application.configureDocs() {
@@ -82,12 +87,14 @@ fun Application.configureDocs() {
         route(config.openApiPath) {
             openApi()
         }
-        route(config.swaggerPath) {
-            swaggerUI("/${config.openApiPath}") {
-                deepLinking = true
-                operationsSorter = OperationsSort.HTTP_METHOD
-                persistAuthorization = true
-                tryItOutEnabled = true
+        if (config.swaggerEnabled) {
+            route(config.swaggerPath) {
+                swaggerUI("/${config.openApiPath}") {
+                    deepLinking = true
+                    operationsSorter = OperationsSort.HTTP_METHOD
+                    persistAuthorization = true
+                    tryItOutEnabled = true
+                }
             }
         }
         route(config.redocPath) {
