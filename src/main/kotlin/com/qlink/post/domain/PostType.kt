@@ -14,6 +14,12 @@ enum class PostType {
         }
     }
 
+    fun validateReadable(role: Role) {
+        if (this == FEEDBACK && role !in ADMIN_ROLES) {
+            throw BusinessException(ErrorCode.POST_FEEDBACK_FORBIDDEN)
+        }
+    }
+
     companion object {
         fun from(value: String): PostType =
             entries.firstOrNull { it.name.equals(value, ignoreCase = true) }

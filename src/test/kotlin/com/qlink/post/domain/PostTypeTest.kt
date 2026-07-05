@@ -36,5 +36,23 @@ class PostTypeTest :
                     shouldNotThrowAny { PostType.FEEDBACK.validateManageable(isAdmin = false) }
                 }
             }
+
+            When("validateReadable 로 조회 권한을 검증하면") {
+                Then("FEEDBACK 은 ADMIN/SUPER_ADMIN 만 조회 가능하다") {
+                    shouldNotThrowAny { PostType.FEEDBACK.validateReadable(Role.ADMIN) }
+                    shouldNotThrowAny { PostType.FEEDBACK.validateReadable(Role.SUPER_ADMIN) }
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.POST_FEEDBACK_FORBIDDEN.message) {
+                        PostType.FEEDBACK.validateReadable(Role.NORMAL)
+                    }
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.POST_FEEDBACK_FORBIDDEN.message) {
+                        PostType.FEEDBACK.validateReadable(Role.GUEST)
+                    }
+                }
+
+                Then("ANNOUNCEMENT 는 모든 역할이 조회 가능하다") {
+                    shouldNotThrowAny { PostType.ANNOUNCEMENT.validateReadable(Role.GUEST) }
+                    shouldNotThrowAny { PostType.ANNOUNCEMENT.validateReadable(Role.NORMAL) }
+                }
+            }
         }
     })
