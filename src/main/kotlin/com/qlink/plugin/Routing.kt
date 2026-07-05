@@ -12,55 +12,31 @@ import com.qlink.notification.route.notificationRoutes
 import com.qlink.post.route.postRoutes
 import com.qlink.todo.route.todoRoutes
 import com.qlink.user.route.userRoutes
-import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.route
-import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
-import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.principal
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
+import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
+
+private val ROOT_MESSAGE =
+    """
+    Hello ALink! Please find details from below.
+    OpenAPI: /openapi
+    Redoc: /redoc
+
+    I would be glad if my service may help you, but kindly move back if you are trying something bad with my service :(
+    """.trimIndent()
 
 fun Application.configureRouting() {
     routing {
         get("/") {
-            call.respondText("Hello, World!")
+            call.respondText(ROOT_MESSAGE)
         }
         get("/health") {
             call.respond(mapOf("status" to "HEALTHY"))
-        }
-        authenticate {
-            get("/sample/jwt", {
-                summary = "Required JWT sample"
-                description = "Returns the JWT principal parsed from a valid bearer token."
-                response {
-                    code(HttpStatusCode.OK) {
-                        description = "The JWT principal parsed from the bearer token."
-                        body<JwtPrincipal>()
-                    }
-                }
-            }) {
-                val principal = call.principal<JwtPrincipal>()!!
-                call.respond(principal)
-            }
-        }
-        authenticate(optional = true) {
-            get("/sample/jwt-optional", {
-                summary = "Optional JWT sample"
-                description = "Returns the JWT principal or a guest principal."
-                response {
-                    code(HttpStatusCode.OK) {
-                        description =
-                            "The JWT principal, or a guest principal when no bearer token is provided."
-                        body<JwtPrincipal>()
-                    }
-                }
-            }) {
-                val principal = call.jwtPrincipalOrGuest()
-                call.respond(principal)
-            }
         }
 
         route("/api") {
