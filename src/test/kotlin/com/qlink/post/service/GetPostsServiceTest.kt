@@ -14,6 +14,7 @@ import com.qlink.user.domain.User
 import com.qlink.user.repository.UserRepository
 import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 
 class GetPostsServiceTest :
     BaseServiceTest({
@@ -80,6 +81,53 @@ class GetPostsServiceTest :
 
                     response.contents.size shouldBe 1
                     response.contents.first().title shouldBe "피드백 하나"
+                }
+            }
+
+            When("결과가 페이지 크기보다 많으면") {
+                Then("커서로 다음 페이지를 이어서 조회한다") {
+                    val author = userRepository.insert(UserFixture.createRandomValidUser())
+                    repeat(3) { i ->
+                        postRepository.insert(
+                            Post(title = "공지 $i", contents = "c", type = PostType.ANNOUNCEMENT, authorId = author.id!!),
+                        )
+                    }
+
+                    val page1 =
+                        service.getPosts(
+                            role = Role.GUEST,
+                            type = null,
+                            query = null,
+                            order = "latest",
+                            scrollRequest = ScrollRequest(size = 2),
+                        )
+                    page1.hasNext shouldBe true
+                    page1.nextCursor shouldNotBe null
+
+                    val page2 =
+                        service.getPosts(
+                            role = Role.GUEST,
+                            type = null,
+                            query = null,
+                            order = "latest",
+                            scrollRequest = ScrollRequest(cursor = page1.nextCursor, size = 2),
+                        )
+                    page2.contents.size shouldBe 1
+                    page2.hasNext shouldBe false
+                }
+            }
+
+            When("지원하지 않는 정렬 기준이면") {
+                Then("예외를 반환한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.COMMON_INVALID_SORT_ORDER.message) {
+                        service.getPosts(
+                            role = Role.GUEST,
+                            type = null,
+                            query = null,
+                            order = "earliest",
+                            scrollRequest = ScrollRequest(size = 2),
+                        )
+                    }
                 }
             }
         }
