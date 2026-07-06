@@ -138,6 +138,7 @@ jobs:
             -target=module.ecr \
             -target=module.alb \
             -target=module.route53 \
+            -target=module.route53_dev.aws_route53_record.alias_a \
             -target=module.rds \
             -target=module.ecs.aws_iam_role.ecs_instance_role \
             -target=module.ecs.aws_iam_role_policy_attachment.ecs_instance_role_policy \
