@@ -94,6 +94,7 @@ class DbNotificationRepository : NotificationRepository {
     override suspend fun search(
         userId: Long,
         query: String?,
+        type: NotificationContext?,
         order: NotificationSearchOrder,
         cursor: NotificationSearchCursor?,
         size: Int,
@@ -112,6 +113,9 @@ class DbNotificationRepository : NotificationRepository {
             ).where {
                 (Notifications.userId eq userId) and Notifications.firedAt.isNotNull()
             }.apply {
+                type?.let { typeValue ->
+                    andWhere { Notifications.context eq typeValue }
+                }
                 normalizedQuery?.let { keyword ->
                     andWhere {
                         (Notifications.title like "%$keyword%") or

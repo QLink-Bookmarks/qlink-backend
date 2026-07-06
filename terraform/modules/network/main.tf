@@ -208,9 +208,9 @@ resource "aws_network_acl_rule" "public_inbound_postgres" {
   protocol       = "tcp"
   rule_action    = "allow"
   # This keeps the requested rule, but public PostgreSQL exposure should be removed in production.
-  cidr_block     = "0.0.0.0/0"
-  from_port      = 5432
-  to_port        = 5432
+  cidr_block = "0.0.0.0/0"
+  from_port  = 5432
+  to_port    = 5432
 }
 
 resource "aws_network_acl_rule" "public_inbound_deny_all" {

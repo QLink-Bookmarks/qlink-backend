@@ -47,6 +47,32 @@ class ExpoPushClient(
             onSuccess = { it.toPushNotificationSendResult() },
             onFailure = { PushNotificationSendResult.failure(errorMessage = it.message) },
         )
+
+    override suspend fun sendMulticast(requests: List<PushNotificationSendRequest>): List<PushNotificationSendResult> {
+        if (requests.isEmpty()) return emptyList()
+
+        return runCatching {
+            val response =
+                retryWithExponentialBackoff(
+                    maxAttempts = maxAttempts,
+                    delayProvider = delayProvider,
+                    shouldRetry = { it.status.isExpoRetryable() },
+                ) {
+                    httpClient.post(sendUrl) {
+                        accessToken?.takeIf(String::isNotBlank)?.let { bearerAuth(it) }
+                        contentType(ContentType.Application.Json)
+                        setBody(requests.map { ExpoPushSendRequest.from(it) })
+                    }
+                }
+            check(response.status.isSuccess()) {
+                "Expo push request failed with status ${response.status.value}."
+            }
+            response.body<ExpoPushBatchResponse>()
+        }.fold(
+            onSuccess = { batch -> batch.data.map { it.toPushNotificationSendResult() } },
+            onFailure = { error -> requests.map { PushNotificationSendResult.failure(errorMessage = error.message) } },
+        )
+    }
 }
 
 private fun HttpStatusCode.isExpoRetryable(): Boolean = this == HttpStatusCode.TooManyRequests || value in 500..599
@@ -74,6 +100,11 @@ private data class ExpoPushSendRequest(
 @Serializable
 private data class ExpoPushSendResponse(
     val data: ExpoPushTicket? = null,
+)
+
+@Serializable
+private data class ExpoPushBatchResponse(
+    val data: List<ExpoPushTicket> = emptyList(),
 )
 
 @Serializable

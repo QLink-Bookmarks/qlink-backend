@@ -18,6 +18,7 @@ typealias NotificationSearchCursor = SearchCursor<NotificationSearchCursorValue>
 @Serializable
 data class NotificationSearchCursorValue(
     val id: Long? = null,
+    val type: NotificationContext? = null,
 )
 
 data class SearchNotificationsQuery(

@@ -8,4 +8,8 @@ enum class Role {
     ADMIN,
     NORMAL,
     GUEST,
+    ;
+
+    val isAdmin: Boolean
+        get() = this == SUPER_ADMIN || this == ADMIN
 }

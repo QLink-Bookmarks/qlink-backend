@@ -102,6 +102,16 @@ enum class ErrorCode(
     NOTIFICATION_NOT_FOUND("NOTI_404_0001", 404, "알림을 찾을 수 없어요"),
     NOTIFICATION_NOT_FIRED("NOTI_422_0001", 422, "아직 발송되지 않은 알림이에요"),
 
+    // Post
+    POST_TITLE_BLANK("POST_400_0001", 400, "게시글 제목이 입력되지 않았어요"),
+    POST_TITLE_OVER_MAX("POST_400_0002", 400, "게시글 제목은 최대 100자에요"),
+    POST_CONTENTS_BLANK("POST_400_0003", 400, "게시글 내용이 입력되지 않았어요"),
+    POST_TYPE_NOT_SUPPORTED("POST_400_0004", 400, "지원하지 않는 게시글 타입이에요"),
+    POST_ANNOUNCEMENT_FORBIDDEN("POST_403_0001", 403, "공지사항 관리 권한이 없어요"),
+    POST_FEEDBACK_FORBIDDEN("POST_403_0002", 403, "피드백에 대한 권한이 없어요"),
+    POST_AUTHOR_NOT_FOUND("POST_404_0001", 404, "작성자를 찾을 수 없어요"),
+    POST_NOT_FOUND("POST_404_0002", 404, "게시글을 찾을 수 없어요"),
+
     // Device
     DEVICE_PLATFORM_NOT_SUPPORTED("DEVICE_400_0001", 400, "지원하지 않는 디바이스 플랫폼이에요"),
     DEVICE_TOKEN_BLANK("DEVICE_400_0002", 400, "디바이스 토큰이 입력되지 않았어요"),

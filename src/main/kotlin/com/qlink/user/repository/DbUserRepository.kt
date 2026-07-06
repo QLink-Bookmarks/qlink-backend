@@ -24,6 +24,11 @@ class DbUserRepository : UserRepository {
             .singleOrNull()
             ?.toUserDomain()
 
+    override suspend fun findAllIds(): List<Long> =
+        Users
+            .select(Users.id)
+            .map { it[Users.id] }
+
     override suspend fun existsByUsernameAndIdNot(
         username: String,
         userId: Long,

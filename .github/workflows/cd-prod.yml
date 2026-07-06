@@ -1,0 +1,98 @@
+name: 운영 서버 배포 자동화
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - release
+
+permissions:
+  contents: read
+
+jobs:
+  detect:
+    if: ${{ github.event.pull_request.merged == true }}
+    runs-on: ubuntu-latest
+    outputs:
+      infra_changed: ${{ steps.filter.outputs.infra }}
+      app_changed: ${{ steps.filter.outputs.app }}
+    steps:
+      - name: 체크아웃
+        uses: actions/checkout@v6
+
+      - name: 변경사항 감지
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            infra:
+              - 'terraform/prod/**'
+              - 'terraform/modules/**'
+              - '.github/workflows/infra-pipeline.yml'
+            app:
+              - 'src/**'
+              - 'build.gradle.kts'
+              - 'settings.gradle.kts'
+              - 'gradle/**'
+              - 'Dockerfile'
+              - '.github/workflows/deploy-pipeline.yml'
+              - '.github/workflows/cd-prod.yml'
+              - '.gitmodules'
+              - 'secrets/**'
+
+  approval:
+    needs: detect
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - name: 운영 배포 승인 게이트
+        run: echo "Production deploy approved."
+
+  infra_update:
+    needs:
+      - detect
+      - approval
+    if: ${{ needs.detect.outputs.infra_changed == 'true' }}
+    uses: ./.github/workflows/infra-pipeline.yml
+    with:
+      env: prod
+      ecr_repository_name: alink-ecr-prod
+      ecr_repository_tag_name: alink-ecr-prod
+      rds_db_name: alink
+      rds_username: alinkadmin
+      infra_update_enabled: true
+      infra_shared_update_enabled: false
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
+      SUBMODULES_SECRET: ${{ secrets.SUBMODULES_SECRET }}
+      TF_VAR_DB_PASSWORD: ${{ secrets.PROD_DB_PASSWORD }}
+      TF_VAR_FCM_SERVICE_ACCOUNT_JSON: ${{ secrets.PROD_FCM_SERVICE_ACCOUNT_JSON }}
+      TF_VAR_EXPO_ACCESS_TOKEN: ${{ secrets.PROD_EXPO_ACCESS_TOKEN }}
+      TF_VAR_JWT_SECRET: ${{ secrets.PROD_JWT_SECRET }}
+      TF_VAR_AI_API_KEY_ENCRYPTION_KEY_BASE64: ${{ secrets.PROD_AI_API_KEY_ENCRYPTION_KEY_BASE64 }}
+
+  prod_deploy:
+    needs:
+      - detect
+      - approval
+      - infra_update
+    if: ${{ always() && needs.detect.result == 'success' && needs.approval.result == 'success' && (needs.detect.outputs.app_changed == 'true' || needs.detect.outputs.infra_changed == 'true') && (needs.infra_update.result == 'success' || needs.infra_update.result == 'skipped') }}
+    uses: ./.github/workflows/deploy-pipeline.yml
+    with:
+      env: prod
+      deployment_enabled: true
+      ecr_repository_name: alink-ecr-prod
+      ecr_repository_tag_name: alink-ecr-prod
+      rds_db_name: alink
+      rds_username: alinkadmin
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
+      SUBMODULES_SECRET: ${{ secrets.SUBMODULES_SECRET }}
+      TF_VAR_DB_PASSWORD: ${{ secrets.PROD_DB_PASSWORD }}
+      TF_VAR_FCM_SERVICE_ACCOUNT_JSON: ${{ secrets.PROD_FCM_SERVICE_ACCOUNT_JSON }}
+      TF_VAR_EXPO_ACCESS_TOKEN: ${{ secrets.PROD_EXPO_ACCESS_TOKEN }}
+      TF_VAR_JWT_SECRET: ${{ secrets.PROD_JWT_SECRET }}
+      TF_VAR_AI_API_KEY_ENCRYPTION_KEY_BASE64: ${{ secrets.PROD_AI_API_KEY_ENCRYPTION_KEY_BASE64 }}

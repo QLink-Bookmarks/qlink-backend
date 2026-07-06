@@ -32,6 +32,7 @@ interface NotificationRepository {
     suspend fun search(
         userId: Long,
         query: String?,
+        type: NotificationContext?,
         order: NotificationSearchOrder,
         cursor: NotificationSearchCursor?,
         size: Int,

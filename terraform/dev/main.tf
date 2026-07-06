@@ -97,7 +97,12 @@ module "alb" {
   ]
 }
 
-module "route53_dev" {
+moved {
+  from = module.route53_dev
+  to   = module.route53
+}
+
+module "route53" {
   source = "../modules/route53-env"
 
   hosted_zone_id = var.route53_hosted_zone_id
