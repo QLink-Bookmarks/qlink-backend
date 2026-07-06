@@ -1,5 +1,5 @@
 locals {
-  rds_jdbc_url = "jdbc:postgresql://${module.rds.address}:${module.rds.port}/${var.rds_db_name}?currentSchema=qlink_local"
+  rds_jdbc_url = "jdbc:postgresql://${module.rds.address}:${module.rds.port}/${var.rds_db_name}?currentSchema=alink_prod"
 }
 
 module "network" {
@@ -45,28 +45,7 @@ module "security" {
   rds_public_ingress_cidrs  = var.rds_public_ingress_cidrs
 }
 
-module "s3" {
-  source = "../modules/s3"
-
-  bucket_name     = var.aws_s3_bucket_name
-  bucket_tag_name = var.aws_s3_bucket_name
-}
-
-module "cloudfront" {
-  source = "../modules/cloudfront"
-
-  providers = {
-    aws           = aws
-    aws.us_east_1 = aws.us_east_1
-  }
-
-  domain_name                 = var.images_domain
-  hosted_zone_id              = var.route53_hosted_zone_id
-  price_class                 = "PriceClass_200"
-  bucket_id                   = module.s3.bucket_name
-  bucket_arn                  = module.s3.bucket_arn
-  bucket_regional_domain_name = module.s3.bucket_regional_domain_name
-}
+# prod shares dev's image bucket + CloudFront (images.archivelink.app); no s3/cloudfront module here.
 
 module "ecr" {
   source = "../modules/ecr"
@@ -97,27 +76,16 @@ module "alb" {
   ]
 }
 
-moved {
-  from = module.route53_dev
-  to   = module.route53
-}
-
 module "route53" {
   source = "../modules/route53-env"
 
   hosted_zone_id = var.route53_hosted_zone_id
   alias_a_records = {
-    dev_api = {
-      name                   = "dev.api.archivelink.app"
+    prod_api = {
+      name                   = "api.archivelink.app"
       dns_name               = "dualstack.${module.alb.alb_dns_name}"
       hosted_zone_id         = module.alb.alb_zone_id
       evaluate_target_health = true
-    }
-    images = {
-      name                   = var.images_domain
-      dns_name               = module.cloudfront.distribution_domain_name
-      hosted_zone_id         = module.cloudfront.distribution_hosted_zone_id
-      evaluate_target_health = false
     }
   }
 }
@@ -152,7 +120,7 @@ module "ecs" {
   task_execution_role_name       = var.task_execution_role_name
   task_execution_role_policy_arn = var.task_execution_role_policy_arn
   task_role_name                 = var.ecs_task_role_name
-  s3_bucket_arn                  = module.s3.bucket_arn
+  s3_bucket_arn                  = "arn:aws:s3:::${var.aws_s3_bucket_name}"
   s3_access_enabled              = true
 
   log_group_name              = var.ecs_log_group_name
@@ -170,18 +138,18 @@ module "ecs" {
     DB_JDBC_URL             = local.rds_jdbc_url
     DB_USERNAME             = var.rds_username
     DB_DRIVER_CLASS_NAME    = "org.postgresql.Driver"
-    APPLE_CLIENT_IDS        = var.apple_client_ids
-    GOOGLE_CLIENT_IDS       = var.google_client_ids
     AWS_S3_REGION           = var.aws_region
-    AWS_S3_BUCKET           = module.s3.bucket_name
+    AWS_S3_BUCKET           = var.aws_s3_bucket_name
     AWS_S3_ENDPOINT         = ""
     AWS_S3_FORCE_PATH_STYLE = "false"
-    AWS_S3_PUBLIC_BASE_URL  = module.cloudfront.public_base_url
+    AWS_S3_PUBLIC_BASE_URL  = "https://${var.images_domain}"
   }
   task_secret_values = {
-    DB_PASSWORD              = var.db_password
-    FCM_SERVICE_ACCOUNT_JSON = var.fcm_service_account_json
-    EXPO_ACCESS_TOKEN        = var.expo_access_token
+    DB_PASSWORD                      = var.db_password
+    FCM_SERVICE_ACCOUNT_JSON         = var.fcm_service_account_json
+    EXPO_ACCESS_TOKEN                = var.expo_access_token
+    JWT_SECRET                       = var.jwt_secret
+    AI_API_KEY_ENCRYPTION_KEY_BASE64 = var.ai_api_key_encryption_key_base64
   }
   ssm_parameter_prefix     = var.ssm_parameter_prefix
   task_healthcheck_command = var.ecs_task_healthcheck_command
@@ -201,8 +169,7 @@ module "rds" {
   db_password = var.db_password
 
   rds_security_group_ids = [
-    module.security.rds_app_security_group_id,
-    module.security.rds_public_security_group_id
+    module.security.rds_app_security_group_id
   ]
   subnet_ids = [
     module.network.public_subnet_a_id,
