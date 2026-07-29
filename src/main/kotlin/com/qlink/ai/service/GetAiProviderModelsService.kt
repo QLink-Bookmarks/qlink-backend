@@ -22,23 +22,56 @@ class GetAiProviderModelsService(
     private val aiProviderRepository: AiProviderRepository,
     private val availableModelRepository: AvailableModelRepository,
 ) {
-    suspend fun getAiProviderModels(loginId: Long?): List<AiProviderModelsResponse> =
+    suspend fun getAiProviderModels(
+        loginId: Long?,
+        isMine: Boolean,
+    ): List<AiProviderModelsResponse> =
         tx.readOnly {
-            loginId?.let { userRepository.emptyById(it).requireFalse(ErrorCode.USER_NOT_FOUND) }
-
-            val userProviders = loginId?.let { userProviderRepository.findAllByUserId(it) }.orEmpty()
-            val superAdminProviders = userProviderRepository.findAllByRole(Role.SUPER_ADMIN)
-            val userProvidersByProviderId = userProviders.associateBy { it.providerId }
-            val defaultProvidersByProviderId = superAdminProviders.distinctBy { it.providerId }.associateBy { it.providerId }
-
-            (userProvidersByProviderId.keys + defaultProvidersByProviderId.keys)
-                .map { providerId ->
-                    providerId.toResponse(
-                        userProvider = userProvidersByProviderId[providerId],
-                        defaultProvider = defaultProvidersByProviderId[providerId],
-                    )
-                }.sortedWith(compareBy({ it.providerType.name }, { it.providerId }))
+            if (isMine) {
+                getMyProviderModels(loginId ?: throw BusinessException(ErrorCode.AUTH_ACCESS_TOKEN_MISSING))
+            } else {
+                getAvailableProviderModels()
+            }
         }
+
+    private suspend fun getMyProviderModels(loginId: Long): List<AiProviderModelsResponse> {
+        userRepository.emptyById(loginId).requireFalse(ErrorCode.USER_NOT_FOUND)
+
+        val userProviders = userProviderRepository.findAllByUserId(loginId)
+        val superAdminProviders = userProviderRepository.findAllByRole(Role.SUPER_ADMIN)
+        val userProvidersByProviderId = userProviders.associateBy { it.providerId }
+        val defaultProvidersByProviderId = superAdminProviders.distinctBy { it.providerId }.associateBy { it.providerId }
+
+        return (userProvidersByProviderId.keys + defaultProvidersByProviderId.keys)
+            .map { providerId ->
+                providerId.toResponse(
+                    userProvider = userProvidersByProviderId[providerId],
+                    defaultProvider = defaultProvidersByProviderId[providerId],
+                )
+            }.sortedWith(compareBy({ it.providerType.name }, { it.providerId }))
+    }
+
+    private suspend fun getAvailableProviderModels(): List<AiProviderModelsResponse> =
+        aiProviderRepository
+            .findAll()
+            .map { provider ->
+                val providerId = provider.id!!
+
+                AiProviderModelsResponse(
+                    providerId = providerId,
+                    providerType = provider.type,
+                    models =
+                        availableModelRepository
+                            .findAllByProviderId(providerId)
+                            .map {
+                                AiProviderModelResponse(
+                                    id = it.id!!,
+                                    model = it.model,
+                                    priority = it.priority,
+                                )
+                            },
+                )
+            }.sortedWith(compareBy({ it.providerType.name }, { it.providerId }))
 
     private suspend fun Long.toResponse(
         userProvider: UserProvider?,

@@ -6,6 +6,7 @@ import com.qlink.ai.repository.table.AiProviders
 import com.qlink.ai.repository.table.fromDomain
 import com.qlink.ai.repository.table.refreshAiProviderUpdatedAt
 import com.qlink.ai.repository.table.toAiProviderDomain
+import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -31,6 +32,12 @@ class DbAiProviderRepository : AiProviderRepository {
             .where { AiProviders.type eq type }
             .singleOrNull()
             ?.toAiProviderDomain()
+
+    override suspend fun findAll(): List<AiProvider> =
+        AiProviders
+            .selectAll()
+            .orderBy(AiProviders.id to SortOrder.ASC)
+            .map { it.toAiProviderDomain() }
 
     override suspend fun update(aiProvider: AiProvider): AiProvider =
         AiProviders
