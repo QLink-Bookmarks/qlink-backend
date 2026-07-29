@@ -10,5 +10,7 @@ interface AiProviderRepository {
 
     suspend fun findByType(type: AiProviderType): AiProvider?
 
+    suspend fun findAll(): List<AiProvider>
+
     suspend fun update(aiProvider: AiProvider): AiProvider
 }

@@ -76,7 +76,7 @@ class GetAiProviderModelsServiceTest :
                 superAdmin = userRepository.insert(UserFixture.createRandomValidSuperAdmin())
             }
 
-            When("API key를 등록하지 않은 사용자가 조회하면") {
+            When("isMine=true로 API key를 등록하지 않은 사용자가 조회하면") {
                 Then("SUPER_ADMIN 소유 provider별 DEFAULT 모델 1개씩만 반환한다") {
                     val geminiProvider = insertProvider(AiProviderType.GEMINI)
                     val openAiProvider = insertProvider(AiProviderType.OPENAI)
@@ -99,7 +99,7 @@ class GetAiProviderModelsServiceTest :
                             role = Role.SUPER_ADMIN,
                         )
 
-                    val response = service.getAiProviderModels(loginId = user.id!!)
+                    val response = service.getAiProviderModels(loginId = user.id!!, isMine = true)
                     val geminiResponse = response.first { it.providerId == geminiProviderId }
                     val openAiResponse = response.first { it.providerId == openAiProviderId }
 
@@ -115,7 +115,7 @@ class GetAiProviderModelsServiceTest :
                 }
             }
 
-            When("Gemini API key를 등록한 사용자가 조회하면") {
+            When("isMine=true로 Gemini API key를 등록한 사용자가 조회하면") {
                 Then("Gemini는 SUPER_ADMIN DEFAULT 모델과 사용자 provider의 모든 모델을 함께 반환한다") {
                     val geminiProvider = insertProvider(AiProviderType.GEMINI)
                     val openAiProvider = insertProvider(AiProviderType.OPENAI)
@@ -144,7 +144,7 @@ class GetAiProviderModelsServiceTest :
                             role = Role.NORMAL,
                         )
 
-                    val response = service.getAiProviderModels(loginId = user.id!!)
+                    val response = service.getAiProviderModels(loginId = user.id!!, isMine = true)
                     val geminiResponse = response.first { it.providerId == geminiProviderId }
                     val openAiResponse = response.first { it.providerId == openAiProviderId }
 
@@ -162,10 +162,77 @@ class GetAiProviderModelsServiceTest :
                 }
             }
 
-            When("로그인 사용자가 없으면") {
+            When("isMine=false로 조회하면") {
+                Then("사용자 설정과 무관하게 provider별 사용 가능 모델을 그대로 반환한다") {
+                    val geminiProvider = insertProvider(AiProviderType.GEMINI)
+                    val openAiProvider = insertProvider(AiProviderType.OPENAI)
+                    val geminiProviderId = geminiProvider.id!!
+                    val openAiProviderId = openAiProvider.id!!
+                    val geminiFirstModel = insertModel(providerId = geminiProviderId, model = "gemini-first", priority = 1)
+                    val geminiSecondModel = insertModel(providerId = geminiProviderId, model = "gemini-second", priority = 2)
+                    val openAiFirstModel = insertModel(providerId = openAiProviderId, model = "openai-first", priority = 1)
+                    val openAiSecondModel = insertModel(providerId = openAiProviderId, model = "openai-second", priority = 2)
+                    insertUserProvider(
+                        user = superAdmin,
+                        provider = geminiProvider,
+                        role = Role.SUPER_ADMIN,
+                    )
+                    insertUserProvider(
+                        user = user,
+                        provider = geminiProvider,
+                        role = Role.NORMAL,
+                    )
+
+                    val response = service.getAiProviderModels(loginId = user.id!!, isMine = false)
+                    val geminiResponse = response.first { it.providerId == geminiProviderId }
+                    val openAiResponse = response.first { it.providerId == openAiProviderId }
+
+                    response shouldHaveSize 2
+                    geminiResponse.providerType shouldBe AiProviderType.GEMINI
+                    geminiResponse.models.map { it.id } shouldContainExactly
+                        listOf(geminiFirstModel.id, geminiSecondModel.id)
+                    geminiResponse.models.map { it.model } shouldContainExactly
+                        listOf(geminiFirstModel.model, geminiSecondModel.model)
+                    geminiResponse.models.map { it.priority } shouldContainExactly listOf(1, 2)
+                    geminiResponse.models.map { it.userProviderId } shouldContainExactly listOf(null, null)
+                    openAiResponse.providerType shouldBe AiProviderType.OPENAI
+                    openAiResponse.models.map { it.id } shouldContainExactly
+                        listOf(openAiFirstModel.id, openAiSecondModel.id)
+                    openAiResponse.models.map { it.userProviderId } shouldContainExactly listOf(null, null)
+                }
+            }
+
+            When("isMine=false로 로그인 정보 없이 조회하면") {
+                Then("사용자 조회 없이 provider별 사용 가능 모델을 반환한다") {
+                    val geminiProvider = insertProvider(AiProviderType.GEMINI)
+                    val geminiProviderId = geminiProvider.id!!
+                    val geminiModel = insertModel(providerId = geminiProviderId, model = "gemini-first", priority = 1)
+
+                    val response = service.getAiProviderModels(loginId = null, isMine = false)
+
+                    response shouldHaveSize 1
+                    response.first().providerId shouldBe geminiProviderId
+                    response.first().models.map { it.id } shouldContainExactly listOf(geminiModel.id)
+                }
+            }
+
+            When("isMine=true인데 로그인 정보가 없으면") {
                 val get =
                     suspend {
-                        service.getAiProviderModels(loginId = RandomFixture.randomId())
+                        service.getAiProviderModels(loginId = null, isMine = true)
+                    }
+
+                Then("예외를 반환한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.AUTH_ACCESS_TOKEN_MISSING.message) {
+                        get()
+                    }
+                }
+            }
+
+            When("isMine=true인데 로그인 사용자가 없으면") {
+                val get =
+                    suspend {
+                        service.getAiProviderModels(loginId = RandomFixture.randomId(), isMine = true)
                     }
 
                 Then("예외를 반환한다") {

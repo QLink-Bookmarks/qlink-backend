@@ -1,6 +1,7 @@
 package com.qlink.ai.route
 
 import com.qlink.ai.dto.AiProviderModelsResponse
+import com.qlink.ai.dto.AiProviderResponse
 import com.qlink.ai.dto.PutAiUserProviderRequest
 import com.qlink.ai.dto.PutAiUserProviderResponse
 import com.qlink.common.docs.authErrorResponse
@@ -11,9 +12,27 @@ import com.qlink.common.response.ErrorDetail
 import io.github.smiley4.ktoropenapi.config.RouteConfig
 import io.ktor.http.HttpStatusCode
 
+internal fun getAiProvidersDocs(): RouteConfig.() -> Unit =
+    {
+        summary = "AI Provider 목록 조회 API"
+        description = "지원하는 AI Provider 목록을 조회합니다. 인증이 필요하지 않습니다."
+        response {
+            code(HttpStatusCode.OK) {
+                description = "AI Provider 목록 조회 성공"
+                body<ApiResponse<List<AiProviderResponse>>>()
+            }
+        }
+    }
+
 internal fun getAiProviderModelsDocs(): RouteConfig.() -> Unit =
     {
         summary = "AI Provider 설정 조회 API"
+        description =
+            "isMine=true 면 로그인 사용자의 AI Provider 설정을 조회하고, " +
+            "isMine=false 면 인증 없이 AI Provider별 사용 가능 모델을 조회합니다."
+        request {
+            queryParameter<Boolean>("isMine") { description = "로그인 사용자 설정 조회 여부 (기본값 false)" }
+        }
         response {
             code(HttpStatusCode.OK) {
                 description = "AI Provider 설정 조회 성공"

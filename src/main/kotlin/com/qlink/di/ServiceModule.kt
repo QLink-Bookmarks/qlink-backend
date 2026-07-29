@@ -1,6 +1,7 @@
 package com.qlink.di
 
 import com.qlink.ai.service.GetAiProviderModelsService
+import com.qlink.ai.service.GetAiProvidersService
 import com.qlink.ai.service.PutAiUserProviderService
 import com.qlink.ai.service.UpdateLinkAiSummaryService
 import com.qlink.auth.service.AuthTokenService
@@ -147,6 +148,13 @@ fun serviceModule() =
             UpdateMyAgreementsService(
                 tx = get(),
                 userRepository = get(),
+            )
+        }
+
+        single {
+            GetAiProvidersService(
+                tx = get(),
+                aiProviderRepository = get(),
             )
         }
 

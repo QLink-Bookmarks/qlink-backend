@@ -2,6 +2,7 @@ package com.qlink.ai.route
 
 import com.qlink.ai.dto.PutAiUserProviderRequest
 import com.qlink.ai.service.GetAiProviderModelsService
+import com.qlink.ai.service.GetAiProvidersService
 import com.qlink.ai.service.PutAiUserProviderService
 import com.qlink.auth.domain.JwtPrincipal
 import com.qlink.common.response.respondSuccess
@@ -15,13 +16,24 @@ import io.ktor.server.routing.Route
 import org.koin.ktor.ext.inject
 
 fun Route.aiRoutes() {
+    val getAiProvidersService by inject<GetAiProvidersService>()
     val getAiProviderModelsService by inject<GetAiProviderModelsService>()
     val putAiUserProviderService by inject<PutAiUserProviderService>()
 
+    get<AiResources.Providers>(getAiProvidersDocs()) {
+        val response = getAiProvidersService.getAiProviders()
+
+        call.respondSuccess(HttpStatusCode.OK, response)
+    }
+
     authenticate(optional = true) {
-        get<AiResources.ProviderModels>(getAiProviderModelsDocs()) {
+        get<AiResources.Providers.Models>(getAiProviderModelsDocs()) { resource ->
             val principal = call.principal<JwtPrincipal>()
-            val response = getAiProviderModelsService.getAiProviderModels(principal?.userId)
+            val response =
+                getAiProviderModelsService.getAiProviderModels(
+                    loginId = principal?.userId,
+                    isMine = resource.isMine,
+                )
 
             call.respondSuccess(HttpStatusCode.OK, response)
         }
