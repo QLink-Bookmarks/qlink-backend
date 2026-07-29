@@ -4,10 +4,16 @@ import io.ktor.resources.Resource
 
 @Resource("/ai")
 class AiResources {
-    @Resource("providers/models")
-    class ProviderModels(
+    @Resource("providers")
+    class Providers(
         val parent: AiResources = AiResources(),
-    )
+    ) {
+        @Resource("models")
+        class Models(
+            val parent: Providers = Providers(),
+            val isMine: Boolean = false,
+        )
+    }
 
     @Resource("users/providers")
     class UserProviders(
