@@ -19,10 +19,12 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.util.AttributeKey
+import io.micrometer.core.instrument.distribution.DistributionStatisticConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import org.koin.ktor.ext.inject
 import org.slf4j.LoggerFactory
 import org.slf4j.event.Level
+import java.time.Duration
 import java.util.UUID
 
 fun Application.configureMonitoring() {
@@ -69,7 +71,11 @@ fun Application.configureMonitoring() {
 
     install(MicrometerMetrics) {
         registry = appMicrometerRegistry
-        // ...
+        distributionStatisticConfig =
+            DistributionStatisticConfig
+                .Builder()
+                .serviceLevelObjectives(*RequestLatencySlos)
+                .build()
     }
 
     routing {
@@ -78,6 +84,11 @@ fun Application.configureMonitoring() {
         }
     }
 }
+
+private val RequestLatencySlos =
+    listOf(50L, 100L, 250L, 500L, 1_000L, 3_000L)
+        .map { Duration.ofMillis(it).toNanos().toDouble() }
+        .toDoubleArray()
 
 private val TraceIdKey = AttributeKey<String>("TraceId")
 
