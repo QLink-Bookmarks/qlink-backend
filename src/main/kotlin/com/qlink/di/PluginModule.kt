@@ -15,6 +15,7 @@ import com.qlink.config.optionalStringList
 import com.qlink.config.string
 import com.qlink.config.stringList
 import io.ktor.server.config.ApplicationConfig
+import io.micrometer.core.instrument.config.MeterFilter
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import org.koin.dsl.module
@@ -77,5 +78,6 @@ fun pluginModule(config: ApplicationConfig) =
 
         single {
             PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+                .also { it.config().meterFilter(MeterFilter.ignoreTags("address")) }
         }
     }

@@ -7,6 +7,7 @@ import com.qlink.config.stringList
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.config.ApplicationConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.koin.dsl.module
@@ -43,13 +44,16 @@ fun dataModule(
                 )
             }
 
-        HikariConfig().apply {
-            jdbcUrl = resolvedDataSourceConfig.jdbcUrl
-            username = resolvedDataSourceConfig.username
-            password = resolvedDataSourceConfig.password
-            driverClassName = resolvedDataSourceConfig.driverClassName
-            connectionInitSql = "SET TIME ZONE 'UTC'"
-        }
+        HikariConfig()
+            .apply {
+                jdbcUrl = resolvedDataSourceConfig.jdbcUrl
+                username = resolvedDataSourceConfig.username
+                password = resolvedDataSourceConfig.password
+                driverClassName = resolvedDataSourceConfig.driverClassName
+                connectionInitSql = "SET TIME ZONE 'UTC'"
+            }.also { hikariConfig ->
+                getOrNull<PrometheusMeterRegistry>()?.let { hikariConfig.metricRegistry = it }
+            }
     }
 
     single {
