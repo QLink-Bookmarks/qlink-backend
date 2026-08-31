@@ -1,0 +1,53 @@
+global:
+  scrape_interval: ${scrape_interval}
+  evaluation_interval: ${scrape_interval}
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: monitoring-node
+    static_configs:
+      - targets: ["node-exporter:9100"]
+        labels:
+          env: monitoring
+%{ for env, tag_name in scrape_targets ~}
+
+  - job_name: qlink-app-${env}
+    metrics_path: ${app_metrics_path}
+    ec2_sd_configs:
+      - region: ${aws_region}
+        port: ${app_metrics_port}
+        filters:
+          - name: vpc-id
+            values: ${jsonencode([vpc_id])}
+          - name: instance-state-name
+            values: ["running"]
+          - name: "tag:Name"
+            values: ${jsonencode([tag_name])}
+    relabel_configs:
+      - target_label: env
+        replacement: ${env}
+      - source_labels: [__meta_ec2_private_ip]
+        target_label: private_ip
+%{ if scrape_ecs_node ~}
+
+  - job_name: qlink-node-${env}
+    ec2_sd_configs:
+      - region: ${aws_region}
+        port: ${node_exporter_port}
+        filters:
+          - name: vpc-id
+            values: ${jsonencode([vpc_id])}
+          - name: instance-state-name
+            values: ["running"]
+          - name: "tag:Name"
+            values: ${jsonencode([tag_name])}
+    relabel_configs:
+      - target_label: env
+        replacement: ${env}
+      - source_labels: [__meta_ec2_private_ip]
+        target_label: private_ip
+%{ endif ~}
+%{ endfor ~}

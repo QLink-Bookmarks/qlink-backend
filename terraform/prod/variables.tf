@@ -428,3 +428,72 @@ variable "db_password" {
   type      = string
   sensitive = true
 }
+
+variable "grafana_domain" {
+  type = string
+}
+
+variable "grafana_admin_password" {
+  type      = string
+  sensitive = true
+}
+
+variable "grafana_admin_password_parameter_name" {
+  type = string
+}
+
+variable "monitoring_sg_name" {
+  type = string
+}
+
+variable "monitoring_sg_description" {
+  type = string
+}
+
+variable "monitoring_instance_role_name" {
+  type = string
+}
+
+variable "monitoring_instance_profile_name" {
+  type = string
+}
+
+variable "monitoring_instance_type" {
+  type = string
+}
+
+variable "monitoring_instance_tag_name" {
+  type = string
+}
+
+variable "monitoring_root_volume_size" {
+  type = number
+}
+
+variable "monitoring_target_group_name" {
+  type = string
+}
+
+variable "monitoring_target_group_tag_name" {
+  type = string
+}
+
+variable "monitoring_listener_rule_priority" {
+  type = number
+}
+
+variable "monitoring_listener_rule_tag_name" {
+  type = string
+}
+
+variable "monitoring_scrape_ecs_node_exporter" {
+  type = bool
+}
+
+variable "monitoring_data_volume_size" {
+  type = number
+}
+
+variable "monitoring_data_volume_tag_name" {
+  type = string
+}
