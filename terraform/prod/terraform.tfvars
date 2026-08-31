@@ -100,3 +100,21 @@ rds_multi_az                        = false
 rds_enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
 rds_skip_final_snapshot             = false
 rds_instance_tag_name               = "alink-rds-prod"
+
+grafana_domain                        = "grafana.archivelink.app"
+grafana_admin_password_parameter_name = "/alink/prod/grafana/admin-password"
+
+monitoring_sg_name                  = "alink-monitoring-sg-prod"
+monitoring_sg_description           = "Monitoring instance security group"
+monitoring_instance_role_name       = "alink-monitoring-role-prod"
+monitoring_instance_profile_name    = "alink-monitoring-profile-prod"
+monitoring_instance_type            = "t4g.micro"
+monitoring_instance_tag_name        = "alink-monitoring-prod"
+monitoring_root_volume_size         = 10
+monitoring_data_volume_size         = 20
+monitoring_data_volume_tag_name     = "alink-monitoring-data-prod"
+monitoring_target_group_name        = "alink-grafana-tg-prod"
+monitoring_target_group_tag_name    = "alink-grafana-tg-prod"
+monitoring_listener_rule_priority   = 100
+monitoring_listener_rule_tag_name   = "grafana-host-rule"
+monitoring_scrape_ecs_node_exporter = false

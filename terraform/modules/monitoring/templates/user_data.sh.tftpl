@@ -1,0 +1,108 @@
+#!/bin/bash
+set -euo pipefail
+
+echo "[monitoring] provisioning swap"
+if [ ! -f /swapfile ]; then
+  dd if=/dev/zero of=/swapfile bs=1M count=${swap_size_mb} status=none
+  chmod 600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+  echo "/swapfile none swap sw 0 0" >> /etc/fstab
+  sysctl -w vm.swappiness=10
+  echo "vm.swappiness=10" > /etc/sysctl.d/99-swappiness.conf
+fi
+
+echo "[monitoring] waiting for data volume"
+DATA_DEV=""
+for _ in $(seq 1 90); do
+  if [ -e "${data_device_name}" ]; then
+    DATA_DEV="$(readlink -f "${data_device_name}")"
+    break
+  fi
+  ROOT_DISK="$(lsblk -dpno PKNAME "$(findmnt -no SOURCE /)" 2>/dev/null || true)"
+  CANDIDATE="$(lsblk -dpno NAME,TYPE | awk -v root="$ROOT_DISK" '$2=="disk" && $1!=root {print $1; exit}')"
+  if [ -n "$CANDIDATE" ]; then
+    DATA_DEV="$CANDIDATE"
+    break
+  fi
+  sleep 2
+done
+
+if [ -z "$DATA_DEV" ]; then
+  echo "[monitoring] FATAL: data volume not attached" >&2
+  exit 1
+fi
+echo "[monitoring] data volume: $DATA_DEV"
+
+if ! blkid "$DATA_DEV" >/dev/null 2>&1; then
+  echo "[monitoring] formatting fresh volume"
+  mkfs -t xfs "$DATA_DEV"
+else
+  echo "[monitoring] existing filesystem found, preserving data"
+fi
+
+install -d -m 0755 ${data_mount_path}
+grep -q "${data_mount_path}" /etc/fstab || \
+  echo "UUID=$(blkid -s UUID -o value "$DATA_DEV") ${data_mount_path} xfs defaults,nofail 0 2" >> /etc/fstab
+mountpoint -q ${data_mount_path} || mount ${data_mount_path}
+
+install -d -o 65534 -g 65534 -m 0755 ${data_mount_path}/prometheus
+install -d -o 472 -g 472 -m 0755 ${data_mount_path}/grafana
+
+echo "[monitoring] installing packages"
+dnf update -y
+dnf install -y docker
+
+echo "[monitoring] installing docker compose plugin"
+install -d -m 0755 /usr/local/lib/docker/cli-plugins
+curl -fsSL "https://github.com/docker/compose/releases/download/${docker_compose_version}/docker-compose-linux-aarch64" \
+  -o /usr/local/lib/docker/cli-plugins/docker-compose
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+systemctl enable --now docker
+
+echo "[monitoring] writing configuration"
+install -d -m 0755 /opt/monitoring/prometheus
+install -d -m 0755 /opt/monitoring/grafana/provisioning/datasources
+install -d -m 0755 /opt/monitoring/grafana/provisioning/dashboards/json
+
+cat > /opt/monitoring/prometheus/prometheus.yml <<'PROMETHEUS_EOF'
+${prometheus_config}
+PROMETHEUS_EOF
+
+cat > /opt/monitoring/docker-compose.yml <<'COMPOSE_EOF'
+${compose_config}
+COMPOSE_EOF
+
+cat > /opt/monitoring/grafana/provisioning/datasources/prometheus.yml <<'DATASOURCE_EOF'
+${datasource_config}
+DATASOURCE_EOF
+
+cat > /opt/monitoring/grafana/provisioning/dashboards/provider.yml <<'PROVIDER_EOF'
+${dashboard_provider_config}
+PROVIDER_EOF
+
+cat > /opt/monitoring/grafana/provisioning/dashboards/json/service.json <<'DASHBOARD_EOF'
+${dashboard_service_config}
+DASHBOARD_EOF
+
+echo "[monitoring] fetching grafana credentials"
+GRAFANA_PASSWORD="$(aws ssm get-parameter \
+  --name '${grafana_password_parameter}' \
+  --with-decryption \
+  --region '${aws_region}' \
+  --query 'Parameter.Value' \
+  --output text)"
+
+umask 077
+cat > /opt/monitoring/.env <<ENV_EOF
+GRAFANA_ADMIN_PASSWORD=$GRAFANA_PASSWORD
+GRAFANA_DOMAIN=${grafana_domain}
+ENV_EOF
+umask 022
+
+echo "[monitoring] starting stack"
+cd /opt/monitoring
+docker compose up -d
+
+echo "[monitoring] done"

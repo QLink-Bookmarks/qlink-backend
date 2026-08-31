@@ -87,7 +87,50 @@ module "route53" {
       hosted_zone_id         = module.alb.alb_zone_id
       evaluate_target_health = true
     }
+    grafana = {
+      name                   = var.grafana_domain
+      dns_name               = "dualstack.${module.alb.alb_dns_name}"
+      hosted_zone_id         = module.alb.alb_zone_id
+      evaluate_target_health = true
+    }
   }
+}
+
+module "monitoring" {
+  source = "../modules/monitoring"
+
+  aws_region            = var.aws_region
+  vpc_id                = module.network.vpc_id
+  subnet_id             = module.network.public_subnet_a_id
+  alb_security_group_id = module.security.alb_security_group_id
+  app_security_group_id = module.security.app_security_group_id
+  https_listener_arn    = module.alb.https_listener_arn
+
+  security_group_name        = var.monitoring_sg_name
+  security_group_description = var.monitoring_sg_description
+
+  instance_role_name    = var.monitoring_instance_role_name
+  instance_profile_name = var.monitoring_instance_profile_name
+  instance_type         = var.monitoring_instance_type
+  instance_tag_name     = var.monitoring_instance_tag_name
+  root_volume_size      = var.monitoring_root_volume_size
+  data_volume_size      = var.monitoring_data_volume_size
+  data_volume_tag_name  = var.monitoring_data_volume_tag_name
+
+  target_group_name      = var.monitoring_target_group_name
+  target_group_tag_name  = var.monitoring_target_group_tag_name
+  listener_rule_priority = var.monitoring_listener_rule_priority
+  listener_rule_tag_name = var.monitoring_listener_rule_tag_name
+
+  grafana_domain                        = var.grafana_domain
+  grafana_admin_password                = var.grafana_admin_password
+  grafana_admin_password_parameter_name = var.grafana_admin_password_parameter_name
+
+  app_metrics_port         = var.ecs_task_container_port
+  scrape_targets           = { prod = var.ecs_instance_tag_name }
+  scrape_ecs_node_exporter = var.monitoring_scrape_ecs_node_exporter
+
+  depends_on = [module.alb]
 }
 
 module "ecs" {
