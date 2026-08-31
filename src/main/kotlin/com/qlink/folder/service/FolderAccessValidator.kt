@@ -15,7 +15,8 @@ class FolderAccessValidator(
         folderId: Long,
         userId: Long,
     ): Folder =
-        folderRepository.findById(folderId)
+        folderRepository
+            .findById(folderId)
             ?.also { (it.isOwnedBy(userId) || canMemberWrite(it, userId)).requireTrue(ErrorCode.LINK_FOLDER_ACCESS_DENIED) }
             ?: throw BusinessException(ErrorCode.LINK_FOLDER_NOT_FOUND)
 
