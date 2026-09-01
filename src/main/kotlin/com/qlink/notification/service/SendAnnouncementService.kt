@@ -33,6 +33,7 @@ class SendAnnouncementService(
     private val senderRouter: PushNotificationSenderRouter,
 ) {
     private val log = LoggerFactory.getLogger(SendAnnouncementService::class.java)
+
     suspend fun sendForPost(
         postId: Long,
         postTitle: String,

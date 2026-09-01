@@ -27,22 +27,88 @@ module "network" {
   s3_endpoint_name         = var.s3_endpoint_name
 }
 
-module "security" {
-  source = "../modules/security"
+data "aws_vpc" "shared" {
+  filter {
+    name   = "tag:Name"
+    values = [var.shared_vpc_name]
+  }
+}
 
-  vpc_id = module.network.vpc_id
+data "aws_internet_gateway" "shared" {
+  filter {
+    name   = "attachment.vpc-id"
+    values = [data.aws_vpc.shared.id]
+  }
+}
 
-  alb_sg_name               = var.alb_sg_name
-  alb_sg_description        = var.alb_sg_description
-  app_sg_name               = var.app_sg_name
-  app_sg_description        = var.app_sg_description
-  rds_app_sg_name           = var.rds_app_sg_name
-  rds_app_sg_description    = var.rds_app_sg_description
-  rds_legacy_sg_name        = var.rds_legacy_sg_name
-  rds_legacy_sg_description = var.rds_legacy_sg_description
-  rds_public_sg_name        = var.rds_public_sg_name
-  rds_public_sg_description = var.rds_public_sg_description
-  rds_public_ingress_cidrs  = var.rds_public_ingress_cidrs
+data "aws_lb" "shared" {
+  name = var.shared_alb_name
+}
+
+data "aws_lb_listener" "shared_https" {
+  load_balancer_arn = data.aws_lb.shared.arn
+  port              = 443
+}
+
+data "aws_security_group" "shared_alb" {
+  vpc_id = data.aws_vpc.shared.id
+
+  filter {
+    name   = "group-name"
+    values = [var.shared_alb_sg_name]
+  }
+}
+
+module "shared_network" {
+  source = "../modules/network-attach"
+
+  vpc_id              = data.aws_vpc.shared.id
+  internet_gateway_id = data.aws_internet_gateway.shared.id
+
+  az_a = var.az_a
+  az_c = var.az_c
+
+  public_subnet_a_cidr    = var.shared_subnet_a_cidr
+  public_subnet_c_cidr    = var.shared_subnet_c_cidr
+  public_subnet_a_name    = var.shared_subnet_a_name
+  public_subnet_c_name    = var.shared_subnet_c_name
+  public_route_table_name = var.shared_route_table_name
+}
+
+module "peering" {
+  source = "../modules/vpc-peering"
+
+  peering_name = var.peering_name
+
+  requester_vpc_id         = data.aws_vpc.shared.id
+  requester_vpc_cidr       = data.aws_vpc.shared.cidr_block
+  requester_route_table_id = module.shared_network.public_route_table_id
+
+  accepter_vpc_id         = module.network.vpc_id
+  accepter_vpc_cidr       = var.vpc_cidr
+  accepter_route_table_id = module.network.public_route_table_id
+}
+
+removed {
+  from = module.security
+
+  lifecycle {
+    destroy = false
+  }
+}
+
+module "peered_security" {
+  source = "../modules/security-peered"
+
+  shared_vpc_id                = data.aws_vpc.shared.id
+  db_vpc_id                    = module.network.vpc_id
+  shared_alb_security_group_id = data.aws_security_group.shared_alb.id
+  peering_connection_id        = module.peering.peering_connection_id
+
+  app_sg_name        = var.app_sg_name
+  app_sg_description = var.app_sg_description
+  rds_sg_name        = var.rds_sg_name
+  rds_sg_description = var.rds_sg_description
 }
 
 module "s3" {
@@ -79,22 +145,15 @@ module "ecr" {
 }
 
 module "alb" {
-  source = "../modules/alb"
+  source = "../modules/alb-attach"
 
-  alb_name                  = var.alb_name
-  alb_tag_name              = var.alb_tag_name
-  target_group_name         = var.target_group_name
-  target_group_tag_name     = var.target_group_tag_name
-  listener_tag_name         = var.listener_tag_name
-  https_listener_tag_name   = var.https_listener_tag_name
-  acm_certificate_arn       = var.acm_certificate_arn
-  https_listener_ssl_policy = var.https_listener_ssl_policy
-  vpc_id                    = module.network.vpc_id
-  security_group_id         = module.security.alb_security_group_id
-  public_subnet_ids = [
-    module.network.public_subnet_a_id,
-    module.network.public_subnet_c_id
-  ]
+  https_listener_arn     = data.aws_lb_listener.shared_https.arn
+  vpc_id                 = data.aws_vpc.shared.id
+  target_group_name      = var.target_group_name
+  target_group_tag_name  = var.target_group_tag_name
+  listener_rule_priority = var.listener_rule_priority
+  listener_rule_tag_name = var.listener_rule_tag_name
+  host_header            = var.dev_api_domain
 }
 
 moved {
@@ -108,9 +167,9 @@ module "route53" {
   hosted_zone_id = var.route53_hosted_zone_id
   alias_a_records = {
     dev_api = {
-      name                   = "dev.api.archivelink.app"
-      dns_name               = "dualstack.${module.alb.alb_dns_name}"
-      hosted_zone_id         = module.alb.alb_zone_id
+      name                   = var.dev_api_domain
+      dns_name               = "dualstack.${data.aws_lb.shared.dns_name}"
+      hosted_zone_id         = data.aws_lb.shared.zone_id
       evaluate_target_health = true
     }
     images = {
@@ -126,8 +185,8 @@ module "ecs" {
   source = "../modules/ecs"
 
   key_pair_name         = var.ecs_key_pair_name
-  app_security_group_id = module.security.app_security_group_id
-  asg_subnet_ids        = [module.network.public_subnet_a_id]
+  app_security_group_id = module.peered_security.app_security_group_id
+  asg_subnet_ids        = [module.shared_network.public_subnet_a_id]
 
   ecs_instance_role_name       = var.ecs_instance_role_name
   ecs_instance_role_policy_arn = var.ecs_instance_role_policy_arn
@@ -201,8 +260,7 @@ module "rds" {
   db_password = var.db_password
 
   rds_security_group_ids = [
-    module.security.rds_app_security_group_id,
-    module.security.rds_public_security_group_id
+    module.peered_security.rds_security_group_id
   ]
   subnet_ids = [
     module.network.public_subnet_a_id,

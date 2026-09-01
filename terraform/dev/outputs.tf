@@ -1,6 +1,6 @@
 output "alb_dns_name" {
   description = "DNS name of the load balancer"
-  value       = module.alb.alb_dns_name
+  value       = data.aws_lb.shared.dns_name
 }
 
 output "rds_endpoint" {

@@ -81,8 +81,7 @@ class OidcIdTokenVerifier(
             .getOrElse { throw communicationFailed(it) }
     }
 
-    private fun tokenInvalid(cause: Throwable? = null): BusinessException =
-        BusinessException(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID, cause)
+    private fun tokenInvalid(cause: Throwable? = null): BusinessException = BusinessException(ErrorCode.AUTH_PROVIDER_TOKEN_INVALID, cause)
 
     private fun communicationFailed(cause: Throwable? = null): BusinessException =
         BusinessException(ErrorCode.AUTH_PROVIDER_COMMUNICATION_FAILED, cause)
