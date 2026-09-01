@@ -66,12 +66,9 @@ module "shared_network" {
   internet_gateway_id = data.aws_internet_gateway.shared.id
 
   az_a = var.az_a
-  az_c = var.az_c
 
   public_subnet_a_cidr    = var.shared_subnet_a_cidr
-  public_subnet_c_cidr    = var.shared_subnet_c_cidr
   public_subnet_a_name    = var.shared_subnet_a_name
-  public_subnet_c_name    = var.shared_subnet_c_name
   public_route_table_name = var.shared_route_table_name
 }
 
