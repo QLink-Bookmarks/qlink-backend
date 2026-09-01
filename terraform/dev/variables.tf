@@ -76,14 +76,6 @@ variable "s3_endpoint_name" {
   type = string
 }
 
-variable "alb_sg_name" {
-  type = string
-}
-
-variable "alb_sg_description" {
-  type = string
-}
-
 variable "app_sg_name" {
   type = string
 }
@@ -92,63 +84,11 @@ variable "app_sg_description" {
   type = string
 }
 
-variable "rds_app_sg_name" {
-  type = string
-}
-
-variable "rds_app_sg_description" {
-  type = string
-}
-
-variable "rds_legacy_sg_name" {
-  type = string
-}
-
-variable "rds_legacy_sg_description" {
-  type = string
-}
-
-variable "rds_public_sg_name" {
-  type = string
-}
-
-variable "rds_public_sg_description" {
-  type = string
-}
-
-variable "rds_public_ingress_cidrs" {
-  type = list(string)
-}
-
-variable "alb_name" {
-  type = string
-}
-
-variable "alb_tag_name" {
-  type = string
-}
-
 variable "target_group_name" {
   type = string
 }
 
 variable "target_group_tag_name" {
-  type = string
-}
-
-variable "listener_tag_name" {
-  type = string
-}
-
-variable "https_listener_tag_name" {
-  type = string
-}
-
-variable "acm_certificate_arn" {
-  type = string
-}
-
-variable "https_listener_ssl_policy" {
   type = string
 }
 
@@ -414,4 +354,61 @@ variable "rds_instance_tag_name" {
 variable "db_password" {
   type      = string
   sensitive = true
+}
+
+variable "shared_vpc_name" {
+  description = "Name tag of the VPC shared with prod"
+  type        = string
+}
+
+variable "shared_alb_name" {
+  type = string
+}
+
+variable "shared_alb_sg_name" {
+  type = string
+}
+
+variable "shared_subnet_a_cidr" {
+  type = string
+}
+
+variable "shared_subnet_c_cidr" {
+  type = string
+}
+
+variable "shared_subnet_a_name" {
+  type = string
+}
+
+variable "shared_subnet_c_name" {
+  type = string
+}
+
+variable "shared_route_table_name" {
+  type = string
+}
+
+variable "peering_name" {
+  type = string
+}
+
+variable "rds_sg_name" {
+  type = string
+}
+
+variable "rds_sg_description" {
+  type = string
+}
+
+variable "dev_api_domain" {
+  type = string
+}
+
+variable "listener_rule_priority" {
+  type = number
+}
+
+variable "listener_rule_tag_name" {
+  type = string
 }

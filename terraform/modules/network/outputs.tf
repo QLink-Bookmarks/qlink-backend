@@ -17,3 +17,7 @@ output "private_subnet_a_id" {
 output "private_subnet_c_id" {
   value = aws_subnet.qlink_private_c.id
 }
+
+output "public_route_table_id" {
+  value = aws_route_table.qlink_public_rt.id
+}
