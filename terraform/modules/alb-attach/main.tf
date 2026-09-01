@@ -20,6 +20,10 @@ resource "aws_lb_target_group" "qlink_tg" {
   tags = {
     Name = var.target_group_tag_name
   }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_lb_listener_rule" "qlink_host" {
