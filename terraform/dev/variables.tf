@@ -373,15 +373,7 @@ variable "shared_subnet_a_cidr" {
   type = string
 }
 
-variable "shared_subnet_c_cidr" {
-  type = string
-}
-
 variable "shared_subnet_a_name" {
-  type = string
-}
-
-variable "shared_subnet_c_name" {
   type = string
 }
 
