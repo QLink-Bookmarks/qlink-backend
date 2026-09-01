@@ -22,8 +22,20 @@ public_route_table_name  = "qlink-public"
 private_route_table_name = "qlink-private-rtb-a"
 s3_endpoint_name         = "qlink-s3-endpoint"
 
-app_sg_name        = "qlinkAppGroup"
-app_sg_description = "ECS Security Group"
+app_sg_name        = "qlinkAppGroupShared"
+app_sg_description = "ECS Security Group (shared VPC)"
+
+alb_sg_name               = "qlinkAlbGroup"
+alb_sg_description        = "ALB Security Group"
+legacy_app_sg_name        = "qlinkAppGroup"
+legacy_app_sg_description = "ECS Security Group"
+rds_app_sg_name           = "qlinkRdsAppGroup"
+rds_app_sg_description    = "RDS App Security Group"
+rds_legacy_sg_name        = "qlinkRdsGroup"
+rds_legacy_sg_description = "RDS Security Group"
+rds_public_sg_name        = "qlinkRdsPublicGroup"
+rds_public_sg_description = "RDS Public Security Group"
+rds_public_ingress_cidrs  = []
 
 target_group_name      = "alink-tg-dev"
 target_group_tag_name  = "alink-tg-dev"
