@@ -89,7 +89,15 @@ module "peering" {
   accepter_route_table_id = module.network.public_route_table_id
 }
 
-module "security" {
+removed {
+  from = module.security
+
+  lifecycle {
+    destroy = false
+  }
+}
+
+module "peered_security" {
   source = "../modules/security-peered"
 
   shared_vpc_id                = data.aws_vpc.shared.id
@@ -177,7 +185,7 @@ module "ecs" {
   source = "../modules/ecs"
 
   key_pair_name         = var.ecs_key_pair_name
-  app_security_group_id = module.security.app_security_group_id
+  app_security_group_id = module.peered_security.app_security_group_id
   asg_subnet_ids        = [module.shared_network.public_subnet_a_id]
 
   ecs_instance_role_name       = var.ecs_instance_role_name
@@ -252,7 +260,7 @@ module "rds" {
   db_password = var.db_password
 
   rds_security_group_ids = [
-    module.security.rds_security_group_id
+    module.peered_security.rds_security_group_id
   ]
   subnet_ids = [
     module.network.public_subnet_a_id,

@@ -25,8 +25,8 @@ s3_endpoint_name         = "qlink-s3-endpoint"
 app_sg_name        = "qlinkAppGroup"
 app_sg_description = "ECS Security Group"
 
-target_group_name      = "qlink-dev-tg"
-target_group_tag_name  = "qlink-dev-tg"
+target_group_name      = "alink-tg-dev"
+target_group_tag_name  = "alink-tg-dev"
 route53_hosted_zone_id = "Z08989212MZQ9OYDBC0JK"
 
 ecr_image_tag_mutability = "IMMUTABLE"
@@ -82,7 +82,7 @@ rds_publicly_accessible             = false
 rds_multi_az                        = false
 rds_enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
 rds_skip_final_snapshot             = true
-rds_instance_tag_name               = "qlink-rds-dev"
+rds_instance_tag_name               = "alink-rds-dev"
 
 shared_vpc_name         = "alink-prod"
 shared_alb_name         = "alink-alb-prod"
@@ -94,7 +94,7 @@ shared_subnet_c_name    = "qlink-dev-public-c"
 shared_route_table_name = "qlink-dev-public"
 peering_name            = "alink-prod-to-qlink-dev"
 
-rds_sg_name        = "qlinkRdsDevGroup"
+rds_sg_name        = "alinkRdsGroupDev"
 rds_sg_description = "RDS Security Group"
 
 dev_api_domain         = "dev.api.archivelink.app"
