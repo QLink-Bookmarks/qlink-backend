@@ -89,12 +89,22 @@ module "peering" {
   accepter_route_table_id = module.network.public_route_table_id
 }
 
-removed {
-  from = module.security
+module "security" {
+  source = "../modules/security"
 
-  lifecycle {
-    destroy = false
-  }
+  vpc_id = module.network.vpc_id
+
+  alb_sg_name               = var.alb_sg_name
+  alb_sg_description        = var.alb_sg_description
+  app_sg_name               = var.legacy_app_sg_name
+  app_sg_description        = var.legacy_app_sg_description
+  rds_app_sg_name           = var.rds_app_sg_name
+  rds_app_sg_description    = var.rds_app_sg_description
+  rds_legacy_sg_name        = var.rds_legacy_sg_name
+  rds_legacy_sg_description = var.rds_legacy_sg_description
+  rds_public_sg_name        = var.rds_public_sg_name
+  rds_public_sg_description = var.rds_public_sg_description
+  rds_public_ingress_cidrs  = var.rds_public_ingress_cidrs
 }
 
 module "peered_security" {
