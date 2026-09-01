@@ -134,7 +134,10 @@ jobs:
             -input=false \
             -out=tfplan \
             -target=module.network \
+            -target=module.shared_network \
+            -target=module.peering \
             -target=module.security \
+            -target=module.peered_security \
             -target=module.ecr \
             -target=module.alb \
             -target=module.route53 \
