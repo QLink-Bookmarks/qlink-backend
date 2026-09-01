@@ -1,0 +1,234 @@
+{
+  "uid": "qlink-service",
+  "title": "qlink · Service Overview",
+  "tags": ["qlink"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "refresh": "1m",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "env",
+        "label": "env",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(ktor_http_server_requests_seconds_count, env)",
+        "refresh": 1,
+        "includeAll": false,
+        "multi": false
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "title": "HTTP",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "type": "stat",
+      "title": "처리량 (req/s)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "decimals": 2, "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "text", "value": null }] } },
+        "overrides": []
+      },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(ktor_http_server_requests_seconds_count{env=\"$env\"}[5m]))" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "에러율 (5xx)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "fieldConfig": {
+        "defaults": { "unit": "percentunit", "decimals": 3, "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 0.01 },
+            { "color": "red", "value": 0.05 }
+          ] } },
+        "overrides": []
+      },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(ktor_http_server_requests_seconds_count{env=\"$env\",status=~\"5..\"}[5m])) / clamp_min(sum(rate(ktor_http_server_requests_seconds_count{env=\"$env\"}[5m])), 0.0001)" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "p99 지연",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "fieldConfig": {
+        "defaults": { "unit": "s", "decimals": 3, "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 0.5 },
+            { "color": "red", "value": 1 }
+          ] } },
+        "overrides": []
+      },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.99, sum by (le) (rate(ktor_http_server_requests_seconds_bucket{env=\"$env\"}[5m])))" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "SLO 준수율 (500ms 이내)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "fieldConfig": {
+        "defaults": { "unit": "percentunit", "decimals": 4, "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "red", "value": null },
+            { "color": "yellow", "value": 0.99 },
+            { "color": "green", "value": 0.995 }
+          ] } },
+        "overrides": []
+      },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(ktor_http_server_requests_seconds_bucket{env=\"$env\",le=\"0.5\"}[5m])) / clamp_min(sum(rate(ktor_http_server_requests_seconds_count{env=\"$env\"}[5m])), 0.0001)" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "경로별 처리량",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "fillOpacity": 30, "stacking": { "mode": "normal" } } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum by (route) (rate(ktor_http_server_requests_seconds_count{env=\"$env\"}[5m]))", "legendFormat": "{{route}}" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "지연 백분위",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.50, sum by (le) (rate(ktor_http_server_requests_seconds_bucket{env=\"$env\"}[5m])))", "legendFormat": "p50" },
+        { "refId": "B", "expr": "histogram_quantile(0.95, sum by (le) (rate(ktor_http_server_requests_seconds_bucket{env=\"$env\"}[5m])))", "legendFormat": "p95" },
+        { "refId": "C", "expr": "histogram_quantile(0.99, sum by (le) (rate(ktor_http_server_requests_seconds_bucket{env=\"$env\"}[5m])))", "legendFormat": "p99" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "상태코드별",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 13 },
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "fillOpacity": 30, "stacking": { "mode": "normal" } } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum by (status) (rate(ktor_http_server_requests_seconds_count{env=\"$env\"}[5m]))", "legendFormat": "{{status}}" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "경로별 p99 (상위 5)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 13 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "topk(5, histogram_quantile(0.99, sum by (le, route) (rate(ktor_http_server_requests_seconds_bucket{env=\"$env\"}[5m]))))", "legendFormat": "{{route}}" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "진행 중 요청 / 예외",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 13 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum(ktor_http_server_requests_active{env=\"$env\"})", "legendFormat": "진행 중" },
+        { "refId": "B", "expr": "sum by (throwable) (rate(ktor_http_server_requests_seconds_count{env=\"$env\",throwable!=\"n/a\"}[5m]))", "legendFormat": "{{throwable}}" }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "DB (HikariCP)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 21 }
+    },
+    {
+      "type": "timeseries",
+      "title": "커넥션 풀",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 22 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "hikaricp_connections_active{env=\"$env\"}", "legendFormat": "active" },
+        { "refId": "B", "expr": "hikaricp_connections_idle{env=\"$env\"}", "legendFormat": "idle" },
+        { "refId": "C", "expr": "hikaricp_connections{env=\"$env\"}", "legendFormat": "total" },
+        { "refId": "D", "expr": "hikaricp_connections_pending{env=\"$env\"}", "legendFormat": "pending (고갈신호)" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "획득 / 점유 시간",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 22 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "rate(hikaricp_connections_acquire_seconds_sum{env=\"$env\"}[5m]) / clamp_min(rate(hikaricp_connections_acquire_seconds_count{env=\"$env\"}[5m]), 0.0001)", "legendFormat": "획득 (경합)" },
+        { "refId": "B", "expr": "rate(hikaricp_connections_usage_seconds_sum{env=\"$env\"}[5m]) / clamp_min(rate(hikaricp_connections_usage_seconds_count{env=\"$env\"}[5m]), 0.0001)", "legendFormat": "점유 (쿼리속도)" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "타임아웃 / 커넥션 생성",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 22 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "rate(hikaricp_connections_timeout_total{env=\"$env\"}[5m])", "legendFormat": "획득 타임아웃/s" },
+        { "refId": "B", "expr": "rate(hikaricp_connections_creation_seconds_count{env=\"$env\"}[5m])", "legendFormat": "커넥션 생성/s" }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "JVM",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 30 }
+    },
+    {
+      "type": "timeseries",
+      "title": "힙 사용률 / 누수 지표",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 31 },
+      "fieldConfig": { "defaults": { "unit": "percentunit" }, "overrides": [
+        { "matcher": { "id": "byName", "options": "GC 후 생존 데이터" },
+          "properties": [{ "id": "unit", "value": "bytes" }, { "id": "custom.axisPlacement", "value": "right" }] }
+      ] },
+      "targets": [
+        { "refId": "A", "expr": "sum(jvm_memory_used_bytes{env=\"$env\",area=\"heap\"}) / clamp_min(sum(jvm_memory_max_bytes{env=\"$env\",area=\"heap\"}), 1)", "legendFormat": "힙 사용률" },
+        { "refId": "B", "expr": "jvm_gc_live_data_size_bytes{env=\"$env\"}", "legendFormat": "GC 후 생존 데이터" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "GC",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 31 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "rate(jvm_gc_pause_seconds_sum{env=\"$env\"}[5m])", "legendFormat": "GC 시간 비율 (초/초)" },
+        { "refId": "B", "expr": "rate(jvm_gc_pause_seconds_count{env=\"$env\"}[5m])", "legendFormat": "GC 횟수/s" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "스레드 / FD / CPU",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 31 },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "jvm_threads_live_threads{env=\"$env\"}", "legendFormat": "라이브 스레드" },
+        { "refId": "B", "expr": "jvm_threads_states_threads{env=\"$env\",state=\"blocked\"}", "legendFormat": "blocked" },
+        { "refId": "C", "expr": "process_files_open_files{env=\"$env\"} / clamp_min(process_files_max_files{env=\"$env\"}, 1)", "legendFormat": "FD 사용률" },
+        { "refId": "D", "expr": "process_cpu_usage{env=\"$env\"}", "legendFormat": "프로세스 CPU" }
+      ]
+    }
+  ]
+}

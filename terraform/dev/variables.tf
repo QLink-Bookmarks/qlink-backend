@@ -412,3 +412,48 @@ variable "listener_rule_priority" {
 variable "listener_rule_tag_name" {
   type = string
 }
+
+variable "alb_sg_name" {
+  type = string
+}
+
+variable "alb_sg_description" {
+  type = string
+}
+
+variable "legacy_app_sg_name" {
+  description = "Legacy ECS SG in the dev VPC; kept until manually removed"
+  type        = string
+}
+
+variable "legacy_app_sg_description" {
+  type = string
+}
+
+variable "rds_app_sg_name" {
+  type = string
+}
+
+variable "rds_app_sg_description" {
+  type = string
+}
+
+variable "rds_legacy_sg_name" {
+  type = string
+}
+
+variable "rds_legacy_sg_description" {
+  type = string
+}
+
+variable "rds_public_sg_name" {
+  type = string
+}
+
+variable "rds_public_sg_description" {
+  type = string
+}
+
+variable "rds_public_ingress_cidrs" {
+  type = list(string)
+}
