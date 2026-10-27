@@ -7,7 +7,7 @@ conventions that are not obvious from reading the code.
 
 - Prefer Kotlin style logics.
 - Readability, Simpleness, and Maintenance are the priorities.
-- Prefer Tell, rather than Ask. Cohere boundary and context.
+- For any change in `domain/**` or `service/**`, follow `references/domain-review.md`.
 
 ## Testing Rules
 
@@ -50,35 +50,19 @@ When("input is invalid") {
   mentioned in the target class. For example, `ErrorCode.FOLDER_DIFFERENT_OWNER` is generated only
   in `Folder.kt` domain `validateOwner` method, don't test this on the service calling this method.
 
-## Domain And Exception Rules
-
-- Use `BusinessException` for intentional domain validation failures and service-level business
-  failures.
-- Every `BusinessException` must be backed by an `ErrorCode`.
-- Prefer existing primitive validation extensions such as `requireTrue`, `requireFalse`, and
-  `requireNotOver`.
-- Keep `ErrorCode` grouped by domain. Each entry must include external response `code`, HTTP
-  `status`, and user-facing `message`.
-- Use `kotlin.time.Instant` for domain time values.
-
 ## Persistence Rules
 
 - Use Exposed `timestamp(...)` for database timestamp columns.
 - Convert between Exposed/JVM time and domain `Instant` with `toKotlinInstant()` and
   `toJavaInstant()`.
-- Repositories must not open transaction boundaries directly. Services own transaction boundaries
-  through `TransactionRunner`.
 - Keep domain insert/update mapping in table files using `fromDomain` and `toDomain`-style extension
   functions.
-- For read-only SELECT queries, follow the minimum data principle and project into DTO/query models
-  instead of loading full domains when unnecessary.
 - Keep `ResultRow` to query DTO mapping next to the relevant DTO/query declarations.
 
 ## DTO Rules
 
 - Place DTOs under each domain's `dto` package.
 - Keep DTO files limited to `Requests`, `Responses`, and `Queries`.
-- Create and use Query DTO only if Domain Logic is not involved. If Domain Logic is involved, checking Link Owner for example, select all for domain to conduct its logic and then make a separate query to make Response.
 - Declare request, response, and query data classes in the matching file.
 - Mark API request/response DTOs with `@Serializable`.
 
@@ -120,11 +104,13 @@ get<LinkResources.ById> { resource ->
 - Generate random values through `RandomFixture`; do not scatter direct faker calls across test
   bodies.
 
-## Service Rules
+## References
 
-- Model services as application use cases.
-- Service public methods should call repositories inside `TransactionRunner.required` or
-  `TransactionRunner.readOnly`.
-- Services should convert request DTOs into domains and repository results into response DTOs.
-- Check use-case preconditions, such as authenticated user existence and related resource existence,
-  in the service layer.
+Consult these resources as needed:
+
+```
+references/
+  domain-review.md                Domain, VO, common, service, query and ErrorCode placement rules
+  project-management-workflow.md  Issue/Project/PR stages, confirmation gates, section rules
+  test-criteria.md                Domain and service test case form, coverage axes, Infra plan checks
+```
