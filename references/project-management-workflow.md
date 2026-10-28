@@ -55,7 +55,7 @@ The Project is shared with qlink-channel, so its `Status` field holds the stages
 
 | Status | Issue section | Agent | User |
 |---|---|---|---|
-| `Requirement` | 2 | Drafts the business procedure and API contract from the request, the parent Issue and the repo | Reviews in chat, confirms the final version |
+| `Requirement` | 2 | Drafts the business procedure and API contract from the request, the parent Issue and the repo, per `references/api-design.md` | Reviews in chat, confirms the final version |
 | `Domain Review` | 3 | Proposes where each responsibility lives and what new models are needed, per `references/domain-review.md` | Discusses in chat, confirms the design |
 | `Test Criteria` | 4 | Drafts domain and service test cases, per `references/test-criteria.md` | Reviews in chat, confirms the final version |
 | `Implementation` | — | Implements and tests against the confirmed criteria | Instructs the agent to start |
@@ -72,7 +72,7 @@ Read the parent Issue, if any, and the repo for context before drafting. Do not 
 
 - The business procedure the server performs, step by step.
 - Rules and invariants, permissions and ownership, preconditions such as resource existence, state transitions, and side effects such as notifications or cascades.
-- The API contract: method, path, auth, request and response shape, and the `ErrorCode` each failure returns.
+- The API contract: method, path, auth, request, success status, response shape, and the `ErrorCode` each failure returns, designed per `references/api-design.md`.
 - What is out of scope.
 
 ### 3. Domain Review
