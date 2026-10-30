@@ -8,6 +8,7 @@ import com.qlink.auth.repository.table.toRefreshTokenDomain
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.greater
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -30,6 +31,20 @@ class DbRefreshTokenRepository : RefreshTokenRepository {
             .singleOrNull()
             ?.toRefreshTokenDomain()
 
+    override suspend fun findByTokenAndFamily(
+        token: String,
+        userId: Long,
+        familyId: String,
+    ): RefreshToken? =
+        RefreshTokens
+            .selectAll()
+            .where {
+                (RefreshTokens.token eq token) and
+                    (RefreshTokens.userId eq userId) and
+                    (RefreshTokens.familyId eq familyId)
+            }.singleOrNull()
+            ?.toRefreshTokenDomain()
+
     override suspend fun findLatestByUserIdAndFamilyId(
         userId: Long,
         familyId: String,
@@ -45,24 +60,20 @@ class DbRefreshTokenRepository : RefreshTokenRepository {
             ?.toRefreshTokenDomain()
 
     override suspend fun rotateByTokenAndFamily(
-        currentToken: String,
-        userId: Long,
-        familyId: String,
-        newToken: String,
-        issuedAt: Instant,
-        expiredAt: Instant,
+        current: RefreshToken,
+        rotated: RefreshToken,
+        now: Instant,
     ): RefreshToken? =
         RefreshTokens
             .updateReturning(
                 where = {
-                    (RefreshTokens.token eq currentToken) and
-                        (RefreshTokens.userId eq userId) and
-                        (RefreshTokens.familyId eq familyId)
+                    (RefreshTokens.token eq current.token) and
+                        (RefreshTokens.userId eq current.userId) and
+                        (RefreshTokens.familyId eq current.familyId) and
+                        (RefreshTokens.expiredAt greater now.toJavaInstant())
                 },
             ) {
-                it[RefreshTokens.token] = newToken
-                it[RefreshTokens.issuedAt] = issuedAt.toJavaInstant()
-                it[RefreshTokens.expiredAt] = expiredAt.toJavaInstant()
+                it.fromDomain(rotated)
                 it.refreshRefreshTokenUpdatedAt()
             }.singleOrNull()
             ?.toRefreshTokenDomain()
@@ -74,6 +85,16 @@ class DbRefreshTokenRepository : RefreshTokenRepository {
         RefreshTokens.deleteWhere {
             (RefreshTokens.userId eq userId) and
                 (RefreshTokens.token eq token)
+        }
+    }
+
+    override suspend fun deleteByUserIdAndFamilyId(
+        userId: Long,
+        familyId: String,
+    ) {
+        RefreshTokens.deleteWhere {
+            (RefreshTokens.userId eq userId) and
+                (RefreshTokens.familyId eq familyId)
         }
     }
 }

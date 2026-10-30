@@ -21,39 +21,62 @@ class RefreshAuthTokenService(
         val claims = authTokenService.verifyRefreshToken(token)
         val now = Clock.System.now()
 
-        return tx.required {
-            val user = userRepository.findById(claims.userId) ?: throw BusinessException(ErrorCode.AUTH_REFRESH_TOKEN_INVALID)
-            val newRefreshToken =
-                authTokenService.issueRefreshToken(
-                    userId = claims.userId,
-                    familyId = claims.familyId,
-                )
-            val newExpiredAt = authTokenService.refreshTokenExpiredAt(now)
-            val rotated =
-                refreshTokenRepository.rotateByTokenAndFamily(
-                    currentToken = token,
-                    userId = claims.userId,
-                    familyId = claims.familyId,
-                    newToken = newRefreshToken,
-                    issuedAt = now,
-                    expiredAt = newExpiredAt,
-                )
+        val result =
+            tx.required {
+                val user = userRepository.findById(claims.userId) ?: throw BusinessException(ErrorCode.AUTH_REFRESH_TOKEN_INVALID)
+                val current =
+                    refreshTokenRepository.findByTokenAndFamily(
+                        token = token,
+                        userId = claims.userId,
+                        familyId = claims.familyId,
+                    )
 
-            if (rotated != null) {
-                return@required user.toAuthTokenResponse(refreshToken = newRefreshToken)
+                if (current != null) {
+                    val newToken =
+                        authTokenService.issueRefreshToken(
+                            userId = claims.userId,
+                            familyId = claims.familyId,
+                        )
+                    val rotated =
+                        current.rotate(
+                            token = newToken,
+                            issuedAt = now,
+                            expiredAt = authTokenService.refreshTokenExpiredAt(now),
+                        )
+
+                    if (rotated == null) {
+                        refreshTokenRepository.deleteByUserIdAndToken(userId = claims.userId, token = token)
+                        return@required RefreshResult.Failure(ErrorCode.AUTH_REFRESH_TOKEN_INVALID)
+                    }
+
+                    val saved =
+                        refreshTokenRepository.rotateByTokenAndFamily(
+                            current = current,
+                            rotated = rotated,
+                            now = now,
+                        )
+                    if (saved != null) {
+                        return@required RefreshResult.Success(user = user, refreshToken = saved.token)
+                    }
+                }
+
+                val latest =
+                    refreshTokenRepository.findLatestByUserIdAndFamilyId(
+                        userId = claims.userId,
+                        familyId = claims.familyId,
+                    ) ?: return@required RefreshResult.Failure(ErrorCode.AUTH_REFRESH_TOKEN_REUSED)
+
+                if (latest.isWithinRefreshGrace(now = now, duration = 1.minutes)) {
+                    RefreshResult.Success(user = user, refreshToken = latest.token)
+                } else {
+                    refreshTokenRepository.deleteByUserIdAndFamilyId(userId = claims.userId, familyId = claims.familyId)
+                    RefreshResult.Failure(ErrorCode.AUTH_REFRESH_TOKEN_REUSED)
+                }
             }
 
-            val latest =
-                refreshTokenRepository.findLatestByUserIdAndFamilyId(
-                    userId = claims.userId,
-                    familyId = claims.familyId,
-                ) ?: throw BusinessException(ErrorCode.AUTH_REFRESH_TOKEN_REUSED)
-
-            if (latest.isExpired(now) || !latest.issuedWithin(now = now, duration = 1.minutes)) {
-                throw BusinessException(ErrorCode.AUTH_REFRESH_TOKEN_REUSED)
-            }
-
-            user.toAuthTokenResponse(refreshToken = latest.token)
+        return when (result) {
+            is RefreshResult.Success -> result.user.toAuthTokenResponse(refreshToken = result.refreshToken)
+            is RefreshResult.Failure -> throw BusinessException(result.errorCode)
         }
     }
 
@@ -69,4 +92,15 @@ class RefreshAuthTokenService(
             refreshToken = refreshToken,
         )
     }
+}
+
+private sealed interface RefreshResult {
+    data class Success(
+        val user: User,
+        val refreshToken: String,
+    ) : RefreshResult
+
+    data class Failure(
+        val errorCode: ErrorCode,
+    ) : RefreshResult
 }

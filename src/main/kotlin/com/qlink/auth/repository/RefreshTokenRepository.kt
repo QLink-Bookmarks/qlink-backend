@@ -8,22 +8,30 @@ interface RefreshTokenRepository {
 
     suspend fun findByToken(token: String): RefreshToken?
 
+    suspend fun findByTokenAndFamily(
+        token: String,
+        userId: Long,
+        familyId: String,
+    ): RefreshToken?
+
     suspend fun findLatestByUserIdAndFamilyId(
         userId: Long,
         familyId: String,
     ): RefreshToken?
 
     suspend fun rotateByTokenAndFamily(
-        currentToken: String,
-        userId: Long,
-        familyId: String,
-        newToken: String,
-        issuedAt: Instant,
-        expiredAt: Instant,
+        current: RefreshToken,
+        rotated: RefreshToken,
+        now: Instant,
     ): RefreshToken?
 
     suspend fun deleteByUserIdAndToken(
         userId: Long,
         token: String,
+    )
+
+    suspend fun deleteByUserIdAndFamilyId(
+        userId: Long,
+        familyId: String,
     )
 }

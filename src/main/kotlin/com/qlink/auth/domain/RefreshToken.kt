@@ -17,12 +17,21 @@ data class RefreshToken(
         token: String,
         issuedAt: Instant,
         expiredAt: Instant,
-    ): RefreshToken =
-        copy(
-            token = token,
-            issuedAt = issuedAt,
-            expiredAt = expiredAt,
-        )
+    ): RefreshToken? =
+        if (isExpired(issuedAt)) {
+            null
+        } else {
+            copy(
+                token = token,
+                issuedAt = issuedAt,
+                expiredAt = expiredAt,
+            )
+        }
+
+    fun isWithinRefreshGrace(
+        now: Instant,
+        duration: Duration,
+    ): Boolean = !isExpired(now) && issuedWithin(now = now, duration = duration)
 
     fun issuedWithin(
         now: Instant,
