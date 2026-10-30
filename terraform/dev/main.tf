@@ -129,28 +129,28 @@ module "s3" {
 locals {
   image_bucket_routes = {
     dev_profiles = {
-      bucket_name  = "alink-profiles-dev"
-      path_pattern = "/dev/profiles/*"
+      bucket_name   = "alink-profiles-dev"
+      path_patterns = ["dev-profile-*"]
     }
     prod_profiles = {
-      bucket_name  = "alink-profiles-prod"
-      path_pattern = "/prod/profiles/*"
+      bucket_name   = "alink-profiles-prod"
+      path_patterns = ["prod-profile-*"]
     }
     dev_posts = {
-      bucket_name  = "alink-posts-dev"
-      path_pattern = "/dev/posts/*"
+      bucket_name   = "alink-posts-dev"
+      path_patterns = ["dev-post-*"]
     }
     prod_posts = {
-      bucket_name  = "alink-posts-prod"
-      path_pattern = "/prod/posts/*"
+      bucket_name   = "alink-posts-prod"
+      path_patterns = ["prod-post-*"]
     }
     dev_previews = {
-      bucket_name  = "alink-previews-dev"
-      path_pattern = "/dev/previews/*"
+      bucket_name   = "alink-previews-dev"
+      path_patterns = ["dev-preview-*", "dev-favicon-*"]
     }
     prod_previews = {
-      bucket_name  = "alink-previews-prod"
-      path_pattern = "/prod/previews/*"
+      bucket_name   = "alink-previews-prod"
+      path_patterns = ["prod-preview-*", "prod-favicon-*"]
     }
   }
 }
@@ -179,7 +179,7 @@ module "cloudfront" {
   bucket_regional_domain_name = module.s3.bucket_regional_domain_name
   additional_s3_origins = {
     for route, bucket in module.image_buckets : route => {
-      path_pattern                = local.image_bucket_routes[route].path_pattern
+      path_patterns               = local.image_bucket_routes[route].path_patterns
       bucket_id                   = bucket.bucket_name
       bucket_arn                  = bucket.bucket_arn
       bucket_regional_domain_name = bucket.bucket_regional_domain_name

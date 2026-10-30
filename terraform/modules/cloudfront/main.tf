@@ -1,6 +1,14 @@
 locals {
   caching_optimized_policy_id = "658327ea-f89d-4fab-a63d-7e88639e58f6"
   origin_id                   = "s3-${var.bucket_id}"
+  additional_s3_routes = flatten([
+    for origin in var.additional_s3_origins : [
+      for path_pattern in origin.path_patterns : {
+        path_pattern = path_pattern
+        origin_id    = "s3-${origin.bucket_id}"
+      }
+    ]
+  ])
 }
 
 resource "aws_acm_certificate" "cdn" {
@@ -77,11 +85,11 @@ resource "aws_cloudfront_distribution" "cdn" {
   }
 
   dynamic "ordered_cache_behavior" {
-    for_each = var.additional_s3_origins
+    for_each = local.additional_s3_routes
 
     content {
       path_pattern           = ordered_cache_behavior.value.path_pattern
-      target_origin_id       = "s3-${ordered_cache_behavior.value.bucket_id}"
+      target_origin_id       = ordered_cache_behavior.value.origin_id
       allowed_methods        = ["GET", "HEAD"]
       cached_methods         = ["GET", "HEAD"]
       viewer_protocol_policy = "redirect-to-https"

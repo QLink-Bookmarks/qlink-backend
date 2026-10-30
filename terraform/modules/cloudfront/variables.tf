@@ -26,9 +26,9 @@ variable "bucket_regional_domain_name" {
 }
 
 variable "additional_s3_origins" {
-  description = "Additional private S3 origins routed by URL path"
+  description = "Additional private S3 origins and their URL path patterns"
   type = map(object({
-    path_pattern                = string
+    path_patterns               = list(string)
     bucket_id                   = string
     bucket_arn                  = string
     bucket_regional_domain_name = string
