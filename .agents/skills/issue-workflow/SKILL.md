@@ -36,7 +36,7 @@ Tell the user the Issue, its type, the completed stage and the next one, then as
 | `Requirement` | workflow `2. Requirement`, `references/api-design.md`, the parent Issue | section 2 |
 | `Domain Review` | `references/domain-review.md` | section 3 |
 | `Test Criteria` | `references/test-criteria.md` | section 4 |
-| `Implementation` | `AGENTS.md`, sections 3 and 4 | code and tests |
+| `Implementation` | workflow `Implementation`, `AGENTS.md`, sections 3 and 4 | code and tests in the Issue worktree |
 | `PR` | workflow `5. PR` | PR body, section 5 |
 
 ## 4. Close the stage
