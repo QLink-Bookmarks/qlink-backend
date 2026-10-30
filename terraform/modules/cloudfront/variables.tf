@@ -24,3 +24,14 @@ variable "bucket_arn" {
 variable "bucket_regional_domain_name" {
   type = string
 }
+
+variable "additional_s3_origins" {
+  description = "Additional private S3 origins routed by URL path"
+  type = map(object({
+    path_pattern                = string
+    bucket_id                   = string
+    bucket_arn                  = string
+    bucket_regional_domain_name = string
+  }))
+  default = {}
+}

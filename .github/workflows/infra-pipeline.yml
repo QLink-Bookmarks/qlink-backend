@@ -158,6 +158,7 @@ jobs:
             -target=module.ecs.aws_iam_role.ecs_task_role \
             -target=module.ecs.aws_iam_role_policy.ecs_task_s3 \
             -target=module.s3 \
+            -target=module.image_buckets \
             -target=module.cloudfront
 
       - name: Terraform Apply

@@ -57,6 +57,16 @@ resource "aws_cloudfront_distribution" "cdn" {
     origin_access_control_id = aws_cloudfront_origin_access_control.s3.id
   }
 
+  dynamic "origin" {
+    for_each = var.additional_s3_origins
+
+    content {
+      domain_name              = origin.value.bucket_regional_domain_name
+      origin_id                = "s3-${origin.value.bucket_id}"
+      origin_access_control_id = aws_cloudfront_origin_access_control.s3.id
+    }
+  }
+
   default_cache_behavior {
     target_origin_id       = local.origin_id
     allowed_methods        = ["GET", "HEAD"]
@@ -64,6 +74,20 @@ resource "aws_cloudfront_distribution" "cdn" {
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
     cache_policy_id        = local.caching_optimized_policy_id
+  }
+
+  dynamic "ordered_cache_behavior" {
+    for_each = var.additional_s3_origins
+
+    content {
+      path_pattern           = ordered_cache_behavior.value.path_pattern
+      target_origin_id       = "s3-${ordered_cache_behavior.value.bucket_id}"
+      allowed_methods        = ["GET", "HEAD"]
+      cached_methods         = ["GET", "HEAD"]
+      viewer_protocol_policy = "redirect-to-https"
+      compress               = true
+      cache_policy_id        = local.caching_optimized_policy_id
+    }
   }
 
   restrictions {
@@ -95,6 +119,30 @@ resource "aws_s3_bucket_policy" "cdn_oac_read" {
         Principal = { Service = "cloudfront.amazonaws.com" }
         Action    = "s3:GetObject"
         Resource  = "${var.bucket_arn}/*"
+        Condition = {
+          StringEquals = {
+            "AWS:SourceArn" = aws_cloudfront_distribution.cdn.arn
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_s3_bucket_policy" "additional_cdn_oac_read" {
+  for_each = var.additional_s3_origins
+
+  bucket = each.value.bucket_id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "AllowCloudFrontServicePrincipalReadOnly"
+        Effect    = "Allow"
+        Principal = { Service = "cloudfront.amazonaws.com" }
+        Action    = "s3:GetObject"
+        Resource  = "${each.value.bucket_arn}/*"
         Condition = {
           StringEquals = {
             "AWS:SourceArn" = aws_cloudfront_distribution.cdn.arn

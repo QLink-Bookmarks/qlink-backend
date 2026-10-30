@@ -125,6 +125,44 @@ module "s3" {
   bucket_tag_name = var.aws_s3_bucket_name
 }
 
+# This stack owns the shared images distribution and its routed buckets for both environments.
+locals {
+  image_bucket_routes = {
+    dev_profiles = {
+      bucket_name  = "alink-profiles-dev"
+      path_pattern = "/dev/profiles/*"
+    }
+    prod_profiles = {
+      bucket_name  = "alink-profiles-prod"
+      path_pattern = "/prod/profiles/*"
+    }
+    dev_posts = {
+      bucket_name  = "alink-posts-dev"
+      path_pattern = "/dev/posts/*"
+    }
+    prod_posts = {
+      bucket_name  = "alink-posts-prod"
+      path_pattern = "/prod/posts/*"
+    }
+    dev_previews = {
+      bucket_name  = "alink-previews-dev"
+      path_pattern = "/dev/previews/*"
+    }
+    prod_previews = {
+      bucket_name  = "alink-previews-prod"
+      path_pattern = "/prod/previews/*"
+    }
+  }
+}
+
+module "image_buckets" {
+  for_each = local.image_bucket_routes
+  source   = "../modules/s3"
+
+  bucket_name     = each.value.bucket_name
+  bucket_tag_name = each.value.bucket_name
+}
+
 module "cloudfront" {
   source = "../modules/cloudfront"
 
@@ -139,6 +177,14 @@ module "cloudfront" {
   bucket_id                   = module.s3.bucket_name
   bucket_arn                  = module.s3.bucket_arn
   bucket_regional_domain_name = module.s3.bucket_regional_domain_name
+  additional_s3_origins = {
+    for route, bucket in module.image_buckets : route => {
+      path_pattern                = local.image_bucket_routes[route].path_pattern
+      bucket_id                   = bucket.bucket_name
+      bucket_arn                  = bucket.bucket_arn
+      bucket_regional_domain_name = bucket.bucket_regional_domain_name
+    }
+  }
 }
 
 module "ecr" {
