@@ -83,6 +83,14 @@ Design a cohesive domain before any test or code is written: where each rule fro
 
 Domain and service test cases that prove the business procedure, each tagged with its target, per `references/test-criteria.md`. Draft them, review them with the user in chat, then write the confirmed list into section 4 as checkboxes. For `Infra`, the criteria are the expected `terraform plan` result instead.
 
+### Implementation
+
+When the user starts this stage, prepare an isolated checkout before changing code:
+
+1. Fetch `origin/main`. Move to the local `main` branch in a safe checkout: switch the current checkout only when it is clean and unused by another session; otherwise check out `main` in a temporary preparation worktree without disturbing the current checkout.
+2. Fast-forward `main` to `origin/main` with `git merge --ff-only origin/main` and verify that they point to the same commit. If fast-forward fails, stop and report the divergence; do not merge, rebase, force-reset, or discard existing work.
+3. Create an Issue-specific branch and worktree from the updated `main`. Attach the worktree to the task when using a managed worktree. Implement and run tests only in the Issue worktree. Remove the temporary preparation worktree after the Issue worktree is ready.
+
 ### 5. PR
 
 Each PR body carries the same checklist from section 4, with only the items actually verified checked off. When the work spans several PRs, every PR but the last links the Issue with `- Refs #n`, and the last one with `- Resolves #n`, so the Issue closes only when all of them land. Section 5 of the Issue records every PR link.
