@@ -17,16 +17,15 @@ data class RefreshToken(
         token: String,
         issuedAt: Instant,
         expiredAt: Instant,
-    ): RefreshToken? =
-        if (isExpired(issuedAt)) {
-            null
-        } else {
-            copy(
-                token = token,
-                issuedAt = issuedAt,
-                expiredAt = expiredAt,
-            )
-        }
+    ): RefreshToken? {
+        val rotatable = takeUnless { it.isExpired(issuedAt) } ?: return null
+
+        return rotatable.copy(
+            token = token,
+            issuedAt = issuedAt,
+            expiredAt = expiredAt,
+        )
+    }
 
     fun isWithinRefreshGrace(
         now: Instant,

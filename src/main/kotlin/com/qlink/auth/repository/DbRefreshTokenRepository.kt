@@ -32,16 +32,16 @@ class DbRefreshTokenRepository : RefreshTokenRepository {
             ?.toRefreshTokenDomain()
 
     override suspend fun findByTokenAndFamily(
-        token: String,
         userId: Long,
         familyId: String,
+        token: String,
     ): RefreshToken? =
         RefreshTokens
             .selectAll()
             .where {
-                (RefreshTokens.token eq token) and
-                    (RefreshTokens.userId eq userId) and
-                    (RefreshTokens.familyId eq familyId)
+                (RefreshTokens.userId eq userId) and
+                    (RefreshTokens.familyId eq familyId) and
+                    (RefreshTokens.token eq token)
             }.singleOrNull()
             ?.toRefreshTokenDomain()
 
@@ -67,9 +67,9 @@ class DbRefreshTokenRepository : RefreshTokenRepository {
         RefreshTokens
             .updateReturning(
                 where = {
-                    (RefreshTokens.token eq current.token) and
-                        (RefreshTokens.userId eq current.userId) and
+                    (RefreshTokens.userId eq current.userId) and
                         (RefreshTokens.familyId eq current.familyId) and
+                        (RefreshTokens.token eq current.token) and
                         (RefreshTokens.expiredAt greater now.toJavaInstant())
                 },
             ) {

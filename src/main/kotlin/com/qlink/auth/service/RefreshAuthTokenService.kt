@@ -26,9 +26,9 @@ class RefreshAuthTokenService(
                 val user = userRepository.findById(claims.userId) ?: throw BusinessException(ErrorCode.AUTH_REFRESH_TOKEN_INVALID)
                 val current =
                     refreshTokenRepository.findByTokenAndFamily(
-                        token = token,
                         userId = claims.userId,
                         familyId = claims.familyId,
+                        token = token,
                     )
 
                 if (current != null) {
@@ -67,11 +67,11 @@ class RefreshAuthTokenService(
                     ) ?: return@required RefreshResult.Failure(ErrorCode.AUTH_REFRESH_TOKEN_REUSED)
 
                 if (latest.isWithinRefreshGrace(now = now, duration = 1.minutes)) {
-                    RefreshResult.Success(user = user, refreshToken = latest.token)
-                } else {
-                    refreshTokenRepository.deleteByUserIdAndFamilyId(userId = claims.userId, familyId = claims.familyId)
-                    RefreshResult.Failure(ErrorCode.AUTH_REFRESH_TOKEN_REUSED)
+                    return@required RefreshResult.Success(user = user, refreshToken = latest.token)
                 }
+
+                refreshTokenRepository.deleteByUserIdAndFamilyId(userId = claims.userId, familyId = claims.familyId)
+                RefreshResult.Failure(ErrorCode.AUTH_REFRESH_TOKEN_REUSED)
             }
 
         return when (result) {

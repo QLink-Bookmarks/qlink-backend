@@ -9,9 +9,9 @@ interface RefreshTokenRepository {
     suspend fun findByToken(token: String): RefreshToken?
 
     suspend fun findByTokenAndFamily(
-        token: String,
         userId: Long,
         familyId: String,
+        token: String,
     ): RefreshToken?
 
     suspend fun findLatestByUserIdAndFamilyId(
