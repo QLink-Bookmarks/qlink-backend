@@ -43,7 +43,7 @@ route53_hosted_zone_id = "Z08989212MZQ9OYDBC0JK"
 
 ecr_image_tag_mutability = "IMMUTABLE"
 ecr_image_scan_on_push   = false
-ecr_max_image_count      = 20
+ecr_max_image_count      = 15
 
 ecs_key_pair_name               = "qlink-dev-ssh"
 ecs_instance_role_name          = "ecsInstanceRole"
