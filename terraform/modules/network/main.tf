@@ -61,14 +61,15 @@ resource "aws_subnet" "qlink_private_c" {
 resource "aws_route_table" "qlink_public_rt" {
   vpc_id = aws_vpc.qlink_vpc.id
 
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.qlink_igw.id
-  }
-
   tags = {
     Name = var.public_route_table_name
   }
+}
+
+resource "aws_route" "public_default" {
+  route_table_id         = aws_route_table.qlink_public_rt.id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.qlink_igw.id
 }
 
 resource "aws_route_table" "qlink_private_rt_a" {
