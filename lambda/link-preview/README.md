@@ -24,13 +24,6 @@ Lambda는 앱·기존 인프라와 분리된 `terraform/lambda/dev` 및 `terrafo
 
 ## 외부 IAM 준비
 
-실행 역할과 정책 연결, 서버의 Lambda 호출 권한은 Terraform에서 만들거나 수정하지 않는다. AWS 계정 `650177546654`에는 관리형 정책 `arn:aws:iam::650177546654:policy/alinkPreviewLambda`가 만들어져 있다. 정책 내용은 `references/iam/alinkPreviewLambda.json`에 기록했다. 이 파일을 변경해도 AWS 정책은 자동으로 갱신되지 않으므로 정책 버전은 IAM에서 직접 관리한다. 이 정책은 dev/prod 버킷의 프리뷰·파비콘 객체와 두 Lambda 로그 그룹 접근을 허용한다. 공통 실행 역할 `arn:aws:iam::650177546654:role/alinkPreviewLambdaRole`을 AWS CLI로 만들고 정책을 연결했다. 역할의 신뢰 정책은 `lambda.amazonaws.com`의 `sts:AssumeRole`을 허용한다. 역할 태그는 필요 없다.
-
-GitHub 저장소 변수는 필요 없다. Terraform은 dev/prod Lambda에 위의 같은 역할 ARN을 직접 설정한다. 배포 주체는 이 역할을 Lambda에 전달할 `iam:PassRole` 권한이 필요하다. 서버 호출 권한은 Terraform 밖의 IAM 인라인 정책으로 관리한다. `qlinkEcsTaskRole`에는 `references/iam/alinkPreviewInvokeDev.json`을 `alinkPreviewInvokeDev` 이름으로, `alinkEcsTaskRoleProd`에는 `references/iam/alinkPreviewInvokeProd.json`을 `alinkPreviewInvokeProd` 이름으로 적용했다. 각각 자기 환경의 `alink-link-preview-{env}:live` 별칭만 호출할 수 있다. JSON 변경은 IAM에 자동 반영되지 않으므로 변경 시 AWS CLI의 `iam put-role-policy`로 다시 적용해야 한다.
-
-```sh
-aws iam put-role-policy --role-name qlinkEcsTaskRole --policy-name alinkPreviewInvokeDev --policy-document file://references/iam/alinkPreviewInvokeDev.json
-aws iam put-role-policy --role-name alinkEcsTaskRoleProd --policy-name alinkPreviewInvokeProd --policy-document file://references/iam/alinkPreviewInvokeProd.json
-```
+실행 역할과 정책 연결, 서버의 Lambda 호출 권한은 Terraform에서 관리하지 않는다. Lambda 실행 역할에는 환경별 프리뷰 버킷 객체 접근과 CloudWatch Logs 기록 권한이 필요하다. 배포 주체에는 실행 역할에 대한 `iam:PassRole` 권한이, API 서버의 태스크 역할에는 해당 환경 Lambda의 `live` 별칭에 대한 `lambda:InvokeFunction` 권한이 필요하다. 실제 IAM 정책과 적용 내역은 AWS에서 별도로 관리한다.
 
 이미지 객체는 원본 URL의 scheme·host만 소문자화해 만든 해시 또는 파비콘의 호스트 해시를 키로 사용한다. S3 `LastModified`가 7일 미만이면 재사용하고, 이후 요청에서 조건부로 갱신한다. `Cache-Control`은 1일이다.
