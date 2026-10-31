@@ -11,11 +11,11 @@
     "package": "bash package.sh"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.0.0",
-    "@humanwhocodes/ico-to-png": "^1.0.0",
-    "cheerio": "^1.0.0",
-    "ipaddr.js": "^2.0.0",
-    "open-graph-scraper": "^6.0.0",
-    "sharp": "^0.35.5"
+    "@aws-sdk/client-s3": "3.1160.0",
+    "@humanwhocodes/ico-to-png": "1.1.0",
+    "cheerio": "1.2.0",
+    "ipaddr.js": "2.5.0",
+    "open-graph-scraper": "6.13.0",
+    "sharp": "0.35.5"
   }
 }

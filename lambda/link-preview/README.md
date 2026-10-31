@@ -18,6 +18,6 @@
 
 ## 개발과 배포
 
-Node.js 24에서 `npm ci`, `npm test`, `npm audit --omit=dev --audit-level=high`, `npm run package` 순서로 실행한다. `package-lock.json`에 운영 의존성을 고정한다. 생성된 `build/link-preview.zip`은 Terraform이 `source_code_hash`로 추적하고 버전으로 발행하며 `live` 별칭이 최신 발행 버전을 가리킨다. CI와 dev/prod 배포가 같은 검증 및 패키징 절차를 수행한다. Git SHA는 함수 설명과 태그에 기록된다. 의존성 업데이트는 Dependabot PR과 동일한 테스트·취약점 검사로 확인한다.
+Node.js 24에서 `npm ci`, `npm test`, `npm audit --omit=dev --audit-level=high`, `npm run package` 순서로 실행한다. 직접 버전을 변경할 때는 이 디렉터리에서 `npm install --save-exact 패키지@버전`을 실행하고 `package.json`과 `package-lock.json`을 함께 커밋한다. Node 런타임 메이저 버전은 Terraform의 `runtime`과 CI·배포 워크플로의 `setup-node`에서 지정한다. 생성된 `build/link-preview.zip`은 Terraform이 `source_code_hash`로 추적하고 버전으로 발행하며 `live` 별칭이 최신 발행 버전을 가리킨다. CI와 dev/prod 배포가 같은 검증 및 패키징 절차를 수행한다. Git SHA는 함수 설명과 태그에 기록된다.
 
 이미지 객체는 원본 URL의 scheme·host만 소문자화해 만든 해시 또는 파비콘의 호스트 해시를 키로 사용한다. S3 `LastModified`가 7일 미만이면 재사용하고, 이후 요청에서 조건부로 갱신한다. `Cache-Control`은 1일이다. Lambda 실행 역할은 해당 환경 버킷의 이미지 객체와 로그 그룹에만 접근하며 API 서버 역할에는 `live` 별칭 호출 권한만 있다.
