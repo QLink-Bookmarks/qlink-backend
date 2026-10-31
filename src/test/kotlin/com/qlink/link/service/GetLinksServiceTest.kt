@@ -11,6 +11,7 @@ import com.qlink.common.scroll.Base64CursorCodec
 import com.qlink.common.scroll.ScrollRequest
 import com.qlink.folder.domain.Folder
 import com.qlink.folder.repository.FolderRepository
+import com.qlink.foldermember.repository.FolderMemberRepository
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.dto.LinkSearchCursor
@@ -20,12 +21,12 @@ import com.qlink.link.repository.LinkRepository
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.AiFixture
 import com.qlink.support.fixture.FolderFixture
+import com.qlink.support.fixture.FolderMemberFixture
 import com.qlink.support.fixture.LinkFixture
 import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.TodoFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
-import com.qlink.support.truncatedToSecond
 import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.domain.User
 import com.qlink.user.repository.UserRepository
@@ -33,6 +34,8 @@ import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.toKotlinInstant
 
 class GetLinksServiceTest :
@@ -40,6 +43,7 @@ class GetLinksServiceTest :
         val getLinksService = koinGet<GetLinksService>()
         val userRepository = koinGet<UserRepository>()
         val folderRepository = koinGet<FolderRepository>()
+        val folderMemberRepository = koinGet<FolderMemberRepository>()
         val linkRepository = koinGet<LinkRepository>()
         val todoRepository = koinGet<TodoRepository>()
         val aiProviderRepository = koinGet<AiProviderRepository>()
@@ -67,7 +71,7 @@ class GetLinksServiceTest :
             }
 
             When("최신순으로 검색하면") {
-                Then("folderEmoji와 todo preview를 포함해 반환한다") {
+                Then("folderEmoji와 할 일 개수를 포함해 반환한다") {
                     val model = modelFixture()
                     val firstLink =
                         linkRepository.insert(
@@ -89,6 +93,9 @@ class GetLinksServiceTest :
                                 url = "https://example.com/second",
                                 tags = listOf("검색", "둘째"),
                                 status = LinkStatus.G,
+                                thumbnailUrl = RandomFixture.randomPreviewUrl(),
+                                faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                                isVideo = true,
                             ),
                         )
                     val secondLinkId = secondLink.id!!
@@ -116,25 +123,51 @@ class GetLinksServiceTest :
                     response.contents.shouldHaveSize(2)
                     response.contents[0].id shouldBe secondLink.id
                     response.contents[0].status shouldBe secondLink.status
+                    response.contents[0].thumbnailUrl shouldBe secondLink.thumbnailUrl
+                    response.contents[0].faviconUrl shouldBe secondLink.faviconUrl
+                    response.contents[0].isVideo shouldBe secondLink.isVideo
                     response.contents[0].folderEmoji shouldBe null
-                    response.contents[0].todos.shouldHaveSize(2)
-                    response.contents[0]
-                        .todos
-                        .first { it.title == "todo-1" }
-                        .completedAt
-                        .truncatedToSecond() shouldBe
-                        completedAt.truncatedToSecond()
-                    response.contents[0]
-                        .todos
-                        .first { it.title == "todo-2" }
-                        .completedAt shouldBe null
-                    response.contents[0].countMoreTodos shouldBe 1
+                    response.contents[0].todoCounts.open shouldBe 2
+                    response.contents[0].todoCounts.completed shouldBe 1
                     response.contents[1].id shouldBe firstLink.id
                     response.contents[1].status shouldBe firstLink.status
                     response.contents[1].folderId shouldBe folder.id
                     response.contents[1].folderName shouldBe folder.name
                     response.contents[1].folderEmoji shouldBe folder.emoji
                     response.contents[1].workModel shouldBe model.model
+                    response.contents[1].todoCounts.open shouldBe 0
+                    response.contents[1].todoCounts.dueSoon shouldBe 0
+                    response.contents[1].todoCounts.overdue shouldBe 0
+                    response.contents[1].todoCounts.completed shouldBe 0
+                }
+            }
+
+            When("기본·임박·기한 지남·완료 할 일이 섞여 있으면") {
+                val link = linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = user.id!!))
+                val now = Clock.System.now()
+                listOf(
+                    TodoFixture.createRandomTodoOf(linkId = link.id!!, ownerId = user.id!!, reminderAt = null),
+                    TodoFixture.createRandomTodoOf(linkId = link.id!!, ownerId = user.id!!, reminderAt = now + 1.hours),
+                    TodoFixture.createRandomTodoOf(linkId = link.id!!, ownerId = user.id!!, reminderAt = now - 1.hours),
+                    TodoFixture.createRandomTodoOf(linkId = link.id!!, ownerId = user.id!!, reminderAt = now - 1.hours, completedAt = now),
+                ).forEach { todoRepository.insert(it) }
+                val response =
+                    getLinksService.getLinks(
+                        loginId = user.id!!,
+                        query = link.title,
+                        folderId = null,
+                        order = "latest",
+                        scrollRequest = ScrollRequest(),
+                    )
+
+                Then("DB의 전체 할 일 분포와 집계가 일치한다") {
+                    val storedTodos = todoRepository.findAllByLinkIds(listOf(link.id!!))
+                    storedTodos.size shouldBe 4
+                    val counts = response.contents.single { it.id == link.id }.todoCounts
+                    counts.open shouldBe 3
+                    counts.dueSoon shouldBe 1
+                    counts.overdue shouldBe 1
+                    counts.completed shouldBe 1
                 }
             }
 
@@ -607,6 +640,56 @@ class GetLinksServiceTest :
                     shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_OWNER_NOT_FOUND.message) {
                         getLinks()
                     }
+                }
+            }
+        }
+
+        Given("공유 폴더 멤버가 보는 링크") {
+            lateinit var member: User
+            lateinit var sharedLink: Link
+
+            beforeTest {
+                val owner = userRepository.insert(UserFixture.createRandomValidUser())
+                member = userRepository.insert(UserFixture.createRandomValidUser())
+                val sharedFolder =
+                    folderRepository.insert(FolderFixture.createFolderWith(ownerId = owner.id!!, sharedAt = Clock.System.now()))
+                folderMemberRepository.insertIfAbsent(
+                    FolderMemberFixture.createOwnerMember(folderId = sharedFolder.id!!, userId = owner.id!!),
+                )
+                folderMemberRepository.insertIfAbsent(
+                    FolderMemberFixture.createMember(folderId = sharedFolder.id!!, userId = member.id!!),
+                )
+                sharedLink =
+                    linkRepository.insert(
+                        LinkFixture.createRandomLinkOf(
+                            ownerId = owner.id!!,
+                            folderId = sharedFolder.id,
+                            thumbnailUrl = RandomFixture.randomPreviewUrl(),
+                            faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                            isVideo = true,
+                        ),
+                    )
+                todoRepository.insert(TodoFixture.createRandomTodoOf(linkId = sharedLink.id!!, ownerId = owner.id!!, reminderAt = null))
+            }
+
+            When("목록을 조회하면") {
+                val linkId = sharedLink.id!!
+                val response =
+                    getLinksService.getLinks(
+                        loginId = member.id!!,
+                        query = null,
+                        folderId = null,
+                        order = "latest",
+                        scrollRequest = ScrollRequest(),
+                    )
+
+                Then("저장된 이미지 값과 할 일 개수를 볼 수 있다") {
+                    val stored = linkRepository.findById(linkId)!!
+                    val content = response.contents.single { it.id == linkId }
+                    content.thumbnailUrl shouldBe stored.thumbnailUrl
+                    content.faviconUrl shouldBe stored.faviconUrl
+                    content.isVideo shouldBe stored.isVideo
+                    content.todoCounts.open shouldBe 1
                 }
             }
         }

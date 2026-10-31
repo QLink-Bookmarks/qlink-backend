@@ -4,13 +4,11 @@ import com.qlink.common.search.longLiteral
 import com.qlink.link.repository.table.Links
 import com.qlink.todo.domain.Todo
 import com.qlink.todo.dto.LinkDetailTodoQuery
-import com.qlink.todo.dto.LinkSearchTodoQuery
 import com.qlink.todo.dto.SearchTodosQuery
 import com.qlink.todo.dto.TodoReminderFilter
 import com.qlink.todo.dto.TodoSearchCursor
 import com.qlink.todo.dto.TodoSearchOrder
 import com.qlink.todo.dto.toLinkDetailTodoQuery
-import com.qlink.todo.dto.toLinkSearchTodoQuery
 import com.qlink.todo.dto.toSearchTodosQuery
 import com.qlink.todo.repository.table.Todos
 import com.qlink.todo.repository.table.fromDomain
@@ -95,34 +93,15 @@ class DbTodoRepository : TodoRepository {
             .orderBy(Todos.id to SortOrder.ASC)
             .map { it.toLinkDetailTodoQuery() }
 
-    override suspend fun findAllByLinkIdsForLinkSearch(linkIds: List<Long>): List<LinkSearchTodoQuery> {
+    override suspend fun findAllByLinkIds(linkIds: List<Long>): List<Todo> {
         if (linkIds.isEmpty()) {
             return emptyList()
         }
 
         return Todos
-            .select(
-                Todos.linkId,
-                Todos.id,
-                Todos.title,
-                Todos.completedAt,
-                Todos.reminderAt,
-                Todos.repeatUntil,
-                Todos.repeatDays,
-                Todos.repeatTime,
-            ).where { Todos.linkId inList linkIds }
-            .orderBy(
-                Todos.linkId to SortOrder.ASC,
-                Todos.id to SortOrder.ASC,
-            ).map { it.toLinkSearchTodoQuery() }
-            .groupBy { it.linkId }
-            .entries
-            .sortedBy { it.key }
-            .flatMap { (_, todos) ->
-                todos.take(2).map { todo ->
-                    todo.copy(totalCount = todos.size)
-                }
-            }
+            .selectAll()
+            .where { Todos.linkId inList linkIds }
+            .map { it.toTodoDomain() }
     }
 
     override suspend fun search(
@@ -153,6 +132,8 @@ class DbTodoRepository : TodoRepository {
                 Todos.linkId,
                 Links.url,
                 linkTitle,
+                Links.thumbnailUrl,
+                Links.faviconUrl,
             ).where { Todos.ownerId eq ownerId }
             .apply {
                 isCompleted?.let { completed ->

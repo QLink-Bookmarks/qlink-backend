@@ -100,5 +100,7 @@ class GetTodosService(
             linkId = linkId,
             linkUrl = linkUrl,
             linkTitle = linkTitle,
+            linkThumbnailUrl = linkThumbnailUrl,
+            linkFaviconUrl = linkFaviconUrl,
         )
 }

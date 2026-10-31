@@ -74,6 +74,9 @@ class UpdateLinkAiSummaryServiceTest :
                             modelId = model.id!!,
                             url = link.url,
                             title = "요청 제목",
+                            thumbnailUrl = RandomFixture.randomPreviewUrl(),
+                            faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                            isVideo = true,
                         )
                     val response = service.updateLinkAiSummary(user.id!!, request)
                     val jobId = withTimeout(1_000) { commandChannel.receive() }
@@ -82,6 +85,9 @@ class UpdateLinkAiSummaryServiceTest :
 
                     response.id shouldBe link.id!!
                     actualLink.status shouldBe LinkStatus.G
+                    actualLink.thumbnailUrl shouldBe request.thumbnailUrl
+                    actualLink.faviconUrl shouldBe request.faviconUrl
+                    actualLink.isVideo shouldBe request.isVideo
                     actualLink.workModelId shouldBe model.id
                     actualJob.linkId shouldBe link.id!!
                     actualJob.userProviderId shouldBe userProvider.id
@@ -122,6 +128,35 @@ class UpdateLinkAiSummaryServiceTest :
                 }
             }
 
+            When("기존 링크의 이미지 값을 생략해 AI 요약을 요청하면") {
+                val imageLink =
+                    linkRepository.insert(
+                        LinkFixture.createRandomLinkOf(
+                            ownerId = user.id!!,
+                            thumbnailUrl = RandomFixture.randomPreviewUrl(),
+                            faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                            isVideo = true,
+                        ),
+                    )
+                val (userProvider, model) = insertAiContext(userId = user.id!!)
+                val request =
+                    AiSummaryRequest(
+                        id = imageLink.id!!,
+                        userProviderId = userProvider.id!!,
+                        modelId = model.id!!,
+                        url = imageLink.url,
+                    )
+                service.updateLinkAiSummary(user.id!!, request)
+                withTimeout(1_000) { commandChannel.receive() }
+
+                Then("저장된 이미지 값은 null, 영상 여부는 false다") {
+                    val actual = linkRepository.findById(imageLink.id!!)!!
+                    actual.thumbnailUrl shouldBe null
+                    actual.faviconUrl shouldBe null
+                    actual.isVideo shouldBe false
+                }
+            }
+
             When("신규 링크로 AI 요약 요청을") {
                 Then("대기 제목을 가진 링크와 작업을 만든다") {
                     val folder = folderRepository.insert(FolderFixture.createValidUnsharedFolder(user.id!!))
@@ -132,6 +167,9 @@ class UpdateLinkAiSummaryServiceTest :
                             userProviderId = userProvider.id!!,
                             modelId = model.id!!,
                             url = RandomFixture.randomUrl(),
+                            thumbnailUrl = RandomFixture.randomPreviewUrl(),
+                            faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                            isVideo = true,
                         )
                     val response = service.updateLinkAiSummary(user.id!!, request)
                     withTimeout(1_000) { commandChannel.receive() }
@@ -139,6 +177,9 @@ class UpdateLinkAiSummaryServiceTest :
                     val actualJobs = aiJobRepository.findAllByLinkId(response.id)
 
                     actualLink.status shouldBe LinkStatus.G
+                    actualLink.thumbnailUrl shouldBe request.thumbnailUrl
+                    actualLink.faviconUrl shouldBe request.faviconUrl
+                    actualLink.isVideo shouldBe request.isVideo
                     actualLink.title.startsWith("AI 생성 대기 중 -") shouldBe true
                     actualLink.folderId shouldBe folder.id
                     actualJobs.first().prompt.contains("## Fixed Title") shouldBe false

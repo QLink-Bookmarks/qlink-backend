@@ -22,6 +22,8 @@ object LinkFixture {
         memo: String? = null,
         tags: List<String> = randomDistinctTags(),
         thumbnailUrl: String? = RandomFixture.randomUrl(),
+        faviconUrl: String? = null,
+        isVideo: Boolean = false,
         sourceType: SourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
         status: LinkStatus = LinkStatus.C,
         workModelId: Long? = null,
@@ -36,11 +38,37 @@ object LinkFixture {
             summary = summary,
             memo = memo,
             thumbnailUrl = thumbnailUrl,
+            faviconUrl = faviconUrl,
+            isVideo = isVideo,
             sourceType = sourceType,
             status = status,
             workModelId = workModelId,
             favoriteAt = favoriteAt,
             tags = tags,
+        )
+
+    fun createLinkFromPreviewRequest(
+        thumbnailUrl: String? = RandomFixture.randomPreviewUrl(),
+        faviconUrl: String? = null,
+        isVideo: Boolean = false,
+        publicBaseUrl: String = "https://images.archivelink.app",
+        environment: String = "dev",
+    ): Link =
+        Link.createFromRequest(
+            ownerId = RandomFixture.randomId(),
+            folderId = null,
+            url = RandomFixture.randomUrl(),
+            title = RandomFixture.randomSentenceWithMax(300),
+            summary = null,
+            memo = null,
+            tags = randomDistinctTags(),
+            thumbnailUrl = thumbnailUrl,
+            faviconUrl = faviconUrl,
+            isVideo = isVideo,
+            sourceType = SourceType.INPUT,
+            status = LinkStatus.C,
+            previewPublicBaseUrl = publicBaseUrl,
+            previewEnvironment = environment,
         )
 
     fun createValidUpdateLinkRequest(folderId: Long? = null): UpdateLinkRequest =
@@ -51,7 +79,7 @@ object LinkFixture {
             summary = RandomFixture.randomSentenceWithMax(1000),
             memo = RandomFixture.randomSentenceWithMax(1000),
             tags = randomDistinctTags(),
-            thumbnailUrl = RandomFixture.randomUrl(),
+            thumbnailUrl = RandomFixture.randomPreviewUrl(),
             sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
         )
 

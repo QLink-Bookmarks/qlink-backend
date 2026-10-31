@@ -38,4 +38,6 @@ data class GetTodosContentResponse(
     val linkId: Long,
     val linkUrl: String,
     val linkTitle: String,
+    val linkThumbnailUrl: String?,
+    val linkFaviconUrl: String?,
 )

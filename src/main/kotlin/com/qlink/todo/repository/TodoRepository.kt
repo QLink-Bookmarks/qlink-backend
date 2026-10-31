@@ -2,7 +2,6 @@ package com.qlink.todo.repository
 
 import com.qlink.todo.domain.Todo
 import com.qlink.todo.dto.LinkDetailTodoQuery
-import com.qlink.todo.dto.LinkSearchTodoQuery
 import com.qlink.todo.dto.SearchTodosQuery
 import com.qlink.todo.dto.TodoReminderFilter
 import com.qlink.todo.dto.TodoSearchCursor
@@ -25,7 +24,7 @@ interface TodoRepository {
 
     suspend fun findAllByLinkIdForLinkDetail(linkId: Long): List<LinkDetailTodoQuery>
 
-    suspend fun findAllByLinkIdsForLinkSearch(linkIds: List<Long>): List<LinkSearchTodoQuery>
+    suspend fun findAllByLinkIds(linkIds: List<Long>): List<Todo>
 
     suspend fun search(
         ownerId: Long,

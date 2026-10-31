@@ -13,12 +13,14 @@ import com.qlink.link.dto.GetLinksContentResponse
 import com.qlink.link.dto.LinkSearchCursor
 import com.qlink.link.dto.LinkSearchCursorValue
 import com.qlink.link.dto.LinkSearchOrder
-import com.qlink.link.dto.LinkSearchTodoResponse
 import com.qlink.link.dto.SearchLinksQuery
+import com.qlink.link.dto.TodoCountsResponse
 import com.qlink.link.repository.LinkRepository
-import com.qlink.todo.dto.LinkSearchTodoQuery
+import com.qlink.todo.domain.Todo
 import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.repository.UserRepository
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 class GetLinksService(
     private val tx: TransactionRunner,
@@ -54,17 +56,13 @@ class GetLinksService(
                 )
             val hasNext = queries.size > size
             val contents = queries.take(size)
-            val todosByLinkId =
-                todoRepository
-                    .findAllByLinkIdsForLinkSearch(contents.map { it.id })
-                    .groupBy { it.linkId }
+            val todosByLinkId = todoRepository.findAllByLinkIds(contents.map { it.id }).groupBy { it.linkId }
+            val now = Clock.System.now()
 
             ScrollResponse(
                 isEmpty = contents.isEmpty(),
                 contents =
                     contents.map { queryRow ->
-                        val todoQueries = todosByLinkId[queryRow.id].orEmpty()
-
                         GetLinksContentResponse(
                             id = queryRow.id,
                             folderId = queryRow.folderId,
@@ -73,11 +71,13 @@ class GetLinksService(
                             workModel = queryRow.workModel,
                             url = queryRow.url,
                             title = queryRow.title,
+                            thumbnailUrl = queryRow.thumbnailUrl,
+                            faviconUrl = queryRow.faviconUrl,
+                            isVideo = queryRow.isVideo,
                             status = queryRow.status,
                             tags = queryRow.tags,
                             createdAt = queryRow.createdAt,
-                            todos = todoQueries.map { it.toResponse() },
-                            countMoreTodos = (todoQueries.firstOrNull()?.totalCount ?: 0) - todoQueries.size,
+                            todoCounts = todosByLinkId[queryRow.id].orEmpty().toCounts(now),
                             isFavorite = queryRow.favoriteAt != null,
                         )
                     },
@@ -126,14 +126,11 @@ class GetLinksService(
                 ),
         )
 
-    private fun LinkSearchTodoQuery.toResponse(): LinkSearchTodoResponse =
-        LinkSearchTodoResponse(
-            id = id,
-            title = title,
-            completedAt = completedAt,
-            reminderAt = reminderAt,
-            repeatUntil = repeatUntil,
-            repeatDays = repeatDays,
-            repeatTime = repeatTime,
+    private fun List<Todo>.toCounts(now: Instant): TodoCountsResponse =
+        TodoCountsResponse(
+            open = count { !it.isCompleted },
+            dueSoon = count { it.isDueSoon(now) },
+            overdue = count { it.isOverdue(now) },
+            completed = count { it.isCompleted },
         )
 }

@@ -9,12 +9,14 @@ import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.folder.domain.Folder
 import com.qlink.folder.repository.FolderRepository
+import com.qlink.foldermember.repository.FolderMemberRepository
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.repository.LinkRepository
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.AiFixture
 import com.qlink.support.fixture.FolderFixture
+import com.qlink.support.fixture.FolderMemberFixture
 import com.qlink.support.fixture.LinkFixture
 import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.TodoFixture
@@ -30,6 +32,7 @@ import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
 import java.time.LocalTime
+import kotlin.time.Clock
 import kotlin.time.toKotlinInstant
 
 class GetLinkDetailServiceTest :
@@ -38,6 +41,7 @@ class GetLinkDetailServiceTest :
         val userRepository = koinGet<UserRepository>()
         val linkRepository = koinGet<LinkRepository>()
         val folderRepository = koinGet<FolderRepository>()
+        val folderMemberRepository = koinGet<FolderMemberRepository>()
         val todoRepository = koinGet<TodoRepository>()
         val aiProviderRepository = koinGet<AiProviderRepository>()
         val availableModelRepository = koinGet<AvailableModelRepository>()
@@ -74,6 +78,9 @@ class GetLinkDetailServiceTest :
                             folderId = folder.id,
                             workModelId = model.id,
                             status = LinkStatus.A,
+                            thumbnailUrl = RandomFixture.randomPreviewUrl(),
+                            faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                            isVideo = true,
                         ),
                     )
                 val otherLink =
@@ -121,6 +128,9 @@ class GetLinkDetailServiceTest :
                     actual.id shouldBe link.id
                     actual.url shouldBe link.url
                     actual.title shouldBe link.title
+                    actual.thumbnailUrl shouldBe link.thumbnailUrl
+                    actual.faviconUrl shouldBe link.faviconUrl
+                    actual.isVideo shouldBe link.isVideo
                     actual.summary shouldBe link.summary
                     actual.tags shouldBe link.tags
                     actual.memo shouldBe link.memo
@@ -201,6 +211,56 @@ class GetLinkDetailServiceTest :
                     shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_DIFFERENT_OWNER.message) {
                         getDetail()
                     }
+                }
+            }
+        }
+
+        Given("공유 폴더의 이미지가 있는 링크") {
+            lateinit var member: User
+            lateinit var outsider: User
+            lateinit var sharedLink: Link
+
+            beforeTest {
+                val owner = userRepository.insert(UserFixture.createRandomValidUser())
+                member = userRepository.insert(UserFixture.createRandomValidUser())
+                outsider = userRepository.insert(UserFixture.createRandomValidUser())
+                val sharedFolder =
+                    folderRepository.insert(FolderFixture.createFolderWith(ownerId = owner.id!!, sharedAt = Clock.System.now()))
+                folderMemberRepository.insertIfAbsent(
+                    FolderMemberFixture.createOwnerMember(folderId = sharedFolder.id!!, userId = owner.id!!),
+                )
+                folderMemberRepository.insertIfAbsent(
+                    FolderMemberFixture.createMember(folderId = sharedFolder.id!!, userId = member.id!!),
+                )
+                sharedLink =
+                    linkRepository.insert(
+                        LinkFixture.createRandomLinkOf(
+                            ownerId = owner.id!!,
+                            folderId = sharedFolder.id,
+                            thumbnailUrl = RandomFixture.randomPreviewUrl(),
+                            faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                            isVideo = true,
+                        ),
+                    )
+            }
+
+            When("멤버가 상세를 조회하면") {
+                val linkId = sharedLink.id!!
+                val response = getLinkDetailService.getLinkDetail(member.id!!, linkId)
+
+                Then("저장된 이미지 값이 보인다") {
+                    val stored = linkRepository.findById(linkId)!!
+                    response.thumbnailUrl shouldBe stored.thumbnailUrl
+                    response.faviconUrl shouldBe stored.faviconUrl
+                    response.isVideo shouldBe stored.isVideo
+                }
+            }
+
+            When("비회원이 상세를 조회하면") {
+                val getDetail = suspend { getLinkDetailService.getLinkDetail(outsider.id!!, sharedLink.id!!) }
+
+                Then("공유 폴더 접근 오류가 난다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_SHARED_FOLDER_ACCESS_DENIED.message) { getDetail() }
                 }
             }
         }

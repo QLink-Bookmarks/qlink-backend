@@ -6,6 +6,7 @@ import java.time.LocalTime
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.Locale
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlin.time.Instant
 import kotlin.time.toKotlinInstant
@@ -198,6 +199,8 @@ object RandomFixture {
     }
 
     fun randomUrl(): String = faker.internet().url()
+
+    fun randomPreviewUrl(prefix: String = "preview"): String = "https://images.archivelink.app/dev-$prefix-${UUID.randomUUID()}.png"
 
     fun randomEmoji(): String = faker.emoji().smiley()
 

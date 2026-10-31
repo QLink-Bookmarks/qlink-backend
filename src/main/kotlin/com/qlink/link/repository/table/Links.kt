@@ -29,6 +29,8 @@ object Links : Table("links") {
     val tags = array<String>("tags", TextColumnType()).default(emptyList())
     val searchText = text("search_text").default("")
     val thumbnailUrl = text("thumbnail_url").nullable()
+    val faviconUrl = text("favicon_url").nullable()
+    val isVideo = bool("is_video").default(false)
     val sourceType = enumerationByName<SourceType>("source_type", 30)
     val status = enumerationByName<LinkStatus>("status", 1).default(LinkStatus.C)
     val workModelId =
@@ -60,6 +62,8 @@ fun ResultRow.toLinkDomain(): Link =
         memo = this[Links.memo],
         tags = this[Links.tags],
         thumbnailUrl = this[Links.thumbnailUrl],
+        faviconUrl = this[Links.faviconUrl],
+        isVideo = this[Links.isVideo],
         sourceType = this[Links.sourceType],
         status = this[Links.status],
         workModelId = this[Links.workModelId],
@@ -78,6 +82,8 @@ fun UpdateBuilder<*>.fromDomain(link: Link) {
     this[Links.tags] = link.tags
     this[Links.searchText] = link.searchText()
     this[Links.thumbnailUrl] = link.thumbnailUrl
+    this[Links.faviconUrl] = link.faviconUrl
+    this[Links.isVideo] = link.isVideo
     this[Links.sourceType] = link.sourceType
     this[Links.status] = link.status
     this[Links.workModelId] = link.workModelId

@@ -70,7 +70,11 @@ class UpdateLinkServiceTest :
                             ownerId = user.id!!,
                         ),
                     )
-                updateRequest = LinkFixture.createValidUpdateLinkRequest(folderId = folder.id)
+                updateRequest =
+                    LinkFixture.createValidUpdateLinkRequest(folderId = folder.id).copy(
+                        faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                        isVideo = true,
+                    )
                 otherUserLinkUpdateRequest = LinkFixture.createValidUpdateLinkRequest()
                 missingFolderRequest = LinkFixture.createValidUpdateLinkRequest(folderId = RandomFixture.randomId())
                 otherUserFolderRequest = LinkFixture.createValidUpdateLinkRequest(folderId = otherFolder.id)
@@ -110,6 +114,8 @@ class UpdateLinkServiceTest :
                     actual.memo shouldBe request.memo
                     actual.tags shouldBe expectedTags
                     actual.thumbnailUrl shouldBe request.thumbnailUrl
+                    actual.faviconUrl shouldBe request.faviconUrl
+                    actual.isVideo shouldBe request.isVideo
                     actual.sourceType shouldBe request.sourceType
                     actual.favoriteAt shouldBe null
                     actual.updatedAt shouldNotBe link.updatedAt
@@ -133,6 +139,27 @@ class UpdateLinkServiceTest :
 
                 Then("favoriteAt가 그대로 유지된다") {
                     actual!!.favoriteAt shouldBe favoritedLink.favoriteAt
+                }
+            }
+
+            When("요청에서 이미지 값과 영상 여부를 생략하면") {
+                val imageLink =
+                    linkRepository.insert(
+                        LinkFixture.createRandomLinkOf(
+                            ownerId = user.id!!,
+                            thumbnailUrl = RandomFixture.randomPreviewUrl(),
+                            faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                            isVideo = true,
+                        ),
+                    )
+                val request = LinkFixture.createValidUpdateLinkRequest().copy(thumbnailUrl = null)
+                updateLinkService.updateLink(user.id!!, imageLink.id!!, request)
+
+                Then("저장된 이미지 값은 null, 영상 여부는 false다") {
+                    val actual = linkRepository.findById(imageLink.id!!)!!
+                    actual.thumbnailUrl shouldBe null
+                    actual.faviconUrl shouldBe null
+                    actual.isVideo shouldBe false
                 }
             }
 

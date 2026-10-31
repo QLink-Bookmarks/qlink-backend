@@ -209,20 +209,26 @@ class LinkTest :
 
             When("썸네일 URL이 있을 때 host가 없으면") {
                 val wrongHostCreate = {
-                    Link(
+                    Link.createFromRequest(
                         ownerId = ownerId,
                         folderId = folderId,
                         url = url,
                         title = title,
                         summary = summary,
+                        memo = null,
                         tags = tags,
                         sourceType = sourceType,
                         thumbnailUrl = "https://.com",
+                        faviconUrl = null,
+                        isVideo = false,
+                        status = LinkStatus.C,
+                        previewPublicBaseUrl = "https://images.archivelink.app",
+                        previewEnvironment = "dev",
                     )
                 }
 
                 Then("생성을 실패한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_URL_WRONG_HOST.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_THUMBNAIL_URL_NOT_ALLOWED.message) {
                         wrongHostCreate()
                     }
                 }
@@ -230,20 +236,26 @@ class LinkTest :
 
             When("썸네일 URL이 있을 때 URL이 웹 프로토콜이 아니면") {
                 val notWebCreate = {
-                    Link(
+                    Link.createFromRequest(
                         ownerId = ownerId,
                         folderId = folderId,
                         url = url,
                         title = title,
                         summary = summary,
+                        memo = null,
                         tags = tags,
                         sourceType = sourceType,
                         thumbnailUrl = "file://google.com",
+                        faviconUrl = null,
+                        isVideo = false,
+                        status = LinkStatus.C,
+                        previewPublicBaseUrl = "https://images.archivelink.app",
+                        previewEnvironment = "dev",
                     )
                 }
 
                 Then("생성을 실패한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_URL_NOT_HTTP.message) {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_THUMBNAIL_URL_NOT_ALLOWED.message) {
                         notWebCreate()
                     }
                 }
@@ -291,7 +303,7 @@ class LinkTest :
                 val summary = RandomFixture.randomSentenceWithMax(1_000)
                 val memo = RandomFixture.randomSentenceWithMax(1_000)
                 val tags = RandomFixture.randomSentenceList()
-                val thumbnailUrl = RandomFixture.randomUrl()
+                val thumbnailUrl = RandomFixture.randomPreviewUrl()
                 val sourceType = SourceType.entries.first { it != link.sourceType }
 
                 val actual =
@@ -304,6 +316,8 @@ class LinkTest :
                         tags = tags,
                         thumbnailUrl = thumbnailUrl,
                         sourceType = sourceType,
+                        previewPublicBaseUrl = "https://images.archivelink.app",
+                        previewEnvironment = "dev",
                     )
 
                 Then("성공한다") {
@@ -330,7 +344,7 @@ class LinkTest :
                 val secondTag = "${RandomFixture.randomSentenceWithMax(10)}-${RandomFixture.randomId()}"
                 val thirdTag = "${RandomFixture.randomSentenceWithMax(10)}-${RandomFixture.randomId()}"
                 val duplicatedTags = listOf(firstTag, secondTag, firstTag, thirdTag, secondTag)
-                val thumbnailUrl = RandomFixture.randomUrl()
+                val thumbnailUrl = link.thumbnailUrl
                 val sourceType = SourceType.entries.first { it != link.sourceType }
 
                 val actual =
@@ -359,7 +373,7 @@ class LinkTest :
                         summary = RandomFixture.randomSentenceWithMax(1_000),
                         memo = RandomFixture.randomSentenceWithMax(1_000),
                         tags = RandomFixture.randomSentenceList(),
-                        thumbnailUrl = RandomFixture.randomUrl(),
+                        thumbnailUrl = link.thumbnailUrl,
                         sourceType = link.sourceType,
                     )
                 }
