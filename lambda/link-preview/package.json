@@ -1,0 +1,21 @@
+{
+  "name": "alink-link-preview-lambda",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "package": "bash package.sh"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.0.0",
+    "@humanwhocodes/ico-to-png": "^1.0.0",
+    "cheerio": "^1.0.0",
+    "ipaddr.js": "^2.0.0",
+    "open-graph-scraper": "^6.0.0",
+    "sharp": "^0.35.5"
+  }
+}

@@ -111,6 +111,17 @@ jobs:
       - name: Terraform 설치
         uses: hashicorp/setup-terraform@v4
 
+      - name: Node.js 24 설치
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: lambda/link-preview/package-lock.json
+
+      - name: Lambda ZIP 준비
+        working-directory: lambda/link-preview
+        run: npm run package
+
       - name: Terraform Init (Remote Backend)
         working-directory: terraform/${{ inputs.env }}
         run: |
@@ -132,6 +143,7 @@ jobs:
           TF_VAR_rds_db_name: ${{ inputs.rds_db_name }}
           TF_VAR_rds_username: ${{ inputs.rds_username }}
           TF_VAR_ecs_image_tag: ${{ steps.image_tag.outputs.value }}
+          TF_VAR_lambda_git_sha: ${{ github.sha }}
           TF_VAR_ecr_repository_name: ${{ inputs.ecr_repository_name }}
           TF_VAR_ecr_repository_tag_name: ${{ inputs.ecr_repository_tag_name }}
         run: |
@@ -157,6 +169,7 @@ jobs:
           TF_VAR_rds_db_name: ${{ inputs.rds_db_name }}
           TF_VAR_rds_username: ${{ inputs.rds_username }}
           TF_VAR_ecs_image_tag: ${{ steps.image_tag.outputs.value }}
+          TF_VAR_lambda_git_sha: ${{ github.sha }}
           TF_VAR_ecr_repository_name: ${{ inputs.ecr_repository_name }}
           TF_VAR_ecr_repository_tag_name: ${{ inputs.ecr_repository_tag_name }}
         run: |

@@ -90,6 +90,28 @@ module "route53" {
   }
 }
 
+module "link_preview_lambda" {
+  source       = "../modules/link-preview-lambda"
+  environment  = "prod"
+  bucket_name  = "alink-previews-prod"
+  bucket_arn   = "arn:aws:s3:::alink-previews-prod"
+  package_path = "${path.root}/../../lambda/link-preview/build/link-preview.zip"
+  git_sha      = var.lambda_git_sha
+}
+
+resource "aws_iam_role_policy" "link_preview_lambda_invoke" {
+  name = "${var.ecs_task_role_name}-link-preview-lambda"
+  role = var.ecs_task_role_name
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["lambda:InvokeFunction"]
+      Resource = [module.link_preview_lambda.alias_arn]
+    }]
+  })
+}
+
 module "ecs" {
   source = "../modules/ecs"
 
@@ -135,14 +157,17 @@ module "ecs" {
   task_app_protocol   = var.ecs_task_app_protocol
   task_image          = "${module.ecr.repository_url}:${var.ecs_image_tag}"
   task_environment = {
-    DB_JDBC_URL             = local.rds_jdbc_url
-    DB_USERNAME             = var.rds_username
-    DB_DRIVER_CLASS_NAME    = "org.postgresql.Driver"
-    AWS_S3_REGION           = var.aws_region
-    AWS_S3_BUCKET           = var.aws_s3_bucket_name
-    AWS_S3_ENDPOINT         = ""
-    AWS_S3_FORCE_PATH_STYLE = "false"
-    AWS_S3_PUBLIC_BASE_URL  = "https://${var.images_domain}"
+    DB_JDBC_URL                  = local.rds_jdbc_url
+    DB_USERNAME                  = var.rds_username
+    DB_DRIVER_CLASS_NAME         = "org.postgresql.Driver"
+    AWS_S3_REGION                = var.aws_region
+    AWS_S3_BUCKET                = var.aws_s3_bucket_name
+    AWS_S3_ENDPOINT              = ""
+    AWS_S3_FORCE_PATH_STYLE      = "false"
+    AWS_S3_PUBLIC_BASE_URL       = "https://${var.images_domain}"
+    LINK_PREVIEW_LAMBDA_FUNCTION = module.link_preview_lambda.alias_arn
+    LINK_PREVIEW_LAMBDA_ENDPOINT = ""
+    LINK_PREVIEW_PUBLIC_BASE_URL = "https://${var.images_domain}"
   }
   task_secret_values = {
     DB_PASSWORD                      = var.db_password

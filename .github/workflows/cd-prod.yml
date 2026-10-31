@@ -17,6 +17,7 @@ jobs:
     outputs:
       infra_changed: ${{ steps.filter.outputs.infra }}
       app_changed: ${{ steps.filter.outputs.app }}
+      lambda_changed: ${{ steps.filter.outputs.lambda }}
     steps:
       - name: 체크아웃
         uses: actions/checkout@v6
@@ -30,6 +31,8 @@ jobs:
               - 'terraform/prod/**'
               - 'terraform/modules/**'
               - '.github/workflows/infra-pipeline.yml'
+            lambda:
+              - 'lambda/link-preview/**'
             app:
               - 'src/**'
               - 'build.gradle.kts'
@@ -53,7 +56,7 @@ jobs:
     needs:
       - detect
       - approval
-    if: ${{ needs.detect.outputs.infra_changed == 'true' }}
+    if: ${{ needs.detect.outputs.infra_changed == 'true' || needs.detect.outputs.lambda_changed == 'true' }}
     uses: ./.github/workflows/infra-pipeline.yml
     with:
       env: prod
@@ -61,7 +64,8 @@ jobs:
       ecr_repository_tag_name: alink-ecr-prod
       rds_db_name: alink
       rds_username: alinkadmin
-      infra_update_enabled: true
+      infra_update_enabled: ${{ needs.detect.outputs.infra_changed == 'true' }}
+      lambda_update_enabled: ${{ needs.detect.outputs.lambda_changed == 'true' }}
       infra_shared_update_enabled: false
     secrets:
       AWS_ACCESS_KEY_ID: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}

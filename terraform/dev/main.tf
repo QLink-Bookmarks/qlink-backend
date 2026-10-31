@@ -234,6 +234,28 @@ module "route53" {
   }
 }
 
+module "link_preview_lambda" {
+  source       = "../modules/link-preview-lambda"
+  environment  = "dev"
+  bucket_name  = module.image_buckets["dev_previews"].bucket_name
+  bucket_arn   = module.image_buckets["dev_previews"].bucket_arn
+  package_path = "${path.root}/../../lambda/link-preview/build/link-preview.zip"
+  git_sha      = var.lambda_git_sha
+}
+
+resource "aws_iam_role_policy" "link_preview_lambda_invoke" {
+  name = "${var.ecs_task_role_name}-link-preview-lambda"
+  role = var.ecs_task_role_name
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["lambda:InvokeFunction"]
+      Resource = [module.link_preview_lambda.alias_arn]
+    }]
+  })
+}
+
 module "ecs" {
   source = "../modules/ecs"
 
@@ -279,16 +301,19 @@ module "ecs" {
   task_app_protocol   = var.ecs_task_app_protocol
   task_image          = "${module.ecr.repository_url}:${var.ecs_image_tag}"
   task_environment = {
-    DB_JDBC_URL             = local.rds_jdbc_url
-    DB_USERNAME             = var.rds_username
-    DB_DRIVER_CLASS_NAME    = "org.postgresql.Driver"
-    APPLE_CLIENT_IDS        = var.apple_client_ids
-    GOOGLE_CLIENT_IDS       = var.google_client_ids
-    AWS_S3_REGION           = var.aws_region
-    AWS_S3_BUCKET           = module.s3.bucket_name
-    AWS_S3_ENDPOINT         = ""
-    AWS_S3_FORCE_PATH_STYLE = "false"
-    AWS_S3_PUBLIC_BASE_URL  = module.cloudfront.public_base_url
+    DB_JDBC_URL                  = local.rds_jdbc_url
+    DB_USERNAME                  = var.rds_username
+    DB_DRIVER_CLASS_NAME         = "org.postgresql.Driver"
+    APPLE_CLIENT_IDS             = var.apple_client_ids
+    GOOGLE_CLIENT_IDS            = var.google_client_ids
+    AWS_S3_REGION                = var.aws_region
+    AWS_S3_BUCKET                = module.s3.bucket_name
+    AWS_S3_ENDPOINT              = ""
+    AWS_S3_FORCE_PATH_STYLE      = "false"
+    AWS_S3_PUBLIC_BASE_URL       = module.cloudfront.public_base_url
+    LINK_PREVIEW_LAMBDA_FUNCTION = module.link_preview_lambda.alias_arn
+    LINK_PREVIEW_LAMBDA_ENDPOINT = ""
+    LINK_PREVIEW_PUBLIC_BASE_URL = module.cloudfront.public_base_url
   }
   task_secret_values = {
     DB_PASSWORD              = var.db_password
