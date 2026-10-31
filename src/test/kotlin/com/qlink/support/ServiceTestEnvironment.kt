@@ -4,6 +4,7 @@ import aws.sdk.kotlin.services.s3.S3Client
 import aws.sdk.kotlin.services.s3.createBucket
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.config.DataSourceConfig
+import com.qlink.config.LinkPreviewConfig
 import com.qlink.config.S3Config
 import com.qlink.config.SecurityConfig
 import com.qlink.di.dataModule
@@ -11,8 +12,10 @@ import com.qlink.di.repositoryModule
 import com.qlink.di.serviceModule
 import com.qlink.di.storageModule
 import com.qlink.di.transactionModule
+import com.qlink.link.client.LinkPreviewSyncClient
 import com.qlink.notification.worker.TaskScheduler
 import com.qlink.push.client.PushNotificationSenderRouter
+import com.qlink.support.fixture.FakeLinkPreviewSyncClient
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.config.ApplicationConfig
 import io.ktor.server.config.MapApplicationConfig
@@ -138,6 +141,7 @@ object ServiceTestEnvironment {
                 aiTestModule(),
                 authTestModule(),
                 storageModule(testS3Config()),
+                linkPreviewTestModule(),
                 serviceModule(),
             )
         }
@@ -151,6 +155,21 @@ object ServiceTestEnvironment {
             forcePathStyle = true,
             publicBaseUrl = null,
         )
+
+    private fun linkPreviewTestModule() =
+        module {
+            single {
+                LinkPreviewConfig(
+                    environment = "dev",
+                    functionName = "link-preview-test",
+                    publicBaseUrl = "https://images.archivelink.app",
+                    region = localStackContainer.region,
+                    endpoint = localStackContainer.endpoint.toString(),
+                )
+            }
+            single { FakeLinkPreviewSyncClient() }
+            single<LinkPreviewSyncClient> { get<FakeLinkPreviewSyncClient>() }
+        }
 
     private fun ensureS3Bucket() {
         val s3Client = GlobalContext.get().get<S3Client>()

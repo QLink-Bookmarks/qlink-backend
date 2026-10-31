@@ -139,6 +139,7 @@ dependencies {
 
     // Storage
     implementation(libs.aws.s3)
+    implementation(libs.aws.lambda)
 
     // Auth
     implementation(ktorLibs.server.auth)

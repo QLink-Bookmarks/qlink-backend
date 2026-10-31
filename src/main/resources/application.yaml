@@ -66,6 +66,11 @@ aws:
     endpoint: http://localhost:4566
     forcePathStyle: true
 
+linkPreview:
+  lambdaFunction: alink-link-preview-dev:live
+  lambdaEndpoint: http://localhost:4566
+  publicBaseUrl: https://images.archivelink.app
+
 logging:
   http:
     slowThresholdMs: 1000
