@@ -2,40 +2,33 @@
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "ListOwnPreviewBucketForHeadObject",
+      "Sid": "ListPreviewBucketsForHeadObject",
       "Effect": "Allow",
       "Action": "s3:ListBucket",
-      "Resource": "arn:aws:s3:::alink-previews-${aws:PrincipalTag/alinkEnvironment}",
-      "Condition": {
-        "StringEquals": {
-          "aws:PrincipalTag/alinkEnvironment": ["dev", "prod"]
-        }
-      }
+      "Resource": [
+        "arn:aws:s3:::alink-previews-dev",
+        "arn:aws:s3:::alink-previews-prod"
+      ]
     },
     {
-      "Sid": "ReadWriteOwnPreviewObjects",
+      "Sid": "ReadWritePreviewObjects",
       "Effect": "Allow",
       "Action": ["s3:GetObject", "s3:PutObject"],
       "Resource": [
-        "arn:aws:s3:::alink-previews-${aws:PrincipalTag/alinkEnvironment}/${aws:PrincipalTag/alinkEnvironment}-preview-*",
-        "arn:aws:s3:::alink-previews-${aws:PrincipalTag/alinkEnvironment}/${aws:PrincipalTag/alinkEnvironment}-favicon-*"
-      ],
-      "Condition": {
-        "StringEquals": {
-          "aws:PrincipalTag/alinkEnvironment": ["dev", "prod"]
-        }
-      }
+        "arn:aws:s3:::alink-previews-dev/dev-preview-*",
+        "arn:aws:s3:::alink-previews-dev/dev-favicon-*",
+        "arn:aws:s3:::alink-previews-prod/prod-preview-*",
+        "arn:aws:s3:::alink-previews-prod/prod-favicon-*"
+      ]
     },
     {
-      "Sid": "WriteOwnLambdaLogs",
+      "Sid": "WritePreviewLambdaLogs",
       "Effect": "Allow",
       "Action": ["logs:CreateLogStream", "logs:PutLogEvents"],
-      "Resource": "arn:aws:logs:ap-northeast-2:650177546654:log-group:/aws/lambda/alink-link-preview-${aws:PrincipalTag/alinkEnvironment}:*",
-      "Condition": {
-        "StringEquals": {
-          "aws:PrincipalTag/alinkEnvironment": ["dev", "prod"]
-        }
-      }
+      "Resource": [
+        "arn:aws:logs:ap-northeast-2:650177546654:log-group:/aws/lambda/alink-link-preview-dev:*",
+        "arn:aws:logs:ap-northeast-2:650177546654:log-group:/aws/lambda/alink-link-preview-prod:*"
+      ]
     }
   ]
 }

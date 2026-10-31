@@ -24,8 +24,8 @@ Lambda는 앱·기존 인프라와 분리된 `terraform/lambda/dev` 및 `terrafo
 
 ## 외부 IAM 준비
 
-실행 역할과 정책 연결, 서버의 Lambda 호출 권한은 Terraform에서 만들거나 수정하지 않는다. AWS 계정 `650177546654`에는 관리형 정책 `arn:aws:iam::650177546654:policy/alinkPreviewLambda`가 만들어져 있다. 정책 내용은 `references/iam/alinkPreviewLambda.json`에 기록했다. 이 파일을 변경해도 AWS 정책은 자동으로 갱신되지 않으므로 정책 버전은 IAM에서 직접 관리한다. 이 정책을 Lambda 서비스가 수임할 수 있는 각 환경의 실행 역할에 연결하고 역할 태그 `alinkEnvironment=dev` 또는 `alinkEnvironment=prod`를 지정해야 한다. 이 태그로 접근 가능한 버킷·객체 접두어·로그 그룹이 해당 환경으로 제한된다.
+실행 역할과 정책 연결, 서버의 Lambda 호출 권한은 Terraform에서 만들거나 수정하지 않는다. AWS 계정 `650177546654`에는 관리형 정책 `arn:aws:iam::650177546654:policy/alinkPreviewLambda`가 만들어져 있다. 정책 내용은 `references/iam/alinkPreviewLambda.json`에 기록했다. 이 파일을 변경해도 AWS 정책은 자동으로 갱신되지 않으므로 정책 버전은 IAM에서 직접 관리한다. 이 정책은 dev/prod 버킷의 프리뷰·파비콘 객체와 두 Lambda 로그 그룹 접근을 허용한다. 공통 실행 역할 `arn:aws:iam::650177546654:role/alinkPreviewLambda`에 연결하고 Lambda 서비스가 이 역할을 수임할 수 있게 해야 한다. 역할 태그는 필요 없다.
 
-GitHub 저장소 변수는 필요 없다. Terraform은 배포 계정 ID를 조회하고 외부 실행 역할 이름 `alinkPreviewLambda-dev` 또는 `alinkPreviewLambda-prod`로 ARN을 조립해 Lambda에 연결한다. 이 이름의 역할을 해당 계정에 만들고 `alinkPreviewLambda` 정책을 연결해야 배포할 수 있다. 서버의 기존 ECS 태스크 역할에는 해당 환경의 `alink-link-preview-{env}:live` 별칭에 대한 `lambda:InvokeFunction` 권한을 외부에서 부여해야 한다.
+GitHub 저장소 변수는 필요 없다. Terraform은 dev/prod Lambda에 위의 같은 역할 ARN을 직접 설정한다. 이 역할을 만들고 정책을 연결해야 배포할 수 있다. 서버의 기존 ECS 태스크 역할에는 해당 환경의 `alink-link-preview-{env}:live` 별칭에 대한 `lambda:InvokeFunction` 권한을 외부에서 부여해야 한다.
 
 이미지 객체는 원본 URL의 scheme·host만 소문자화해 만든 해시 또는 파비콘의 호스트 해시를 키로 사용한다. S3 `LastModified`가 7일 미만이면 재사용하고, 이후 요청에서 조건부로 갱신한다. `Cache-Control`은 1일이다.
