@@ -40,6 +40,7 @@ jobs:
               - 'lambda/link-preview/package.sh'
               - 'terraform/lambda/prod/**'
               - 'terraform/lambda/module/**'
+              - '.github/workflows/lambda-pipeline.yml'
             app:
               - 'src/**'
               - 'build.gradle.kts'
@@ -91,7 +92,6 @@ jobs:
     uses: ./.github/workflows/lambda-pipeline.yml
     with:
       env: prod
-      role_arn: ${{ vars.PROD_LINK_PREVIEW_LAMBDA_ROLE_ARN }}
     secrets:
       AWS_ACCESS_KEY_ID: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}

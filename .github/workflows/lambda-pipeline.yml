@@ -6,9 +6,6 @@ on:
       env:
         required: true
         type: string
-      role_arn:
-        required: true
-        type: string
     secrets:
       AWS_ACCESS_KEY_ID:
         required: true
@@ -50,21 +47,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-2
 
-      - name: 외부 실행 역할 확인
-        env:
-          LAMBDA_ROLE_ARN: ${{ inputs.role_arn }}
-        run: |
-          if [[ ! "$LAMBDA_ROLE_ARN" =~ ^arn:aws:iam::([0-9]{12}):role/.+ ]]; then
-            echo "Configure the Lambda execution role ARN for this environment." >&2
-            exit 1
-          fi
-          role_account_id="${BASH_REMATCH[1]}"
-          account_id="$(aws sts get-caller-identity --query Account --output text)"
-          if [[ "$role_account_id" != "$account_id" ]]; then
-            echo "The Lambda execution role must belong to the deployment account." >&2
-            exit 1
-          fi
-
       - name: Terraform 설치
         uses: hashicorp/setup-terraform@v4
 
@@ -82,7 +64,6 @@ jobs:
         working-directory: terraform/lambda/${{ inputs.env }}
         env:
           TF_IN_AUTOMATION: "true"
-          TF_VAR_lambda_role_arn: ${{ inputs.role_arn }}
           TF_VAR_lambda_git_sha: ${{ github.sha }}
         run: terraform plan -input=false -out=tfplan
 
@@ -90,6 +71,5 @@ jobs:
         working-directory: terraform/lambda/${{ inputs.env }}
         env:
           TF_IN_AUTOMATION: "true"
-          TF_VAR_lambda_role_arn: ${{ inputs.role_arn }}
           TF_VAR_lambda_git_sha: ${{ github.sha }}
         run: terraform apply -input=false -auto-approve tfplan

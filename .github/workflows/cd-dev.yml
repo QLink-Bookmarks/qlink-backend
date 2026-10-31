@@ -41,6 +41,7 @@ jobs:
               - 'lambda/link-preview/package.sh'
               - 'terraform/lambda/dev/**'
               - 'terraform/lambda/module/**'
+              - '.github/workflows/lambda-pipeline.yml'
             infra_shared:
               - 'terraform/shared/**'
               - '.github/workflows/infra-pipeline.yml'
@@ -83,7 +84,6 @@ jobs:
     uses: ./.github/workflows/lambda-pipeline.yml
     with:
       env: dev
-      role_arn: ${{ vars.DEV_LINK_PREVIEW_LAMBDA_ROLE_ARN }}
     secrets:
       AWS_ACCESS_KEY_ID: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
