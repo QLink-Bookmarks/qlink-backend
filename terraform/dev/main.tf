@@ -234,28 +234,6 @@ module "route53" {
   }
 }
 
-module "link_preview_lambda" {
-  source       = "../modules/link-preview-lambda"
-  environment  = "dev"
-  bucket_name  = module.image_buckets["dev_previews"].bucket_name
-  bucket_arn   = module.image_buckets["dev_previews"].bucket_arn
-  package_path = "${path.root}/../../lambda/link-preview/build/link-preview.zip"
-  git_sha      = var.lambda_git_sha
-}
-
-resource "aws_iam_role_policy" "link_preview_lambda_invoke" {
-  name = "${var.ecs_task_role_name}-link-preview-lambda"
-  role = var.ecs_task_role_name
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = ["lambda:InvokeFunction"]
-      Resource = [module.link_preview_lambda.alias_arn]
-    }]
-  })
-}
-
 module "ecs" {
   source = "../modules/ecs"
 
@@ -311,7 +289,7 @@ module "ecs" {
     AWS_S3_ENDPOINT              = ""
     AWS_S3_FORCE_PATH_STYLE      = "false"
     AWS_S3_PUBLIC_BASE_URL       = module.cloudfront.public_base_url
-    LINK_PREVIEW_LAMBDA_FUNCTION = module.link_preview_lambda.alias_arn
+    LINK_PREVIEW_LAMBDA_FUNCTION = "alink-link-preview-dev:live"
     LINK_PREVIEW_LAMBDA_ENDPOINT = ""
     LINK_PREVIEW_PUBLIC_BASE_URL = module.cloudfront.public_base_url
   }

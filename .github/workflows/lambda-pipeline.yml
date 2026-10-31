@@ -1,0 +1,95 @@
+name: 링크 프리뷰 Lambda 배포 파이프라인
+
+on:
+  workflow_call:
+    inputs:
+      env:
+        required: true
+        type: string
+      role_arn:
+        required: true
+        type: string
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: link-preview-lambda-${{ inputs.env }}
+      cancel-in-progress: false
+    steps:
+      - name: 체크아웃
+        uses: actions/checkout@v6
+
+      - name: Node.js 24 설치
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: lambda/link-preview/package-lock.json
+
+      - name: 람다 검증 및 ZIP 생성
+        working-directory: lambda/link-preview
+        run: |
+          npm ci
+          npm test
+          npm audit --omit=dev --audit-level=high
+          npm run package
+
+      - name: AWS Credentials 설정
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+
+      - name: 외부 실행 역할 확인
+        env:
+          LAMBDA_ROLE_ARN: ${{ inputs.role_arn }}
+        run: |
+          if [[ ! "$LAMBDA_ROLE_ARN" =~ ^arn:aws:iam::([0-9]{12}):role/.+ ]]; then
+            echo "Configure the Lambda execution role ARN for this environment." >&2
+            exit 1
+          fi
+          role_account_id="${BASH_REMATCH[1]}"
+          account_id="$(aws sts get-caller-identity --query Account --output text)"
+          if [[ "$role_account_id" != "$account_id" ]]; then
+            echo "The Lambda execution role must belong to the deployment account." >&2
+            exit 1
+          fi
+
+      - name: Terraform 설치
+        uses: hashicorp/setup-terraform@v4
+
+      - name: Lambda Terraform Init
+        working-directory: terraform/lambda/${{ inputs.env }}
+        run: terraform init -reconfigure -input=false
+
+      - name: Lambda Terraform 검증
+        working-directory: terraform/lambda/${{ inputs.env }}
+        run: |
+          terraform fmt -check -recursive
+          terraform validate
+
+      - name: Lambda Terraform Plan
+        working-directory: terraform/lambda/${{ inputs.env }}
+        env:
+          TF_IN_AUTOMATION: "true"
+          TF_VAR_lambda_role_arn: ${{ inputs.role_arn }}
+          TF_VAR_lambda_git_sha: ${{ github.sha }}
+        run: terraform plan -input=false -out=tfplan
+
+      - name: Lambda Terraform Apply
+        working-directory: terraform/lambda/${{ inputs.env }}
+        env:
+          TF_IN_AUTOMATION: "true"
+          TF_VAR_lambda_role_arn: ${{ inputs.role_arn }}
+          TF_VAR_lambda_git_sha: ${{ github.sha }}
+        run: terraform apply -input=false -auto-approve tfplan
