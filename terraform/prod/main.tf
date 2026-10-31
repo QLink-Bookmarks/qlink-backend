@@ -135,14 +135,17 @@ module "ecs" {
   task_app_protocol   = var.ecs_task_app_protocol
   task_image          = "${module.ecr.repository_url}:${var.ecs_image_tag}"
   task_environment = {
-    DB_JDBC_URL             = local.rds_jdbc_url
-    DB_USERNAME             = var.rds_username
-    DB_DRIVER_CLASS_NAME    = "org.postgresql.Driver"
-    AWS_S3_REGION           = var.aws_region
-    AWS_S3_BUCKET           = var.aws_s3_bucket_name
-    AWS_S3_ENDPOINT         = ""
-    AWS_S3_FORCE_PATH_STYLE = "false"
-    AWS_S3_PUBLIC_BASE_URL  = "https://${var.images_domain}"
+    DB_JDBC_URL                  = local.rds_jdbc_url
+    DB_USERNAME                  = var.rds_username
+    DB_DRIVER_CLASS_NAME         = "org.postgresql.Driver"
+    AWS_S3_REGION                = var.aws_region
+    AWS_S3_BUCKET                = var.aws_s3_bucket_name
+    AWS_S3_ENDPOINT              = ""
+    AWS_S3_FORCE_PATH_STYLE      = "false"
+    AWS_S3_PUBLIC_BASE_URL       = "https://${var.images_domain}"
+    LINK_PREVIEW_LAMBDA_FUNCTION = "alink-link-preview-prod:live"
+    LINK_PREVIEW_LAMBDA_ENDPOINT = ""
+    LINK_PREVIEW_PUBLIC_BASE_URL = "https://${var.images_domain}"
   }
   task_secret_values = {
     DB_PASSWORD                      = var.db_password

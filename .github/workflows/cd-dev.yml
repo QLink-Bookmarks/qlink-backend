@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
   detect:
@@ -18,6 +19,7 @@ jobs:
       infra_changed: ${{ steps.filter.outputs.infra }}
       infra_shared_changed: ${{ steps.filter.outputs.infra_shared }}
       app_changed: ${{ steps.filter.outputs.app }}
+      lambda_changed: ${{ steps.filter.outputs.lambda }}
     steps:
       - name: 체크아웃
         uses: actions/checkout@v6
@@ -31,6 +33,15 @@ jobs:
               - 'terraform/dev/**'
               - 'terraform/modules/**'
               - '.github/workflows/infra-pipeline.yml'
+            lambda:
+              - 'lambda/link-preview/src/**'
+              - 'lambda/link-preview/index.mjs'
+              - 'lambda/link-preview/package.json'
+              - 'lambda/link-preview/package-lock.json'
+              - 'lambda/link-preview/package.sh'
+              - 'terraform/lambda/dev/**'
+              - 'terraform/lambda/module/**'
+              - '.github/workflows/lambda-pipeline.yml'
             infra_shared:
               - 'terraform/shared/**'
               - '.github/workflows/infra-pipeline.yml'
@@ -67,11 +78,22 @@ jobs:
       TF_VAR_APPLE_CLIENT_IDS: ${{ secrets.DEV_APPLE_CLIENT_IDS }}
       TF_VAR_GOOGLE_CLIENT_IDS: ${{ secrets.DEV_GOOGLE_CLIENT_IDS }}
 
+  lambda_deploy:
+    needs: detect
+    if: ${{ needs.detect.outputs.lambda_changed == 'true' }}
+    uses: ./.github/workflows/lambda-pipeline.yml
+    with:
+      env: dev
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
+
   dev_deploy:
     needs:
       - detect
       - infra_update
-    if: ${{ always() && needs.detect.result == 'success' && (needs.detect.outputs.app_changed == 'true' || needs.detect.outputs.infra_changed == 'true') && (needs.infra_update.result == 'success' || needs.infra_update.result == 'skipped') }}
+      - lambda_deploy
+    if: ${{ always() && needs.detect.result == 'success' && (needs.detect.outputs.app_changed == 'true' || needs.detect.outputs.infra_changed == 'true') && (needs.infra_update.result == 'success' || needs.infra_update.result == 'skipped') && (needs.lambda_deploy.result == 'success' || needs.lambda_deploy.result == 'skipped') }}
     uses: ./.github/workflows/deploy-pipeline.yml
     with:
       env: dev
