@@ -51,6 +51,7 @@ enum class ErrorCode(
     LINK_TITLE_BLANK("LINK_400_0005", 400, "링크 제목이 입력되지 않았어요"),
     LINK_TITLE_OVER_MAX("LINK_400_0006", 400, "링크 제목은 최대 300자에요"),
     LINK_COPY_FOLDER_MISMATCH("LINK_400_0007", 400, "링크가 요청한 공유 폴더에 속해있지 않아요"),
+    LINK_PREVIEW_URL_INVALID("LINK_400_0008", 400, "프리뷰 URL이 올바르지 않아요"),
 
     LINK_DIFFERENT_OWNER("LINK_403_0001", 403, "링크에 대한 권한이 없어요"),
 
@@ -62,6 +63,7 @@ enum class ErrorCode(
     LINK_SHARE_FOLDER_NOT_FOUND("LINK_404_0004", 404, "공유 폴더를 찾을 수 없어요"),
     LINK_COPY_LINK_FOLDER_NOT_FOUND("LINK_404_0005", 404, "링크의 폴더를 찾을 수 없어요"),
     LINK_TARGET_FOLDER_NOT_FOUND("LINK_404_0006", 404, "대상 폴더를 찾을 수 없어요"),
+    LINK_PREVIEW_OWNER_NOT_FOUND("LINK_404_0007", 404, "로그인 사용자를 찾을 수 없어요"),
 
     LINK_COPY_NOT_SHARED_FOLDER("LINK_422_0001", 422, "공유 폴더가 아니에요"),
 

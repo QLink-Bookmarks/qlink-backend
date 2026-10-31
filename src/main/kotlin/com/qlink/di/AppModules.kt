@@ -16,5 +16,6 @@ fun appModules(
     notificationModule(config = NotificationConfig.from(config), log = log),
     aiModule(config = config, log = log),
     storageModule(config = S3Config.from(config)),
+    linkPreviewModule(config),
     serviceModule(),
 )
