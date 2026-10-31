@@ -18,7 +18,7 @@
 
 ## 개발과 배포
 
-Node.js 24에서 `npm ci`, `npm test`, `npm audit --omit=dev --audit-level=high`, `npm run package` 순서로 실행한다. 직접 버전을 변경할 때는 이 디렉터리에서 `npm install --save-exact 패키지@버전`을 실행하고 `package.json`과 `package-lock.json`을 함께 커밋한다. Node 런타임 메이저 버전은 `terraform/lambda/module`의 `runtime`과 CI·Lambda 배포 워크플로의 `setup-node`에서 지정한다.
+Node.js 24에서 `npm ci`, `npm test`, `npm audit --omit=dev --audit-level=high`, `npm run package` 순서로 실행한다. `링크 프리뷰 Lambda CI (npm)`은 Lambda 파일이 바뀐 PR에서 이 npm 검증만 수행한다. Terraform fmt·validate·plan은 환경별 Lambda CD에서 수행한다. 직접 버전을 변경할 때는 이 디렉터리에서 `npm install --save-exact 패키지@버전`을 실행하고 `package.json`과 `package-lock.json`을 함께 커밋한다. Node 런타임 메이저 버전은 `terraform/lambda/module`의 `runtime`과 CI·Lambda 배포 워크플로의 `setup-node`에서 지정한다.
 
 Lambda는 앱·기존 인프라와 분리된 `terraform/lambda/dev` 및 `terraform/lambda/prod` 상태에서 배포한다. Lambda 소스·의존성·패키징 스크립트 또는 해당 환경의 Lambda Terraform 설정이 바뀐 PR을 `main`(dev) 또는 `release`(prod)에 병합할 때만 Lambda 배포 작업이 실행된다. prod에는 기존 승인 단계가 있다. 배포 작업은 테스트·취약점 검사 후 ZIP을 다시 만들고 Terraform plan/apply를 실행한다. ZIP의 `source_code_hash`로 코드 변경을 추적하고, 발행 버전과 `live` 별칭을 갱신한다. Git SHA는 함수 설명과 태그에 기록된다.
 
