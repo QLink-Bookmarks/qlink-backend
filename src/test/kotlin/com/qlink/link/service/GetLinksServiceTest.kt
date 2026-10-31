@@ -139,6 +139,7 @@ class GetLinksServiceTest :
                     response.contents[1].todoCounts.dueSoon shouldBe 0
                     response.contents[1].todoCounts.overdue shouldBe 0
                     response.contents[1].todoCounts.completed shouldBe 0
+                    todoRepository.findAllByLinkIds(listOf(firstLink.id!!)) shouldBe emptyList()
                 }
             }
 
@@ -221,6 +222,9 @@ class GetLinksServiceTest :
                                 folderId = folder.id,
                                 title = "folder search b",
                                 url = "https://example.com/b",
+                                thumbnailUrl = RandomFixture.randomPreviewUrl(),
+                                faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                                isVideo = true,
                             ),
                         )
                     val third =
@@ -230,8 +234,21 @@ class GetLinksServiceTest :
                                 folderId = folder.id,
                                 title = "folder search c",
                                 url = "https://example.com/c",
+                                thumbnailUrl = RandomFixture.randomPreviewUrl(),
+                                faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                                isVideo = true,
                             ),
                         )
+                    todoRepository.insert(
+                        TodoFixture.createRandomTodoOf(
+                            linkId = first.id!!,
+                            ownerId = user.id!!,
+                            completedAt = Clock.System.now(),
+                        ),
+                    )
+                    repeat(2) {
+                        todoRepository.insert(TodoFixture.createRandomTodoOf(linkId = second.id!!, ownerId = user.id!!, reminderAt = null))
+                    }
                     val firstPage =
                         getLinksService.getLinks(
                             loginId = user.id!!,
@@ -253,6 +270,19 @@ class GetLinksServiceTest :
                     firstPage.contents.map { it.id } shouldBe listOf(third.id, second.id)
                     secondPage.hasNext shouldBe false
                     secondPage.contents.map { it.id } shouldBe listOf(first.id)
+                    val contentsById = (firstPage.contents + secondPage.contents).associateBy { it.id }
+                    listOf(first, second, third).forEach { link ->
+                        val storedLink = linkRepository.findById(link.id!!)!!
+                        val storedTodos = todoRepository.findAllByLinkIds(listOf(link.id!!))
+                        val content = contentsById.getValue(link.id!!)
+                        content.thumbnailUrl shouldBe storedLink.thumbnailUrl
+                        content.faviconUrl shouldBe storedLink.faviconUrl
+                        content.isVideo shouldBe storedLink.isVideo
+                        content.todoCounts.open shouldBe storedTodos.count { !it.isCompleted }
+                        content.todoCounts.dueSoon shouldBe 0
+                        content.todoCounts.overdue shouldBe 0
+                        content.todoCounts.completed shouldBe storedTodos.count { it.isCompleted }
+                    }
                 }
             }
 

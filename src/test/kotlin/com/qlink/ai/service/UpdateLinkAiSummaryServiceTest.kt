@@ -282,4 +282,33 @@ class UpdateLinkAiSummaryServiceTest :
                 }
             }
         }
+
+        Given("다른 사람이 소유한 링크") {
+            lateinit var requester: User
+            lateinit var otherLink: Link
+
+            beforeTest {
+                requester = userRepository.insert(UserFixture.createRandomValidUser())
+                val owner = userRepository.insert(UserFixture.createRandomValidUser())
+                otherLink = linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = owner.id!!))
+            }
+
+            When("AI 요약을 요청하면") {
+                val requesterId = requester.id!!
+                val linkId = otherLink.id!!
+                val (userProvider, model) = insertAiContext(userId = requesterId)
+                val request =
+                    AiSummaryRequest(
+                        id = linkId,
+                        userProviderId = userProvider.id!!,
+                        modelId = model.id!!,
+                        url = otherLink.url,
+                    )
+                val update = suspend { service.updateLinkAiSummary(requesterId, request) }
+
+                Then("링크 소유권 오류가 난다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_DIFFERENT_OWNER.message) { update() }
+                }
+            }
+        }
     })
