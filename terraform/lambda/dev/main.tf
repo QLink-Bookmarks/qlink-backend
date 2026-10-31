@@ -2,7 +2,7 @@ module "link_preview_lambda" {
   source             = "../module"
   environment        = "dev"
   bucket_name        = "alink-previews-dev"
-  execution_role_arn = "arn:aws:iam::650177546654:role/alinkPreviewLambda"
+  execution_role_arn = "arn:aws:iam::650177546654:role/alinkPreviewLambdaRole"
   package_path       = "${path.root}/../../../lambda/link-preview/build/link-preview.zip"
   git_sha            = var.lambda_git_sha
 }
