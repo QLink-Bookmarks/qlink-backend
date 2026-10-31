@@ -4,6 +4,7 @@ import aws.sdk.kotlin.services.s3.S3Client
 import aws.sdk.kotlin.services.s3.createBucket
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.config.DataSourceConfig
+import com.qlink.config.LinkPreviewUrlConfig
 import com.qlink.config.S3Config
 import com.qlink.config.SecurityConfig
 import com.qlink.di.dataModule
@@ -139,6 +140,7 @@ object ServiceTestEnvironment {
                 authTestModule(),
                 storageModule(testS3Config()),
                 serviceModule(),
+                linkPreviewTestModule(),
             )
         }
     }
@@ -151,6 +153,11 @@ object ServiceTestEnvironment {
             forcePathStyle = true,
             publicBaseUrl = null,
         )
+
+    private fun linkPreviewTestModule() =
+        module {
+            single { LinkPreviewUrlConfig(publicBaseUrl = "https://images.archivelink.app", environment = "dev") }
+        }
 
     private fun ensureS3Bucket() {
         val s3Client = GlobalContext.get().get<S3Client>()

@@ -36,18 +36,22 @@ internal fun createLinkDocs(): RouteConfig.() -> Unit =
                 description = "링크 생성 요청 유효성 검증 실패"
                 body<ApiResponse<ErrorDetail>> {
                     examples(
+                        ErrorCode.COMMON_BAD_REQUEST,
                         ErrorCode.LINK_URL_BLANK,
                         ErrorCode.LINK_URL_WRONG_FORMAT,
                         ErrorCode.LINK_URL_NOT_HTTP,
                         ErrorCode.LINK_URL_WRONG_HOST,
                         ErrorCode.LINK_TITLE_BLANK,
                         ErrorCode.LINK_TITLE_OVER_MAX,
+                        ErrorCode.LINK_THUMBNAIL_URL_NOT_ALLOWED,
+                        ErrorCode.LINK_FAVICON_URL_NOT_ALLOWED,
                         ErrorCode.TODO_TITLE_BLANK,
                         ErrorCode.TODO_TITLE_OVER_MAX,
                         ErrorCode.TODO_REPEAT_FIELDS_INCOMPLETE,
                         ErrorCode.TODO_REPEAT_DAYS_EMPTY,
                         ErrorCode.TODO_REPEAT_TIME_INVALID,
                         ErrorCode.TODO_REPEAT_TIMEZONE_INVALID,
+                        ErrorCode.TODO_REMINDER_AT_INVALID,
                     )
                 }
             }
@@ -55,7 +59,7 @@ internal fun createLinkDocs(): RouteConfig.() -> Unit =
             code(HttpStatusCode.Forbidden) {
                 description = "링크 생성 권한 검증 실패"
                 body<ApiResponse<ErrorDetail>> {
-                    examples(ErrorCode.FOLDER_DIFFERENT_OWNER)
+                    examples(ErrorCode.LINK_FOLDER_ACCESS_DENIED)
                 }
             }
             code(HttpStatusCode.NotFound) {
@@ -75,14 +79,24 @@ internal fun updateLinkAiSummaryDocs(): RouteConfig.() -> Unit =
         summary = "링크 AI 요약 요청 API"
         request { body<AiSummaryRequest>() }
         response {
-            code(HttpStatusCode.Accepted) {
+            code(HttpStatusCode.OK) {
                 description = "링크 AI 요약 요청 접수 성공"
                 body<ApiResponse<AiSummaryResponse>>()
             }
             code(HttpStatusCode.BadRequest) {
                 description = "링크 AI 요약 요청이 올바르지 않음"
                 body<ApiResponse<ErrorDetail>> {
-                    examples(ErrorCode.COMMON_BAD_REQUEST)
+                    examples(
+                        ErrorCode.COMMON_BAD_REQUEST,
+                        ErrorCode.LINK_URL_BLANK,
+                        ErrorCode.LINK_URL_WRONG_FORMAT,
+                        ErrorCode.LINK_URL_NOT_HTTP,
+                        ErrorCode.LINK_URL_WRONG_HOST,
+                        ErrorCode.LINK_TITLE_BLANK,
+                        ErrorCode.LINK_TITLE_OVER_MAX,
+                        ErrorCode.LINK_THUMBNAIL_URL_NOT_ALLOWED,
+                        ErrorCode.LINK_FAVICON_URL_NOT_ALLOWED,
+                    )
                 }
             }
             authErrorResponse()
@@ -92,6 +106,7 @@ internal fun updateLinkAiSummaryDocs(): RouteConfig.() -> Unit =
                     examples(
                         ErrorCode.LINK_DIFFERENT_OWNER,
                         ErrorCode.AI_USER_PROVIDER_ACCESS_DENIED,
+                        ErrorCode.LINK_FOLDER_ACCESS_DENIED,
                     )
                 }
             }
@@ -102,6 +117,8 @@ internal fun updateLinkAiSummaryDocs(): RouteConfig.() -> Unit =
                         ErrorCode.LINK_NOT_FOUND,
                         ErrorCode.AI_USER_PROVIDER_NOT_FOUND,
                         ErrorCode.AI_MODEL_NOT_FOUND,
+                        ErrorCode.LINK_OWNER_NOT_FOUND,
+                        ErrorCode.LINK_FOLDER_NOT_FOUND,
                     )
                 }
             }
@@ -123,7 +140,7 @@ internal fun getLinkDetailDocs(): RouteConfig.() -> Unit =
             code(HttpStatusCode.Forbidden) {
                 description = "링크 상세 조회 권한 검증 실패"
                 body<ApiResponse<ErrorDetail>> {
-                    examples(ErrorCode.LINK_DIFFERENT_OWNER)
+                    examples(ErrorCode.LINK_DIFFERENT_OWNER, ErrorCode.LINK_SHARED_FOLDER_ACCESS_DENIED)
                 }
             }
             code(HttpStatusCode.NotFound) {
@@ -188,12 +205,15 @@ internal fun updateLinkDocs(): RouteConfig.() -> Unit =
                 description = "링크 수정 요청 유효성 검증 실패"
                 body<ApiResponse<ErrorDetail>> {
                     examples(
+                        ErrorCode.COMMON_BAD_REQUEST,
                         ErrorCode.LINK_URL_BLANK,
                         ErrorCode.LINK_URL_WRONG_FORMAT,
                         ErrorCode.LINK_URL_NOT_HTTP,
                         ErrorCode.LINK_URL_WRONG_HOST,
                         ErrorCode.LINK_TITLE_BLANK,
                         ErrorCode.LINK_TITLE_OVER_MAX,
+                        ErrorCode.LINK_THUMBNAIL_URL_NOT_ALLOWED,
+                        ErrorCode.LINK_FAVICON_URL_NOT_ALLOWED,
                     )
                 }
             }
@@ -203,7 +223,7 @@ internal fun updateLinkDocs(): RouteConfig.() -> Unit =
                 body<ApiResponse<ErrorDetail>> {
                     examples(
                         ErrorCode.LINK_DIFFERENT_OWNER,
-                        ErrorCode.FOLDER_DIFFERENT_OWNER,
+                        ErrorCode.LINK_FOLDER_ACCESS_DENIED,
                     )
                 }
             }
@@ -254,7 +274,7 @@ internal fun patchLinkDocs(): RouteConfig.() -> Unit =
                 body<ApiResponse<ErrorDetail>> {
                     examples(
                         ErrorCode.LINK_DIFFERENT_OWNER,
-                        ErrorCode.FOLDER_DIFFERENT_OWNER,
+                        ErrorCode.LINK_FOLDER_ACCESS_DENIED,
                         ErrorCode.TODO_DIFFERENT_OWNER,
                     )
                 }

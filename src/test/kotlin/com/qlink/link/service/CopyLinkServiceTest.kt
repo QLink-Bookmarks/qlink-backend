@@ -66,6 +66,9 @@ class CopyLinkServiceTest :
                             ownerId = owner.id!!,
                             folderId = sharedFolder.id!!,
                             memo = RandomFixture.randomSentenceWithMax(1000),
+                            thumbnailUrl = RandomFixture.randomPreviewUrl(),
+                            faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                            isVideo = true,
                         ),
                     )
             }
@@ -93,6 +96,8 @@ class CopyLinkServiceTest :
                     copied.summary shouldBe sharedLink.summary
                     copied.tags shouldBe sharedLink.tags
                     copied.thumbnailUrl shouldBe sharedLink.thumbnailUrl
+                    copied.faviconUrl shouldBe sharedLink.faviconUrl
+                    copied.isVideo shouldBe sharedLink.isVideo
                     copied.sourceType shouldBe SourceType.COPY
                     copied.memo shouldBe null
                     copied.favoriteAt shouldBe null

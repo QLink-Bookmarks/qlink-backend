@@ -31,12 +31,23 @@ class SetLinkFavoriteServiceTest :
             }
 
             When("바로가기가 없는 본인 링크에 isFavorite=true로 설정하면") {
-                val link = linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = user.id!!))
+                val link =
+                    linkRepository.insert(
+                        LinkFixture.createRandomLinkOf(
+                            ownerId = user.id!!,
+                            thumbnailUrl = RandomFixture.randomPreviewUrl(),
+                            faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                            isVideo = true,
+                        ),
+                    )
                 setLinkFavoriteService.setFavorite(user.id!!, link.id!!, true)
                 val actual = linkRepository.findById(link.id!!)
 
                 Then("favoriteAt가 추가된다") {
                     actual!!.favoriteAt.shouldNotBeNull()
+                    actual.thumbnailUrl shouldBe link.thumbnailUrl
+                    actual.faviconUrl shouldBe link.faviconUrl
+                    actual.isVideo shouldBe link.isVideo
                 }
             }
 

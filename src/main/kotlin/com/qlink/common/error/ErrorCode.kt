@@ -51,6 +51,8 @@ enum class ErrorCode(
     LINK_TITLE_BLANK("LINK_400_0005", 400, "링크 제목이 입력되지 않았어요"),
     LINK_TITLE_OVER_MAX("LINK_400_0006", 400, "링크 제목은 최대 300자에요"),
     LINK_COPY_FOLDER_MISMATCH("LINK_400_0007", 400, "링크가 요청한 공유 폴더에 속해있지 않아요"),
+    LINK_THUMBNAIL_URL_NOT_ALLOWED("LINK_400_0009", 400, "허용되지 않는 대표 이미지 URL이에요"),
+    LINK_FAVICON_URL_NOT_ALLOWED("LINK_400_0010", 400, "허용되지 않는 파비콘 URL이에요"),
 
     LINK_DIFFERENT_OWNER("LINK_403_0001", 403, "링크에 대한 권한이 없어요"),
 

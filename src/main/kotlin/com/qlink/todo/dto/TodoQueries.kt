@@ -46,18 +46,6 @@ data class LinkDetailTodoQuery(
     val repeatTime: String?,
 )
 
-data class LinkSearchTodoQuery(
-    val linkId: Long,
-    val id: Long,
-    val title: String,
-    val completedAt: Instant?,
-    val reminderAt: Instant?,
-    val repeatUntil: Instant?,
-    val repeatDays: List<RepeatDay>?,
-    val repeatTime: String?,
-    val totalCount: Int,
-)
-
 data class SearchTodosQuery(
     val id: Long,
     val title: String,
@@ -69,6 +57,8 @@ data class SearchTodosQuery(
     val linkId: Long,
     val linkUrl: String,
     val linkTitle: String,
+    val linkThumbnailUrl: String?,
+    val linkFaviconUrl: String?,
 )
 
 fun ResultRow.toLinkDetailTodoQuery(): LinkDetailTodoQuery =
@@ -80,19 +70,6 @@ fun ResultRow.toLinkDetailTodoQuery(): LinkDetailTodoQuery =
         repeatUntil = this[Todos.repeatUntil]?.toKotlinInstant(),
         repeatDays = this[Todos.repeatDays]?.map { RepeatDay.valueOf(it) },
         repeatTime = this[Todos.repeatTime]?.toString(),
-    )
-
-fun ResultRow.toLinkSearchTodoQuery(): LinkSearchTodoQuery =
-    LinkSearchTodoQuery(
-        linkId = this[Todos.linkId],
-        id = this[Todos.id],
-        title = this[Todos.title],
-        completedAt = this[Todos.completedAt]?.toKotlinInstant(),
-        reminderAt = this[Todos.reminderAt]?.toKotlinInstant(),
-        repeatUntil = this[Todos.repeatUntil]?.toKotlinInstant(),
-        repeatDays = this[Todos.repeatDays]?.map { RepeatDay.valueOf(it) },
-        repeatTime = this[Todos.repeatTime]?.toString(),
-        totalCount = 0,
     )
 
 fun ResultRow.toSearchTodosQuery(linkTitle: Expression<String>): SearchTodosQuery =
@@ -107,4 +84,6 @@ fun ResultRow.toSearchTodosQuery(linkTitle: Expression<String>): SearchTodosQuer
         linkId = this[Todos.linkId],
         linkUrl = this[Links.url],
         linkTitle = this[linkTitle],
+        linkThumbnailUrl = this[Links.thumbnailUrl],
+        linkFaviconUrl = this[Links.faviconUrl],
     )

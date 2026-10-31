@@ -69,6 +69,9 @@ class PatchLinkServiceTest :
                                 folderId = folder.id,
                                 memo = RandomFixture.randomSentenceWithMax(1000),
                                 tags = listOf("first", "second"),
+                                thumbnailUrl = RandomFixture.randomPreviewUrl(),
+                                faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                                isVideo = true,
                             ),
                         )
                     otherLink = linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = otherUser.id!!))
@@ -128,6 +131,9 @@ class PatchLinkServiceTest :
                     actual!!.memo shouldBe newMemo
                     actual.folderId shouldBe link.folderId
                     actual.tags shouldBe link.tags
+                    actual.thumbnailUrl shouldBe link.thumbnailUrl
+                    actual.faviconUrl shouldBe link.faviconUrl
+                    actual.isVideo shouldBe link.isVideo
                 }
             }
 

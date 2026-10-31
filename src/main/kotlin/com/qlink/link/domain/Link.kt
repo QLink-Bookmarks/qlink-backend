@@ -22,6 +22,8 @@ class Link(
     val memo: String? = null,
     tags: List<String>,
     val thumbnailUrl: String? = null,
+    val faviconUrl: String? = null,
+    val isVideo: Boolean = false,
     val sourceType: SourceType,
     val status: LinkStatus = LinkStatus.C,
     val workModelId: Long? = null,
@@ -36,8 +38,6 @@ class Link(
         validateTitle(title)
 
         // TODO: summary, memo, tag도 검증 필요할지?
-
-        thumbnailUrl?.let { validateUrl(it) }
     }
 
     fun validateOwner(ownerId: Long) {
@@ -56,8 +56,29 @@ class Link(
         thumbnailUrl: String?,
         sourceType: SourceType,
         favoriteAt: Instant? = this.favoriteAt,
-    ): Link =
-        Link(
+        faviconUrl: String? = this.faviconUrl,
+        isVideo: Boolean = this.isVideo,
+        previewPublicBaseUrl: String? = null,
+        previewEnvironment: String? = null,
+    ): Link {
+        if (thumbnailUrl != this.thumbnailUrl && thumbnailUrl != null) {
+            validatePreviewUrl(
+                value = thumbnailUrl,
+                publicBaseUrl = requireNotNull(previewPublicBaseUrl),
+                environment = requireNotNull(previewEnvironment),
+                errorCode = ErrorCode.LINK_THUMBNAIL_URL_NOT_ALLOWED,
+            )
+        }
+        if (faviconUrl != this.faviconUrl && faviconUrl != null) {
+            validatePreviewUrl(
+                value = faviconUrl,
+                publicBaseUrl = requireNotNull(previewPublicBaseUrl),
+                environment = requireNotNull(previewEnvironment),
+                errorCode = ErrorCode.LINK_FAVICON_URL_NOT_ALLOWED,
+            )
+        }
+
+        return Link(
             id = id,
             ownerId = ownerId,
             folderId = folderId,
@@ -67,6 +88,8 @@ class Link(
             memo = memo,
             tags = tags,
             thumbnailUrl = thumbnailUrl,
+            faviconUrl = faviconUrl,
+            isVideo = isVideo,
             sourceType = sourceType,
             status = status,
             workModelId = workModelId,
@@ -74,6 +97,7 @@ class Link(
             createdAt = createdAt,
             updatedAt = updatedAt,
         )
+    }
 
     fun addToFolder(
         newOwnerId: Long,
@@ -88,6 +112,8 @@ class Link(
             memo = null,
             tags = tags,
             thumbnailUrl = thumbnailUrl,
+            faviconUrl = faviconUrl,
+            isVideo = isVideo,
             sourceType = SourceType.COPY,
             status = LinkStatus.C,
         )
@@ -112,6 +138,8 @@ class Link(
                     memo = memo,
                     tags = tags,
                     thumbnailUrl = thumbnailUrl,
+                    faviconUrl = faviconUrl,
+                    isVideo = isVideo,
                     sourceType = sourceType,
                     status = status,
                     workModelId = workModelId,
@@ -152,4 +180,74 @@ class Link(
     }
 
     private fun URI.isWebScheme(): Boolean = scheme.lowercase() in WEB_PROTOCOL
+
+    companion object {
+        fun createFromRequest(
+            ownerId: Long,
+            folderId: Long?,
+            url: String,
+            title: String,
+            summary: String?,
+            memo: String?,
+            tags: List<String>,
+            thumbnailUrl: String?,
+            faviconUrl: String?,
+            isVideo: Boolean,
+            sourceType: SourceType,
+            status: LinkStatus,
+            previewPublicBaseUrl: String,
+            previewEnvironment: String,
+        ): Link {
+            thumbnailUrl?.let {
+                validatePreviewUrl(it, previewPublicBaseUrl, previewEnvironment, ErrorCode.LINK_THUMBNAIL_URL_NOT_ALLOWED)
+            }
+            faviconUrl?.let {
+                validatePreviewUrl(it, previewPublicBaseUrl, previewEnvironment, ErrorCode.LINK_FAVICON_URL_NOT_ALLOWED)
+            }
+            return Link(
+                ownerId = ownerId,
+                folderId = folderId,
+                url = url,
+                title = title,
+                summary = summary,
+                memo = memo,
+                tags = tags,
+                thumbnailUrl = thumbnailUrl,
+                faviconUrl = faviconUrl,
+                isVideo = isVideo,
+                sourceType = sourceType,
+                status = status,
+            )
+        }
+
+        private fun validatePreviewUrl(
+            value: String,
+            publicBaseUrl: String,
+            environment: String,
+            errorCode: ErrorCode,
+        ) {
+            val candidate = runCatching { URI(value) }.getOrNull()
+            val base = URI(publicBaseUrl)
+            val filename = candidate?.rawPath?.removePrefix("/")
+            val previewPrefix = "$environment-preview-"
+            val faviconPrefix = "$environment-favicon-"
+            val hasAllowedPrefix =
+                (filename?.startsWith(previewPrefix) == true && filename.length > previewPrefix.length) ||
+                    (filename?.startsWith(faviconPrefix) == true && filename.length > faviconPrefix.length)
+            val valid =
+                candidate != null &&
+                    candidate.scheme.equals(base.scheme, ignoreCase = true) &&
+                    candidate.host.equals(base.host, ignoreCase = true) &&
+                    candidate.port == base.port &&
+                    candidate.userInfo == null &&
+                    candidate.rawQuery == null &&
+                    candidate.rawFragment == null &&
+                    candidate.rawPath?.startsWith("/") == true &&
+                    filename != null &&
+                    '/' !in filename &&
+                    !filename.contains(Regex("(?i)%2f|%5c")) &&
+                    hasAllowedPrefix
+            if (!valid) throw BusinessException(errorCode)
+        }
+    }
 }

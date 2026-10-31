@@ -65,7 +65,14 @@ class GetTodosServiceTest :
 
             beforeTest {
                 user = userRepository.insert(UserFixture.createRandomValidUser())
-                link = linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = user.id!!))
+                link =
+                    linkRepository.insert(
+                        LinkFixture.createRandomLinkOf(
+                            ownerId = user.id!!,
+                            thumbnailUrl = RandomFixture.randomPreviewUrl(),
+                            faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                        ),
+                    )
             }
 
             When("최신순 목록 조회를") {
@@ -91,6 +98,9 @@ class GetTodosServiceTest :
                     actual.contents.first().linkId shouldBe expectedLinkId
                     actual.contents.first().linkUrl shouldBe expectedLinkUrl
                     actual.contents.first().linkTitle shouldBe expectedLinkTitle
+                    val storedLink = linkRepository.findById(expectedLinkId)!!
+                    actual.contents.first().linkThumbnailUrl shouldBe storedLink.thumbnailUrl
+                    actual.contents.first().linkFaviconUrl shouldBe storedLink.faviconUrl
                 }
             }
 

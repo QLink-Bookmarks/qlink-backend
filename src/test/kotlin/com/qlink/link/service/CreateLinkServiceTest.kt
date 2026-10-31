@@ -60,7 +60,9 @@ class CreateLinkServiceTest :
                         summary = RandomFixture.randomSentenceWithMax(1_000),
                         memo = RandomFixture.randomSentenceWithMax(1_000),
                         sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
-                        thumbnailUrl = RandomFixture.randomUrl(),
+                        thumbnailUrl = RandomFixture.randomPreviewUrl(),
+                        faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                        isVideo = true,
                         tags = RandomFixture.randomSentenceList(),
                     )
                 val expected = createLinkService.createLink(user.id!!, request)
@@ -77,6 +79,8 @@ class CreateLinkServiceTest :
                     actual.memo shouldBe request.memo
                     actual.sourceType shouldBe request.sourceType
                     actual.thumbnailUrl shouldBe request.thumbnailUrl
+                    actual.faviconUrl shouldBe request.faviconUrl
+                    actual.isVideo shouldBe request.isVideo
                     actual.tags shouldBe expectedTags
                 }
             }
@@ -106,7 +110,7 @@ class CreateLinkServiceTest :
                         summary = RandomFixture.randomSentenceWithMax(1_000),
                         memo = RandomFixture.randomSentenceWithMax(1_000),
                         sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
-                        thumbnailUrl = RandomFixture.randomUrl(),
+                        thumbnailUrl = RandomFixture.randomPreviewUrl(),
                         tags = RandomFixture.randomSentenceList(),
                         todos = todos,
                     )
@@ -149,7 +153,7 @@ class CreateLinkServiceTest :
                         summary = RandomFixture.randomSentenceWithMax(1_000),
                         memo = RandomFixture.randomSentenceWithMax(1_000),
                         sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
-                        thumbnailUrl = RandomFixture.randomUrl(),
+                        thumbnailUrl = RandomFixture.randomPreviewUrl(),
                         tags = RandomFixture.randomSentenceList(),
                     )
                 val create =
@@ -174,7 +178,7 @@ class CreateLinkServiceTest :
                         summary = RandomFixture.randomSentenceWithMax(1_000),
                         memo = RandomFixture.randomSentenceWithMax(1_000),
                         sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
-                        thumbnailUrl = RandomFixture.randomUrl(),
+                        thumbnailUrl = RandomFixture.randomPreviewUrl(),
                         tags = RandomFixture.randomSentenceList(),
                     )
                 val create =
@@ -247,7 +251,7 @@ class CreateLinkServiceTest :
                         summary = RandomFixture.randomSentenceWithMax(1_000),
                         memo = RandomFixture.randomSentenceWithMax(1_000),
                         sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
-                        thumbnailUrl = RandomFixture.randomUrl(),
+                        thumbnailUrl = RandomFixture.randomPreviewUrl(),
                         tags = RandomFixture.randomSentenceList(),
                         todos =
                             listOf(

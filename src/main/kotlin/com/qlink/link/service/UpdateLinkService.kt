@@ -4,6 +4,7 @@ import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireFalse
 import com.qlink.common.transaction.TransactionRunner
+import com.qlink.config.LinkPreviewUrlConfig
 import com.qlink.folder.service.FolderAccessValidator
 import com.qlink.link.domain.Link
 import com.qlink.link.dto.UpdateLinkRequest
@@ -16,6 +17,7 @@ class UpdateLinkService(
     private val linkRepository: LinkRepository,
     private val userRepository: UserRepository,
     private val folderAccessValidator: FolderAccessValidator,
+    private val previewUrlConfig: LinkPreviewUrlConfig,
 ) {
     suspend fun updateLink(
         loginId: Long,
@@ -40,6 +42,10 @@ class UpdateLinkService(
                     tags = request.tags,
                     thumbnailUrl = request.thumbnailUrl,
                     sourceType = request.sourceType,
+                    faviconUrl = request.faviconUrl,
+                    isVideo = request.isVideo,
+                    previewPublicBaseUrl = previewUrlConfig.publicBaseUrl,
+                    previewEnvironment = previewUrlConfig.environment,
                 )
 
             val savedLink = linkRepository.update(updatedLink)
