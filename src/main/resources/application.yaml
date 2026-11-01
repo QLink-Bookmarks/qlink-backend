@@ -62,14 +62,16 @@ notification:
 aws:
   s3:
     region: ap-northeast-2
-    bucket: qlink-images-local
+    profileBucket: alink-profiles-local
+    postBucket: alink-posts-local
+    previewBucket: alink-previews-local
     endpoint: http://localhost:4566
     forcePathStyle: true
+    publicBaseUrl: https://images.archivelink.app
 
 linkPreview:
   lambdaFunction: alink-link-preview-dev:live
   lambdaEndpoint: http://localhost:4566
-  publicBaseUrl: https://images.archivelink.app
 
 logging:
   http:

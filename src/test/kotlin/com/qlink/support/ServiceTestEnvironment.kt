@@ -43,7 +43,7 @@ private class ServicePostgreSQLContainer(
 object ServiceTestEnvironment {
     private const val SCHEMA = "qlink_local"
     private const val DRIVER_CLASS_NAME = "org.postgresql.Driver"
-    private const val S3_BUCKET = "qlink-images-test"
+    private const val PUBLIC_BASE_URL = "https://images.archivelink.app"
 
     private val container =
         ServicePostgreSQLContainer(
@@ -140,29 +140,30 @@ object ServiceTestEnvironment {
                 notificationTestModule(),
                 aiTestModule(),
                 authTestModule(),
-                storageModule(testS3Config()),
+                storageModule(s3Config(environment = "dev")),
                 linkPreviewTestModule(),
                 serviceModule(),
             )
         }
     }
 
-    private fun testS3Config(): S3Config =
+    fun s3Config(environment: String): S3Config =
         S3Config(
             region = localStackContainer.region,
-            bucket = S3_BUCKET,
+            profileBucket = "alink-profiles-$environment",
+            postBucket = "alink-posts-$environment",
+            previewBucket = "alink-previews-$environment",
             endpoint = localStackContainer.endpoint.toString(),
             forcePathStyle = true,
-            publicBaseUrl = null,
+            publicBaseUrl = PUBLIC_BASE_URL,
+            environment = environment,
         )
 
     private fun linkPreviewTestModule() =
         module {
             single {
                 LinkPreviewConfig(
-                    environment = "dev",
                     functionName = "link-preview-test",
-                    publicBaseUrl = "https://images.archivelink.app",
                     region = localStackContainer.region,
                     endpoint = localStackContainer.endpoint.toString(),
                 )
@@ -174,9 +175,10 @@ object ServiceTestEnvironment {
     private fun ensureS3Bucket() {
         val s3Client = GlobalContext.get().get<S3Client>()
         runBlocking {
-            runCatching {
-                s3Client.createBucket { bucket = S3_BUCKET }
-            }
+            listOf("dev", "prod")
+                .map(::s3Config)
+                .flatMap { listOf(it.profileBucket, it.postBucket, it.previewBucket) }
+                .forEach { name -> runCatching { s3Client.createBucket { bucket = name } } }
         }
     }
 

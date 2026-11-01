@@ -7,6 +7,7 @@ import aws.smithy.kotlin.runtime.auth.awscredentials.Credentials
 import aws.smithy.kotlin.runtime.net.url.Url
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.config.LinkPreviewConfig
+import com.qlink.image.service.PreviewImageUrlResolver
 import com.qlink.link.client.LambdaLinkPreviewSyncClient
 import com.qlink.link.client.LinkPreviewMode
 import com.qlink.support.BaseServiceTest
@@ -102,9 +103,7 @@ class LinkPreviewLambdaIntegrationTest :
                 }
             val config =
                 LinkPreviewConfig(
-                    environment = "dev",
                     functionName = "preview-fixture",
-                    publicBaseUrl = "https://images.archivelink.app",
                     region = localStack.region,
                     endpoint = localStack.endpoint.toString(),
                 )
@@ -114,7 +113,7 @@ class LinkPreviewLambdaIntegrationTest :
                     tx = tx,
                     userRepository = userRepository,
                     previewClient = previewClient,
-                    config = config,
+                    urlResolver = koinGet<PreviewImageUrlResolver>(),
                 )
         }
 

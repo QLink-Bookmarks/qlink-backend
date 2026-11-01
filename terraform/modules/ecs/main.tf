@@ -204,7 +204,7 @@ resource "aws_iam_role_policy" "ecs_task_s3" {
         Sid      = "PutImageObjects"
         Effect   = "Allow"
         Action   = ["s3:PutObject"]
-        Resource = "${var.s3_bucket_arn}/*"
+        Resource = [for arn in var.s3_bucket_arns : "${arn}/*"]
       }
     ]
   })

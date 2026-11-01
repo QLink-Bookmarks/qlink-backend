@@ -140,6 +140,7 @@ dependencies {
     // Storage
     implementation(libs.aws.s3)
     implementation(libs.aws.lambda)
+    implementation(libs.imageio.webp)
 
     // Auth
     implementation(ktorLibs.server.auth)

@@ -199,6 +199,11 @@ object RandomFixture {
 
     fun randomUrl(): String = faker.internet().url()
 
+    fun randomCase(value: String): String =
+        value
+            .map { if (faker.random().nextBoolean()) it.lowercaseChar() else it.uppercaseChar() }
+            .joinToString("")
+
     fun randomEmoji(): String = faker.emoji().smiley()
 
     fun randomSentenceList(

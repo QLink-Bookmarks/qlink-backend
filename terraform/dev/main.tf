@@ -264,8 +264,13 @@ module "ecs" {
   task_execution_role_name       = var.task_execution_role_name
   task_execution_role_policy_arn = var.task_execution_role_policy_arn
   task_role_name                 = var.ecs_task_role_name
-  s3_bucket_arn                  = module.s3.bucket_arn
-  s3_access_enabled              = true
+  s3_bucket_arns = [
+    module.s3.bucket_arn,
+    module.image_buckets["dev_profiles"].bucket_arn,
+    module.image_buckets["dev_posts"].bucket_arn,
+    module.image_buckets["dev_previews"].bucket_arn,
+  ]
+  s3_access_enabled = true
 
   log_group_name              = var.ecs_log_group_name
   log_group_retention_in_days = var.ecs_log_group_retention_in_days
@@ -285,13 +290,14 @@ module "ecs" {
     APPLE_CLIENT_IDS             = var.apple_client_ids
     GOOGLE_CLIENT_IDS            = var.google_client_ids
     AWS_S3_REGION                = var.aws_region
-    AWS_S3_BUCKET                = module.s3.bucket_name
+    AWS_S3_PROFILE_BUCKET        = module.image_buckets["dev_profiles"].bucket_name
+    AWS_S3_POST_BUCKET           = module.image_buckets["dev_posts"].bucket_name
+    AWS_S3_PREVIEW_BUCKET        = module.image_buckets["dev_previews"].bucket_name
     AWS_S3_ENDPOINT              = ""
     AWS_S3_FORCE_PATH_STYLE      = "false"
     AWS_S3_PUBLIC_BASE_URL       = module.cloudfront.public_base_url
     LINK_PREVIEW_LAMBDA_FUNCTION = "alink-link-preview-dev:live"
     LINK_PREVIEW_LAMBDA_ENDPOINT = ""
-    LINK_PREVIEW_PUBLIC_BASE_URL = module.cloudfront.public_base_url
   }
   task_secret_values = {
     DB_PASSWORD              = var.db_password
