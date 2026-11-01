@@ -130,6 +130,155 @@ test('pinned requests enforce streamed byte and time limits for every content ty
   }
 });
 
+async function withServer(routes, run) {
+  const server = http.createServer((request, response) => {
+    const route = routes[new URL(request.url, 'http://localhost').pathname];
+    if (route) route(request, response);
+    else { response.statusCode = 404; response.end(); }
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    return await run(server.address().port);
+  } finally {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
+const localTarget = (port, path) => ({ url: new URL(`http://public.example:${port}${path}`), address: '127.0.0.1', family: 4 });
+
+test('page requests read up to the limit instead of failing when the body is larger', async () => {
+  let aborted;
+  const closed = new Promise((resolve) => { aborted = resolve; });
+  await withServer({
+    '/stream': (_request, response) => { response.write('12345'); response.end('678901'); },
+    '/declared': (_request, response) => { response.setHeader('content-length', '11'); response.end('12345678901'); },
+    '/exact': (_request, response) => response.end('1234567890'),
+    '/endless': (_request, response) => {
+      const timer = setInterval(() => response.write('x'.repeat(1024)), 1);
+      response.on('close', () => { clearInterval(timer); aborted(); });
+    },
+  }, async (port) => {
+    const options = { maxBytes: 10, timeoutMs: 1000, truncate: true };
+    assert.equal((await readOnce(localTarget(port, '/stream'), options)).body.toString(), '1234567890');
+    assert.equal((await readOnce(localTarget(port, '/declared'), options)).body.toString(), '1234567890');
+    assert.equal((await readOnce(localTarget(port, '/exact'), options)).body.toString(), '1234567890');
+    let timer;
+    const stalled = new Promise((_resolve, reject) => { timer = setTimeout(() => reject(new Error('read did not complete')), 2000); });
+    try {
+      const endless = await Promise.race([
+        readOnce(localTarget(port, '/endless'), { maxBytes: 100_000, timeoutMs: 5000, truncate: true }),
+        stalled,
+      ]);
+      assert.equal(endless.status, 200);
+      assert.equal(endless.body.length, 100_000);
+      await Promise.race([closed, stalled]);
+    } finally {
+      clearTimeout(timer);
+    }
+  });
+});
+
+test('image requests still fail when the body or Content-Length is over the limit', async () => {
+  await withServer({
+    '/stream': (_request, response) => { response.write('12345'); response.end('678901'); },
+    '/declared': (_request, response) => { response.setHeader('content-length', '11'); response.end('12345678901'); },
+  }, async (port) => {
+    await assert.rejects(readOnce(localTarget(port, '/stream'), { maxBytes: 10, timeoutMs: 1000 }), /too large/);
+    await assert.rejects(readOnce(localTarget(port, '/declared'), { maxBytes: 10, timeoutMs: 1000 }), /too large/);
+  });
+});
+
+const ogHead = '<html><head><meta property="og:title" content="Large page"><meta property="og:image" content="/og.png"><link rel="icon" href="/icon.png">';
+const padding = (bytes) => 'a'.repeat(bytes);
+
+async function previewLocalPage(routes) {
+  const requested = [];
+  const entries = [];
+  const pngRoute = (_request, response) => { response.setHeader('content-type', 'image/png'); response.end(png); };
+  return withServer({ '/og.png': pngRoute, '/icon.png': pngRoute, ...routes }, async (port) => {
+    const handler = createHandler({
+      environment: 'dev', bucket: 'alink-previews-dev', s3: new FakeS3(),
+      logger: { log: (line) => entries.push(JSON.parse(line)) },
+      fetcher: (url, options) => fetchSafe(url, {
+        ...options,
+        resolveHost: async () => [{ address: '8.8.8.8', family: 4 }],
+        requestOnce: (target, requestOptions) => {
+          requested.push(target.url.pathname);
+          return readOnce(localTarget(port, `${target.url.pathname}${target.url.search}`), requestOptions);
+        },
+      }),
+    });
+    const result = await handler({ url: 'http://public.example/page', mode: 'PREVIEW', traceId: 'large-page' });
+    return { result, entries, requested };
+  });
+}
+
+const pageRoute = (body, headers = {}) => (_request, response) => {
+  response.setHeader('content-type', 'text/html; charset=utf-8');
+  for (const [name, value] of Object.entries(headers)) response.setHeader(name, value);
+  if (typeof body === 'string') { response.end(body); return; }
+  for (const part of body) response.write(part);
+  response.end();
+};
+
+const resultOutcome = (entries) => entries.find((entry) => entry.event === 'LINK_PREVIEW_RESULT')?.outcome;
+
+test('pages between 1MB and 2MB are previewed in full and not recorded as failed', async () => {
+  const html = `${ogHead}</head><body>${padding(1_500_000)}</body></html>`;
+  const { result, entries } = await previewLocalPage({ '/page': pageRoute(html) });
+  assert.equal(result.title, 'Large page');
+  assert.equal(result.thumbnailKey, `dev-preview-${previewHash('http://public.example/page')}.png`);
+  assert.equal(resultOutcome(entries), 'THUMBNAIL');
+  assert.ok(entries.some((entry) => entry.event === 'LINK_PREVIEW_EXTERNAL' && entry.kind === 'page' && entry.status === 200));
+  assert.ok(entries.every((entry) => entry.outcome !== 'FAILED' && entry.status !== 'FAILED'));
+});
+
+test('streamed pages over 2MB are previewed from the part before the limit', async () => {
+  const parts = [`${ogHead}</head><body>`, ...Array.from({ length: 5 }, () => padding(500_000)), '</body></html>'];
+  const { result, entries } = await previewLocalPage({ '/page': pageRoute(parts) });
+  assert.equal(result.title, 'Large page');
+  assert.equal(result.thumbnailKey, `dev-preview-${previewHash('http://public.example/page')}.png`);
+  assert.equal(resultOutcome(entries), 'THUMBNAIL');
+});
+
+test('pages declaring a Content-Length over 2MB are previewed from the part before the limit', async () => {
+  const html = `${ogHead}</head><body>${padding(2_500_000)}</body></html>`;
+  const { result, entries } = await previewLocalPage({ '/page': pageRoute(html, { 'content-length': String(Buffer.byteLength(html)) }) });
+  assert.equal(result.title, 'Large page');
+  assert.equal(result.thumbnailKey, `dev-preview-${previewHash('http://public.example/page')}.png`);
+  assert.equal(resultOutcome(entries), 'THUMBNAIL');
+});
+
+test('an og:image only after 2MB is ignored and the preview falls back to the favicon', async () => {
+  const html = `<html><head><title>Late image</title><link rel="icon" href="/icon.png"><!--${padding(2_100_000)}--><meta property="og:image" content="/late.png"></head><body></body></html>`;
+  const { result, entries, requested } = await previewLocalPage({ '/page': pageRoute(html) });
+  assert.equal(result.title, 'Late image');
+  assert.equal(result.thumbnailKey, null);
+  assert.equal(result.faviconKey, `dev-favicon-${faviconHash('http://public.example/page')}.png`);
+  assert.equal(requested.includes('/late.png'), false);
+  assert.equal(resultOutcome(entries), 'FAVICON');
+});
+
+test('thumbnail candidates over 10MB fail and the next candidate or the favicon is used', async () => {
+  const huge = (_request, response) => {
+    response.setHeader('content-type', 'image/png');
+    response.on('error', () => {});
+    for (let sent = 0; sent <= 10_000_000; sent += 1_000_000) response.write(Buffer.alloc(1_000_000));
+    response.end();
+  };
+  const withNext = `<html><head><meta property="og:title" content="Huge"><meta property="og:image" content="/huge.png"><meta name="twitter:image" content="/og.png"><link rel="icon" href="/icon.png"></head></html>`;
+  const next = await previewLocalPage({ '/page': pageRoute(withNext), '/huge.png': huge });
+  assert.equal(next.result.thumbnailKey, `dev-preview-${previewHash('http://public.example/page')}.png`);
+  assert.deepEqual(next.requested, ['/page', '/huge.png', '/og.png']);
+  assert.ok(next.entries.some((entry) => entry.event === 'LINK_PREVIEW_CANDIDATE' && entry.kind === 'preview' && entry.outcome === 'FAILED'));
+  const onlyHuge = `<html><head><meta property="og:image" content="/huge.png"><link rel="icon" href="/icon.png"></head></html>`;
+  const fallback = await previewLocalPage({ '/page': pageRoute(onlyHuge), '/huge.png': huge });
+  assert.equal(fallback.result.thumbnailKey, null);
+  assert.equal(fallback.result.faviconKey, `dev-favicon-${faviconHash('http://public.example/page')}.png`);
+  assert.equal(resultOutcome(fallback.entries), 'FAVICON');
+});
+
 test('thumbnail is conditionally stored and reused within seven days', async () => {
   const url = 'https://example.com/page';
   const metadata = { title: 'Example', isVideo: false, imageUrls: ['https://cdn.example.com/og.png'], faviconUrls: ['https://example.com/icon.png'] };
@@ -225,7 +374,7 @@ test('failed extraction and storage return empty keys with safe result logs', as
     environment: 'dev', bucket: 'alink-previews-dev', s3,
     logger: { log: (line) => entries.push(JSON.parse(line)) },
     fetcher: async (url, { maxBytes, onRequest }) => {
-      assert.equal(maxBytes, url.endsWith('/page?token=private') ? 1_000_000 : 10_000_000);
+      assert.equal(maxBytes, url.endsWith('/page?token=private') ? 2_000_000 : 10_000_000);
       onRequest({ host: new URL(url).hostname, status: 200, durationMs: 3 });
       return url.endsWith('/page?token=private')
         ? { body: Buffer.from('<html/>'), finalUrl: url, contentType: 'text/html' }

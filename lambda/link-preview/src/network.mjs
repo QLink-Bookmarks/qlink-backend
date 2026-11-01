@@ -36,6 +36,7 @@ export async function validateTarget(input, resolveHost = (host) => dns.lookup(h
 
 export async function fetchSafe(input, {
   maxBytes,
+  truncate = false,
   resolveHost,
   requestOnce = readOnce,
   onRequest = () => {},
@@ -52,7 +53,7 @@ export async function fetchSafe(input, {
     }
     const started = Date.now();
     try {
-      const response = await requestOnce(target, { maxBytes, timeoutMs });
+      const response = await requestOnce(target, { maxBytes, timeoutMs, truncate });
       onRequest({ host: current.hostname, status: response.status, durationMs: Date.now() - started });
       if (response.status >= 300 && response.status < 400 && response.location) {
         if (redirects === MAX_REDIRECTS) throw new Error('too many redirects');
@@ -72,7 +73,8 @@ export async function fetchSafe(input, {
   throw new Error('too many redirects');
 }
 
-export function readOnce({ url, address, family }, { maxBytes, timeoutMs }) {
+// With `truncate`, a body over `maxBytes` is cut at the limit instead of failing the request.
+export function readOnce({ url, address, family }, { maxBytes, timeoutMs, truncate = false }) {
   return new Promise((resolve, reject) => {
     const transport = url.protocol === 'https:' ? https : http;
     const request = transport.request(url, {
@@ -96,27 +98,36 @@ export function readOnce({ url, address, family }, { maxBytes, timeoutMs }) {
         return;
       }
       const contentLength = Number(response.headers['content-length']);
-      if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+      if (!truncate && Number.isFinite(contentLength) && contentLength > maxBytes) {
         response.destroy();
         reject(new Error('response too large'));
         return;
       }
       const chunks = [];
       let length = 0;
-      response.on('data', (chunk) => {
-        length += chunk.length;
-        if (length > maxBytes) {
-          response.destroy(new Error('response too large'));
-          return;
-        }
-        chunks.push(chunk);
-      });
-      response.on('end', () => resolve({
+      const complete = () => resolve({
         status,
         body: Buffer.concat(chunks),
         contentType: String(response.headers['content-type'] || ''),
         contentEncoding: String(response.headers['content-encoding'] || ''),
-      }));
+      });
+      response.on('data', (chunk) => {
+        if (length + chunk.length > maxBytes) {
+          if (!truncate) {
+            response.destroy(new Error('response too large'));
+            return;
+          }
+          chunks.push(chunk.subarray(0, maxBytes - length));
+          length = maxBytes;
+          response.removeAllListeners('data');
+          response.destroy();
+          complete();
+          return;
+        }
+        length += chunk.length;
+        chunks.push(chunk);
+      });
+      response.on('end', complete);
       response.on('error', reject);
     });
     request.setTimeout(timeoutMs, () => request.destroy(new Error('request timed out')));
