@@ -5,6 +5,7 @@ import aws.sdk.kotlin.services.s3.S3Client
 import aws.smithy.kotlin.runtime.auth.awscredentials.Credentials
 import aws.smithy.kotlin.runtime.net.url.Url
 import com.qlink.config.S3Config
+import com.qlink.image.service.PreviewImageUrlResolver
 import com.qlink.image.storage.ImageStorage
 import com.qlink.image.storage.S3ImageStorage
 import org.koin.dsl.module
@@ -22,6 +23,10 @@ fun storageModule(config: S3Config) =
                 s3Client = get(),
                 config = config,
             )
+        }
+
+        single {
+            PreviewImageUrlResolver(config = config)
         }
     }
 

@@ -9,6 +9,7 @@ class FakeLinkPreviewSyncClient : LinkPreviewSyncClient {
     var result: LinkPreviewResult? = null
     var failure: Exception? = null
     val calls = mutableListOf<Pair<String, LinkPreviewMode>>()
+    val faviconBytes = mutableListOf<ByteArray?>()
 
     override suspend fun extract(
         url: String,
@@ -16,6 +17,7 @@ class FakeLinkPreviewSyncClient : LinkPreviewSyncClient {
         faviconBytes: ByteArray?,
     ): LinkPreviewResult? {
         calls += url to mode
+        this.faviconBytes += faviconBytes
         failure?.let { throw it }
         return result
     }
@@ -24,6 +26,7 @@ class FakeLinkPreviewSyncClient : LinkPreviewSyncClient {
         result = null
         failure = null
         calls.clear()
+        faviconBytes.clear()
     }
 }
 

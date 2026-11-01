@@ -60,7 +60,7 @@ fun serviceModule() =
                 tx = get(),
                 userRepository = get(),
                 previewClient = get(),
-                config = get(),
+                urlResolver = get(),
             )
         }
 
@@ -502,6 +502,8 @@ fun serviceModule() =
                 tx = get(),
                 userRepository = get(),
                 imageStorage = get(),
+                previewClient = get(),
+                urlResolver = get(),
             )
         }
     }
