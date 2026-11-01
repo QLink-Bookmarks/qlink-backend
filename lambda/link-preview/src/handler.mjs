@@ -4,7 +4,7 @@ import { parsePage } from './metadata.mjs';
 import { prepareImage } from './image.mjs';
 import { faviconHash, findObject, previewHash, putImage } from './cache.mjs';
 
-const MAX_HTML_BYTES = 1_000_000;
+const MAX_HTML_BYTES = 2_000_000;
 const MAX_IMAGE_BYTES = 10_000_000;
 const MAX_INLINE_FAVICON_BYTES = 4 * 1024 * 1024;
 const EMPTY = Object.freeze({ title: null, thumbnailKey: null, faviconKey: null, isVideo: false });
@@ -102,6 +102,7 @@ export function createHandler({
       }
       const page = await fetcher(event.url, {
         maxBytes: MAX_HTML_BYTES,
+        truncate: true,
         onRequest: (entry) => log('LINK_PREVIEW_EXTERNAL', { traceId, kind: 'page', ...entry }),
       });
       if (!page.contentType?.toLowerCase().startsWith('text/html')) throw new Error('page is not html');
