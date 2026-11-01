@@ -17,6 +17,7 @@ import com.qlink.auth.domain.Role
 import com.qlink.common.crypto.ApiKeyCipher
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.folder.repository.FolderRepository
+import com.qlink.image.service.PreviewImageUrlResolver
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.repository.LinkRepository
 import com.qlink.notification.service.ScheduleTodoNotificationService
@@ -48,6 +49,7 @@ class AiSummaryWorker(
     private val aiClientRouter: AiClientRouter,
     private val apiKeyCipher: ApiKeyCipher,
     private val channel: Channel<Long>,
+    private val urlResolver: PreviewImageUrlResolver,
     private val log: Logger,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -180,6 +182,8 @@ class AiSummaryWorker(
                                     tags = result.response.tags,
                                     thumbnailUrl = latestLink.thumbnailUrl,
                                     sourceType = latestLink.sourceType,
+                                    previewPublicBaseUrl = urlResolver.publicBaseUrl,
+                                    previewEnvironment = urlResolver.environment,
                                 ).copyAiStatus(status = LinkStatus.A, workModelId = result.model.id),
                         )
                         result.response.todos.map {
@@ -306,6 +310,8 @@ class AiSummaryWorker(
                         tags = link.tags,
                         thumbnailUrl = link.thumbnailUrl,
                         sourceType = link.sourceType,
+                        previewPublicBaseUrl = urlResolver.publicBaseUrl,
+                        previewEnvironment = urlResolver.environment,
                     ).copyAiStatus(status = LinkStatus.F, workModelId = link.workModelId),
             )
         }

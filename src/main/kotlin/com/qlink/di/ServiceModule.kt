@@ -292,6 +292,7 @@ fun serviceModule() =
                 userRepository = get(),
                 folderAccessValidator = get(),
                 scheduleTodoNotificationService = get(),
+                urlResolver = get(),
             )
         }
 
@@ -318,6 +319,7 @@ fun serviceModule() =
                 linkRepository = get(),
                 userRepository = get(),
                 folderAccessValidator = get(),
+                urlResolver = get(),
             )
         }
 
@@ -329,6 +331,7 @@ fun serviceModule() =
                 userRepository = get(),
                 folderAccessValidator = get(),
                 scheduleTodoNotificationService = get(),
+                urlResolver = get(),
             )
         }
 
@@ -427,6 +430,7 @@ fun serviceModule() =
                 availableModelRepository = get(),
                 aiJobRepository = get(),
                 dispatcher = get(),
+                urlResolver = get(),
             )
         }
 

@@ -141,6 +141,7 @@ fun aiModule(
             aiClientRouter = get(),
             apiKeyCipher = get(),
             channel = get(),
+            urlResolver = get(),
             log = log,
         )
     }

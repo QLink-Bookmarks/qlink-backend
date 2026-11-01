@@ -1,0 +1,3 @@
+ALTER TABLE links
+    ADD COLUMN favicon_url TEXT,
+    ADD COLUMN is_video BOOLEAN NOT NULL DEFAULT FALSE;

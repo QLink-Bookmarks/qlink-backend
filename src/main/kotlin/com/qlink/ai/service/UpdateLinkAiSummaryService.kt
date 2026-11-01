@@ -13,6 +13,7 @@ import com.qlink.common.error.requireFalse
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.folder.service.FolderAccessValidator
+import com.qlink.image.service.PreviewImageUrlResolver
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.domain.SourceType
@@ -34,6 +35,7 @@ class UpdateLinkAiSummaryService(
     private val availableModelRepository: AvailableModelRepository,
     private val aiJobRepository: AiJobRepository,
     private val dispatcher: AiSummaryDispatcher,
+    private val urlResolver: PreviewImageUrlResolver,
 ) {
     suspend fun updateLinkAiSummary(
         loginId: Long,
@@ -71,8 +73,12 @@ class UpdateLinkAiSummaryService(
                                         summary = it.summary,
                                         memo = it.memo,
                                         tags = it.tags,
-                                        thumbnailUrl = it.thumbnailUrl,
+                                        thumbnailUrl = request.thumbnailUrl,
                                         sourceType = it.sourceType,
+                                        faviconUrl = request.faviconUrl,
+                                        isVideo = request.isVideo,
+                                        previewPublicBaseUrl = urlResolver.publicBaseUrl,
+                                        previewEnvironment = urlResolver.environment,
                                     ).copyAiStatus(status = LinkStatus.G, workModelId = requestModel.id),
                             )
                         } ?: createAiPendingLink(loginId, request)
@@ -116,14 +122,21 @@ class UpdateLinkAiSummaryService(
         val folder = request.folderId?.let { findWritableFolder(loginId, it) }
 
         return linkRepository.insert(
-            Link(
+            Link.createFromRequest(
                 ownerId = loginId,
                 folderId = folder?.id,
                 url = request.url,
                 title = request.title ?: pendingTitle(request.url),
                 tags = emptyList(),
+                summary = null,
+                memo = null,
+                thumbnailUrl = request.thumbnailUrl,
+                faviconUrl = request.faviconUrl,
+                isVideo = request.isVideo,
                 sourceType = SourceType.INPUT,
                 status = LinkStatus.G,
+                previewPublicBaseUrl = urlResolver.publicBaseUrl,
+                previewEnvironment = urlResolver.environment,
             ),
         )
     }
@@ -172,6 +185,8 @@ fun Link.copyAiStatus(
         memo = memo,
         tags = tags,
         thumbnailUrl = thumbnailUrl,
+        faviconUrl = faviconUrl,
+        isVideo = isVideo,
         sourceType = sourceType,
         status = status,
         workModelId = workModelId,

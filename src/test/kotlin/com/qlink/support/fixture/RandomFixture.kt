@@ -6,6 +6,7 @@ import java.time.LocalTime
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.Locale
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlin.time.Instant
 import kotlin.time.toKotlinInstant
@@ -198,6 +199,16 @@ object RandomFixture {
     }
 
     fun randomUrl(): String = faker.internet().url()
+
+    fun randomPreviewBaseUrl(): String = "https://cdn-${randomId()}.example.com"
+
+    fun randomPreviewEnvironment(): String = listOf("dev", "prod").random()
+
+    fun randomPreviewUrl(
+        baseUrl: String = randomPreviewBaseUrl(),
+        environment: String = randomPreviewEnvironment(),
+        kind: String = "preview",
+    ): String = "$baseUrl/$environment-$kind-${UUID.randomUUID()}.png"
 
     fun randomCase(value: String): String =
         value

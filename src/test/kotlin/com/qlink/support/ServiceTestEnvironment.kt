@@ -143,6 +143,7 @@ object ServiceTestEnvironment {
                 storageModule(s3Config(environment = "dev")),
                 linkPreviewTestModule(),
                 serviceModule(),
+                linkPreviewTestModule(),
             )
         }
     }

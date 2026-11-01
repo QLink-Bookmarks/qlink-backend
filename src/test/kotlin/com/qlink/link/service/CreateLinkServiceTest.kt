@@ -5,6 +5,7 @@ import com.qlink.common.error.ErrorCode
 import com.qlink.folder.domain.Folder
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.foldermember.repository.FolderMemberRepository
+import com.qlink.image.service.PreviewImageUrlResolver
 import com.qlink.link.domain.SourceType
 import com.qlink.link.dto.CreateLinkRequest
 import com.qlink.link.dto.CreateLinkTodoRequest
@@ -15,6 +16,7 @@ import com.qlink.notification.repository.NotificationRepository
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.FolderFixture
 import com.qlink.support.fixture.FolderMemberFixture
+import com.qlink.support.fixture.LinkFixture
 import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
@@ -36,6 +38,7 @@ import kotlin.time.toKotlinInstant
 class CreateLinkServiceTest :
     BaseServiceTest({
         val createLinkService = koinGet<CreateLinkService>()
+        val urlResolver = koinGet<PreviewImageUrlResolver>()
         val userRepository = koinGet<UserRepository>()
         val linkRepository = koinGet<LinkRepository>()
         val folderRepository = koinGet<FolderRepository>()
@@ -60,7 +63,9 @@ class CreateLinkServiceTest :
                         summary = RandomFixture.randomSentenceWithMax(1_000),
                         memo = RandomFixture.randomSentenceWithMax(1_000),
                         sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
-                        thumbnailUrl = RandomFixture.randomUrl(),
+                        thumbnailUrl = LinkFixture.validPreviewUrlOf(urlResolver),
+                        faviconUrl = LinkFixture.validPreviewUrlOf(urlResolver, kind = "favicon"),
+                        isVideo = true,
                         tags = RandomFixture.randomSentenceList(),
                     )
                 val expected = createLinkService.createLink(user.id!!, request)
@@ -77,6 +82,8 @@ class CreateLinkServiceTest :
                     actual.memo shouldBe request.memo
                     actual.sourceType shouldBe request.sourceType
                     actual.thumbnailUrl shouldBe request.thumbnailUrl
+                    actual.faviconUrl shouldBe request.faviconUrl
+                    actual.isVideo shouldBe request.isVideo
                     actual.tags shouldBe expectedTags
                 }
             }
@@ -106,7 +113,7 @@ class CreateLinkServiceTest :
                         summary = RandomFixture.randomSentenceWithMax(1_000),
                         memo = RandomFixture.randomSentenceWithMax(1_000),
                         sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
-                        thumbnailUrl = RandomFixture.randomUrl(),
+                        thumbnailUrl = LinkFixture.validPreviewUrlOf(urlResolver),
                         tags = RandomFixture.randomSentenceList(),
                         todos = todos,
                     )
@@ -149,7 +156,7 @@ class CreateLinkServiceTest :
                         summary = RandomFixture.randomSentenceWithMax(1_000),
                         memo = RandomFixture.randomSentenceWithMax(1_000),
                         sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
-                        thumbnailUrl = RandomFixture.randomUrl(),
+                        thumbnailUrl = LinkFixture.validPreviewUrlOf(urlResolver),
                         tags = RandomFixture.randomSentenceList(),
                     )
                 val create =
@@ -174,7 +181,7 @@ class CreateLinkServiceTest :
                         summary = RandomFixture.randomSentenceWithMax(1_000),
                         memo = RandomFixture.randomSentenceWithMax(1_000),
                         sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
-                        thumbnailUrl = RandomFixture.randomUrl(),
+                        thumbnailUrl = LinkFixture.validPreviewUrlOf(urlResolver),
                         tags = RandomFixture.randomSentenceList(),
                     )
                 val create =
@@ -247,7 +254,7 @@ class CreateLinkServiceTest :
                         summary = RandomFixture.randomSentenceWithMax(1_000),
                         memo = RandomFixture.randomSentenceWithMax(1_000),
                         sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
-                        thumbnailUrl = RandomFixture.randomUrl(),
+                        thumbnailUrl = LinkFixture.validPreviewUrlOf(urlResolver),
                         tags = RandomFixture.randomSentenceList(),
                         todos =
                             listOf(

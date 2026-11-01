@@ -13,4 +13,7 @@ data class AiSummaryRequest(
     val url: String,
     val title: String? = null,
     val generateTodo: Boolean = false,
+    val thumbnailUrl: String? = null,
+    val faviconUrl: String? = null,
+    val isVideo: Boolean = false,
 )

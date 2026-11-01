@@ -4,7 +4,6 @@ package com.qlink.link.dto
 
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.domain.SourceType
-import com.qlink.todo.domain.RepeatDay
 import com.qlink.todo.dto.LinkDetailTodoQuery
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
@@ -24,6 +23,9 @@ data class GetLinkDetailResponse(
     val id: Long,
     val url: String,
     val title: String,
+    val thumbnailUrl: String?,
+    val faviconUrl: String?,
+    val isVideo: Boolean,
     val summary: String?,
     val tags: List<String>,
     val memo: String?,
@@ -46,24 +48,23 @@ data class GetLinksContentResponse(
     val folderEmoji: String?,
     val url: String,
     val title: String,
+    val thumbnailUrl: String?,
+    val faviconUrl: String?,
+    val isVideo: Boolean,
     val status: LinkStatus,
     val tags: List<String>,
     val createdAt: Instant,
     val workModel: String?,
-    val todos: List<LinkSearchTodoResponse>,
-    val countMoreTodos: Int,
+    val todoCounts: TodoCountsResponse,
     val isFavorite: Boolean,
 )
 
 @Serializable
-data class LinkSearchTodoResponse(
-    val id: Long,
-    val title: String,
-    val completedAt: Instant?,
-    val reminderAt: Instant?,
-    val repeatUntil: Instant?,
-    val repeatDays: List<RepeatDay>?,
-    val repeatTime: String?,
+data class TodoCountsResponse(
+    val open: Int,
+    val dueSoon: Int,
+    val overdue: Int,
+    val completed: Int,
 )
 
 @Serializable

@@ -17,6 +17,8 @@ data class CreateLinkRequest(
     val tags: List<String>,
     val todos: List<CreateLinkTodoRequest> = emptyList(),
     val thumbnailUrl: String? = null,
+    val faviconUrl: String? = null,
+    val isVideo: Boolean = false,
     val sourceType: SourceType,
 )
 
@@ -39,6 +41,8 @@ data class UpdateLinkRequest(
     val memo: String? = null,
     val tags: List<String>,
     val thumbnailUrl: String? = null,
+    val faviconUrl: String? = null,
+    val isVideo: Boolean = false,
     val sourceType: SourceType,
 )
 

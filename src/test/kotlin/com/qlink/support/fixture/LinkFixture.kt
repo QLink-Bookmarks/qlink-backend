@@ -1,5 +1,6 @@
 package com.qlink.support.fixture
 
+import com.qlink.image.service.PreviewImageUrlResolver
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.domain.SourceType
@@ -22,6 +23,8 @@ object LinkFixture {
         memo: String? = null,
         tags: List<String> = randomDistinctTags(),
         thumbnailUrl: String? = RandomFixture.randomUrl(),
+        faviconUrl: String? = null,
+        isVideo: Boolean = false,
         sourceType: SourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
         status: LinkStatus = LinkStatus.C,
         workModelId: Long? = null,
@@ -36,6 +39,8 @@ object LinkFixture {
             summary = summary,
             memo = memo,
             thumbnailUrl = thumbnailUrl,
+            faviconUrl = faviconUrl,
+            isVideo = isVideo,
             sourceType = sourceType,
             status = status,
             workModelId = workModelId,
@@ -43,7 +48,39 @@ object LinkFixture {
             tags = tags,
         )
 
-    fun createValidUpdateLinkRequest(folderId: Long? = null): UpdateLinkRequest =
+    fun createLinkFromPreviewRequest(
+        publicBaseUrl: String = RandomFixture.randomPreviewBaseUrl(),
+        environment: String = RandomFixture.randomPreviewEnvironment(),
+        thumbnailUrl: String? = RandomFixture.randomPreviewUrl(baseUrl = publicBaseUrl, environment = environment),
+        faviconUrl: String? = null,
+        isVideo: Boolean = false,
+    ): Link =
+        Link.createFromRequest(
+            ownerId = RandomFixture.randomId(),
+            folderId = null,
+            url = RandomFixture.randomUrl(),
+            title = RandomFixture.randomSentenceWithMax(300),
+            summary = null,
+            memo = null,
+            tags = randomDistinctTags(),
+            thumbnailUrl = thumbnailUrl,
+            faviconUrl = faviconUrl,
+            isVideo = isVideo,
+            sourceType = SourceType.INPUT,
+            status = LinkStatus.C,
+            previewPublicBaseUrl = publicBaseUrl,
+            previewEnvironment = environment,
+        )
+
+    fun validPreviewUrlOf(
+        resolver: PreviewImageUrlResolver,
+        kind: String = "preview",
+    ): String = RandomFixture.randomPreviewUrl(baseUrl = resolver.publicBaseUrl, environment = resolver.environment, kind = kind)
+
+    fun createValidUpdateLinkRequest(
+        folderId: Long? = null,
+        thumbnailUrl: String? = null,
+    ): UpdateLinkRequest =
         UpdateLinkRequest(
             folderId = folderId,
             url = RandomFixture.randomUrl(),
@@ -51,7 +88,7 @@ object LinkFixture {
             summary = RandomFixture.randomSentenceWithMax(1000),
             memo = RandomFixture.randomSentenceWithMax(1000),
             tags = randomDistinctTags(),
-            thumbnailUrl = RandomFixture.randomUrl(),
+            thumbnailUrl = thumbnailUrl,
             sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
         )
 
