@@ -1,0 +1,30 @@
+package com.qlink.config
+
+import io.ktor.server.config.ApplicationConfig
+
+data class LinkPreviewConfig(
+    val functionName: String,
+    val region: String,
+    val endpoint: String?,
+) {
+    init {
+        require(functionName.isNotBlank())
+    }
+
+    companion object {
+        fun from(
+            config: ApplicationConfig,
+            env: Map<String, String> = System.getenv(),
+        ): LinkPreviewConfig =
+            LinkPreviewConfig(
+                functionName = env["LINK_PREVIEW_LAMBDA_FUNCTION"] ?: config.string("linkPreview.lambdaFunction"),
+                region = env["AWS_REGION"] ?: config.string("aws.s3.region"),
+                endpoint =
+                    if (env.containsKey("LINK_PREVIEW_LAMBDA_ENDPOINT")) {
+                        env["LINK_PREVIEW_LAMBDA_ENDPOINT"]?.takeIf(String::isNotBlank)
+                    } else {
+                        config.optionalString("linkPreview.lambdaEndpoint")?.takeIf(String::isNotBlank)
+                    },
+            )
+    }
+}

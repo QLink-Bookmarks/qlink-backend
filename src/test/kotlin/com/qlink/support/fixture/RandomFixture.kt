@@ -201,6 +201,10 @@ object RandomFixture {
     fun randomUrl(): String = faker.internet().url()
 
     fun randomPreviewUrl(prefix: String = "preview"): String = "https://images.archivelink.app/dev-$prefix-${UUID.randomUUID()}.png"
+    fun randomCase(value: String): String =
+        value
+            .map { if (faker.random().nextBoolean()) it.lowercaseChar() else it.uppercaseChar() }
+            .joinToString("")
 
     fun randomEmoji(): String = faker.emoji().smiley()
 

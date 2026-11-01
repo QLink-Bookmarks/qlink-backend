@@ -17,7 +17,7 @@ services:
     environment:
       SERVICES: s3
       AWS_DEFAULT_REGION: ap-northeast-2
-      AWS_S3_BUCKET: qlink-images-local
+      AWS_S3_BUCKETS: alink-profiles-local alink-posts-local alink-previews-local
     ports:
       - "4566:4566"
     volumes:

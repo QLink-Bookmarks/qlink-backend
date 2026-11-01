@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
   detect:
@@ -17,6 +18,7 @@ jobs:
     outputs:
       infra_changed: ${{ steps.filter.outputs.infra }}
       app_changed: ${{ steps.filter.outputs.app }}
+      lambda_changed: ${{ steps.filter.outputs.lambda }}
     steps:
       - name: 체크아웃
         uses: actions/checkout@v6
@@ -30,6 +32,15 @@ jobs:
               - 'terraform/prod/**'
               - 'terraform/modules/**'
               - '.github/workflows/infra-pipeline.yml'
+            lambda:
+              - 'lambda/link-preview/src/**'
+              - 'lambda/link-preview/index.mjs'
+              - 'lambda/link-preview/package.json'
+              - 'lambda/link-preview/package-lock.json'
+              - 'lambda/link-preview/package.sh'
+              - 'terraform/lambda/prod/**'
+              - 'terraform/lambda/module/**'
+              - '.github/workflows/lambda-pipeline.yml'
             app:
               - 'src/**'
               - 'build.gradle.kts'
@@ -61,7 +72,7 @@ jobs:
       ecr_repository_tag_name: alink-ecr-prod
       rds_db_name: alink
       rds_username: alinkadmin
-      infra_update_enabled: true
+      infra_update_enabled: ${{ needs.detect.outputs.infra_changed == 'true' }}
       infra_shared_update_enabled: false
     secrets:
       AWS_ACCESS_KEY_ID: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
@@ -73,12 +84,25 @@ jobs:
       TF_VAR_JWT_SECRET: ${{ secrets.PROD_JWT_SECRET }}
       TF_VAR_AI_API_KEY_ENCRYPTION_KEY_BASE64: ${{ secrets.PROD_AI_API_KEY_ENCRYPTION_KEY_BASE64 }}
 
+  lambda_deploy:
+    needs:
+      - detect
+      - approval
+    if: ${{ needs.detect.outputs.lambda_changed == 'true' }}
+    uses: ./.github/workflows/lambda-pipeline.yml
+    with:
+      env: prod
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
+
   prod_deploy:
     needs:
       - detect
       - approval
       - infra_update
-    if: ${{ always() && needs.detect.result == 'success' && needs.approval.result == 'success' && (needs.detect.outputs.app_changed == 'true' || needs.detect.outputs.infra_changed == 'true') && (needs.infra_update.result == 'success' || needs.infra_update.result == 'skipped') }}
+      - lambda_deploy
+    if: ${{ always() && needs.detect.result == 'success' && needs.approval.result == 'success' && (needs.detect.outputs.app_changed == 'true' || needs.detect.outputs.infra_changed == 'true') && (needs.infra_update.result == 'success' || needs.infra_update.result == 'skipped') && (needs.lambda_deploy.result == 'success' || needs.lambda_deploy.result == 'skipped') }}
     uses: ./.github/workflows/deploy-pipeline.yml
     with:
       env: prod

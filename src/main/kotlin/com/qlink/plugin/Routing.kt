@@ -7,6 +7,7 @@ import com.qlink.auth.route.authRoutes
 import com.qlink.device.route.deviceRoutes
 import com.qlink.folder.route.folderRoutes
 import com.qlink.image.route.imageRoutes
+import com.qlink.link.route.linkPreviewRoutes
 import com.qlink.link.route.linkRoutes
 import com.qlink.notification.route.notificationRoutes
 import com.qlink.post.route.postRoutes
@@ -46,6 +47,7 @@ fun Application.configureRouting() {
             folderRoutes()
             imageRoutes()
             linkRoutes()
+            linkPreviewRoutes()
             notificationRoutes()
             postRoutes()
             todoRoutes()

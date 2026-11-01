@@ -1,0 +1,36 @@
+name: 링크 프리뷰 Lambda CI (npm)
+
+on:
+  pull_request:
+    branches:
+      - main
+      - release
+      - "feat/**"
+      - "refactor/**"
+      - "fix/**"
+      - "codex/**"
+    paths:
+      - "lambda/link-preview/**"
+      - ".github/workflows/lambda-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  npm-check:
+    name: Node.js 테스트·취약점 검사·ZIP 검증
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lambda/link-preview
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: lambda/link-preview/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run package

@@ -1,17 +1,26 @@
 package com.qlink.image.domain
 
+import java.io.ByteArrayInputStream
+import javax.imageio.ImageIO
+import javax.imageio.ImageReader
+
+private const val MAX_DECODED_DIMENSION = 1024
+
 enum class ImageType(
     val contentType: String,
     val extension: String,
+    private val formatName: String,
 ) {
-    JPEG("image/jpeg", "jpg"),
-    PNG("image/png", "png"),
-    GIF("image/gif", "gif"),
-    WEBP("image/webp", "webp"),
+    JPEG("image/jpeg", "jpg", "jpeg"),
+    PNG("image/png", "png", "png"),
+    GIF("image/gif", "gif", "gif"),
+    WEBP("image/webp", "webp", "webp"),
     ;
 
     companion object {
-        fun detect(bytes: ByteArray): ImageType? =
+        fun detect(bytes: ByteArray): ImageType? = signatureOf(bytes)?.takeIf { it.decodes(bytes) }
+
+        private fun signatureOf(bytes: ByteArray): ImageType? =
             when {
                 bytes.startsWith(0xFF, 0xD8, 0xFF) -> JPEG
                 bytes.startsWith(0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A) -> PNG
@@ -19,6 +28,33 @@ enum class ImageType(
                 bytes.isWebp() -> WEBP
                 else -> null
             }
+
+        private fun ImageType.decodes(bytes: ByteArray): Boolean =
+            runCatching {
+                ImageIO.createImageInputStream(ByteArrayInputStream(bytes)).use { input ->
+                    ImageIO
+                        .getImageReaders(input)
+                        .asSequence()
+                        .firstOrNull { reader -> reader.originatingProvider.formatNames.any { it.equals(formatName, ignoreCase = true) } }
+                        ?.let { reader ->
+                            try {
+                                reader.input = input
+                                reader.decodesWithoutWarning()
+                            } finally {
+                                reader.dispose()
+                            }
+                        } ?: false
+                }
+            }.getOrDefault(false)
+
+        private fun ImageReader.decodesWithoutWarning(): Boolean {
+            var warned = false
+            addIIOReadWarningListener { _, _ -> warned = true }
+            val step = maxOf(1, maxOf(getWidth(0), getHeight(0)) / MAX_DECODED_DIMENSION)
+            val param = defaultReadParam.apply { setSourceSubsampling(step, step, 0, 0) }
+            read(0, param)
+            return !warned
+        }
 
         private fun ByteArray.startsWith(vararg signature: Int): Boolean {
             if (size < signature.size) return false
