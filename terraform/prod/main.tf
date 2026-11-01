@@ -120,8 +120,13 @@ module "ecs" {
   task_execution_role_name       = var.task_execution_role_name
   task_execution_role_policy_arn = var.task_execution_role_policy_arn
   task_role_name                 = var.ecs_task_role_name
-  s3_bucket_arn                  = "arn:aws:s3:::${var.aws_s3_bucket_name}"
-  s3_access_enabled              = true
+  s3_bucket_arns = [
+    "arn:aws:s3:::${var.aws_s3_bucket_name}",
+    "arn:aws:s3:::alink-profiles-prod",
+    "arn:aws:s3:::alink-posts-prod",
+    "arn:aws:s3:::alink-previews-prod",
+  ]
+  s3_access_enabled = true
 
   log_group_name              = var.ecs_log_group_name
   log_group_retention_in_days = var.ecs_log_group_retention_in_days
@@ -139,13 +144,14 @@ module "ecs" {
     DB_USERNAME                  = var.rds_username
     DB_DRIVER_CLASS_NAME         = "org.postgresql.Driver"
     AWS_S3_REGION                = var.aws_region
-    AWS_S3_BUCKET                = var.aws_s3_bucket_name
+    AWS_S3_PROFILE_BUCKET        = "alink-profiles-prod"
+    AWS_S3_POST_BUCKET           = "alink-posts-prod"
+    AWS_S3_PREVIEW_BUCKET        = "alink-previews-prod"
     AWS_S3_ENDPOINT              = ""
     AWS_S3_FORCE_PATH_STYLE      = "false"
     AWS_S3_PUBLIC_BASE_URL       = "https://${var.images_domain}"
     LINK_PREVIEW_LAMBDA_FUNCTION = "alink-link-preview-prod:live"
     LINK_PREVIEW_LAMBDA_ENDPOINT = ""
-    LINK_PREVIEW_PUBLIC_BASE_URL = "https://${var.images_domain}"
   }
   task_secret_values = {
     DB_PASSWORD                      = var.db_password
