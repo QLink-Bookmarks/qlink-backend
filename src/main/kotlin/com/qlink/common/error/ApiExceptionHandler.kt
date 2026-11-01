@@ -4,6 +4,7 @@ import com.qlink.common.response.respondError
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.statuspages.StatusPagesConfig
+import io.ktor.server.request.path
 import kotlinx.coroutines.CancellationException
 import org.slf4j.LoggerFactory
 
@@ -22,7 +23,7 @@ class ApiExceptionHandler {
         }
 
         status(HttpStatusCode.NotFound) { call, _ ->
-            logError(ErrorCode.COMMON_URL_NOT_FOUND, null)
+            logUrlNotFound(call.request.path())
             call.respondError(
                 errorCode = ErrorCode.COMMON_URL_NOT_FOUND,
             )
@@ -52,6 +53,12 @@ class ApiExceptionHandler {
             log.error(format, errorCode.code, errorCode.status, errorCode.message, causeName, causeMessage, cause)
         } else {
             log.warn(format, errorCode.code, errorCode.status, errorCode.message, causeName, causeMessage)
+        }
+    }
+
+    private fun logUrlNotFound(path: String) {
+        ErrorCode.COMMON_URL_NOT_FOUND.let { errorCode ->
+            log.warn("[API_ERROR] code={} status={} message={} path={}", errorCode.code, errorCode.status, errorCode.message, path)
         }
     }
 }

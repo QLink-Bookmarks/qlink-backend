@@ -19,10 +19,14 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
+import io.swagger.v3.oas.models.media.StringSchema
+import io.swagger.v3.oas.models.parameters.HeaderParameter
+import io.swagger.v3.oas.models.parameters.Parameter
 import org.koin.ktor.ext.inject
 
 private const val BEARER_AUTH_SCHEME = "bearerAuth"
 private const val API_PREFIX = "api"
+private const val CLIENT_REQUESTER = "client"
 
 private val apiTags =
     mapOf(
@@ -81,6 +85,12 @@ fun Application.configureDocs() {
                 }
             }
         }
+        postBuild = { openApi, _ ->
+            openApi.paths
+                ?.values
+                ?.flatMap { it.readOperations() }
+                ?.forEach { it.addParametersItem(requesterHeaderParameter()) }
+        }
     }
 
     routing {
@@ -108,3 +118,10 @@ fun Application.configureDocs() {
         }
     }
 }
+
+private fun requesterHeaderParameter(): Parameter =
+    HeaderParameter()
+        .name(REQUESTER_HEADER_NAME)
+        .required(true)
+        .description("요청자 식별 헤더. ALink 클라이언트는 `$CLIENT_REQUESTER`를 보낸다.")
+        .schema(StringSchema()._default(CLIENT_REQUESTER))
