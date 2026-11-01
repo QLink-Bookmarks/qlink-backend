@@ -75,6 +75,8 @@ Read the parent Issue, if any, and the repo for context before drafting. Do not 
 - The API contract: method, path, auth, request, success status, response shape, and the `ErrorCode` each failure returns, designed per `references/api-design.md`.
 - What is out of scope.
 
+Propose the Project item's `Start date` and `Target date` together with the draft, and set them when the Requirement is confirmed. `Start date` is the confirmation date. `Target date` is the expected date every PR is merged, estimated from the size of section 2 (endpoints, rules, infra changes) and the stages left for the Issue type. Each date is its own `gh project item-edit --date YYYY-MM-DD` call. When a later stage changes the scope, such as Domain Review splitting the work into more PRs, propose a new `Target date` with that stage.
+
 ### 3. Domain Review
 
 Design a cohesive domain before any test or code is written: where each rule from section 2 lives, which new domains, VOs, enums and Query DTOs are needed, what the application service handles as the use-case facade, which class throws each `ErrorCode`, and how the work splits into PRs. Apply the decision rules and the fixed section form in `references/domain-review.md`, discuss in chat, and write only the confirmed design.
