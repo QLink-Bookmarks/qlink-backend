@@ -16,6 +16,8 @@
 
 응답은 `{title, thumbnailKey, faviconKey, isVideo}`이며 URL 대신 S3 루트 객체 키를 반환한다. URL 호스트는 API 서버가 조립한다. Lambda는 `APP_ENV=dev|prod`와 `PREVIEW_BUCKET=alink-previews-{env}`를 배포 환경에서 받는다.
 
+`PREVIEW` 모드에서 YouTube 영상 URL(`youtube.com`·`www.youtube.com`·`m.youtube.com`의 `/watch?v=`, `/shorts/`, `/live/`, `/embed/`와 `youtu.be/`, 영상 id 11자)은 페이지보다 먼저 YouTube oEmbed(`https://www.youtube.com/oembed`, 상한 100,000바이트)에서 제목과 `i.ytimg.com` 썸네일을 받는다. 데이터센터 IP에는 og 태그가 없는 페이지가 오기 때문이다. oEmbed나 썸네일이 실패하면 페이지, `hqdefault.jpg`, 파비콘 순서로 대체하며 `isVideo`는 true다. 판별과 응답 해석은 `src/youtube.mjs`가 맡는다.
+
 ## 개발과 배포
 
 Node.js 24에서 `npm ci`, `npm test`, `npm audit --omit=dev --audit-level=high`, `npm run package` 순서로 실행한다. `링크 프리뷰 Lambda CI (npm)`은 Lambda 파일이 바뀐 PR에서 이 npm 검증만 수행한다. Terraform fmt·validate·plan은 환경별 Lambda CD에서 수행한다. 직접 버전을 변경할 때는 이 디렉터리에서 `npm install --save-exact 패키지@버전`을 실행하고 `package.json`과 `package-lock.json`을 함께 커밋한다. Node 런타임 메이저 버전은 `terraform/lambda/module`의 `runtime`과 CI·Lambda 배포 워크플로의 `setup-node`에서 지정한다.

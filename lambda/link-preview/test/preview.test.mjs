@@ -2,39 +2,15 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import http from 'node:http';
-import sharp from 'sharp';
-import { HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { fetchSafe, isPublicIp, readOnce, validateTarget } from '../src/network.mjs';
 import { parsePage } from '../src/metadata.mjs';
 import { prepareImage } from '../src/image.mjs';
 import { faviconHash, findObject, objectKey, previewHash, putImage } from '../src/cache.mjs';
 import { createHandler } from '../src/handler.mjs';
+import { FakeS3, localTarget, png, withServer } from './support.mjs';
 
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
-const png = await sharp({ create: { width: 2, height: 2, channels: 4, background: '#ff0000' } }).png().toBuffer();
-
-class FakeS3 {
-  objects = new Map();
-  writes = [];
-  async send(command) {
-    const input = command.input;
-    if (command instanceof HeadObjectCommand) {
-      const found = this.objects.get(input.Key);
-      if (!found) throw Object.assign(new Error('missing'), { name: 'NotFound', $metadata: { httpStatusCode: 404 } });
-      return { ETag: found.etag, LastModified: found.updatedAt };
-    }
-    if (command instanceof PutObjectCommand) {
-      const existing = this.objects.get(input.Key);
-      if ((input.IfNoneMatch && existing) || (input.IfMatch && input.IfMatch !== existing?.etag)) {
-        throw Object.assign(new Error('conflict'), { $metadata: { httpStatusCode: 412 } });
-      }
-      this.writes.push(input);
-      this.objects.set(input.Key, { etag: '"new"', updatedAt: new Date() });
-      return {};
-    }
-    throw new Error('unknown command');
-  }
-}
 
 function fixture({ s3 = new FakeS3(), metadata, failures = new Set(), environment = 'dev' }) {
   const calls = [];
@@ -129,23 +105,6 @@ test('pinned requests enforce streamed byte and time limits for every content ty
     await new Promise((resolve) => server.close(resolve));
   }
 });
-
-async function withServer(routes, run) {
-  const server = http.createServer((request, response) => {
-    const route = routes[new URL(request.url, 'http://localhost').pathname];
-    if (route) route(request, response);
-    else { response.statusCode = 404; response.end(); }
-  });
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-  try {
-    return await run(server.address().port);
-  } finally {
-    server.closeAllConnections();
-    await new Promise((resolve) => server.close(resolve));
-  }
-}
-
-const localTarget = (port, path) => ({ url: new URL(`http://public.example:${port}${path}`), address: '127.0.0.1', family: 4 });
 
 test('page requests read up to the limit instead of failing when the body is larger', async () => {
   let aborted;
