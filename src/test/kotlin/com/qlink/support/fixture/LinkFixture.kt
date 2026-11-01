@@ -1,5 +1,6 @@
 package com.qlink.support.fixture
 
+import com.qlink.image.service.PreviewImageUrlResolver
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.domain.SourceType
@@ -48,11 +49,11 @@ object LinkFixture {
         )
 
     fun createLinkFromPreviewRequest(
-        thumbnailUrl: String? = RandomFixture.randomPreviewUrl(),
+        publicBaseUrl: String = RandomFixture.randomPreviewBaseUrl(),
+        environment: String = RandomFixture.randomPreviewEnvironment(),
+        thumbnailUrl: String? = RandomFixture.randomPreviewUrl(baseUrl = publicBaseUrl, environment = environment),
         faviconUrl: String? = null,
         isVideo: Boolean = false,
-        publicBaseUrl: String = "https://images.archivelink.app",
-        environment: String = "dev",
     ): Link =
         Link.createFromRequest(
             ownerId = RandomFixture.randomId(),
@@ -71,7 +72,15 @@ object LinkFixture {
             previewEnvironment = environment,
         )
 
-    fun createValidUpdateLinkRequest(folderId: Long? = null): UpdateLinkRequest =
+    fun validPreviewUrlOf(
+        resolver: PreviewImageUrlResolver,
+        kind: String = "preview",
+    ): String = RandomFixture.randomPreviewUrl(baseUrl = resolver.publicBaseUrl, environment = resolver.environment, kind = kind)
+
+    fun createValidUpdateLinkRequest(
+        folderId: Long? = null,
+        thumbnailUrl: String? = null,
+    ): UpdateLinkRequest =
         UpdateLinkRequest(
             folderId = folderId,
             url = RandomFixture.randomUrl(),
@@ -79,7 +88,7 @@ object LinkFixture {
             summary = RandomFixture.randomSentenceWithMax(1000),
             memo = RandomFixture.randomSentenceWithMax(1000),
             tags = randomDistinctTags(),
-            thumbnailUrl = RandomFixture.randomPreviewUrl(),
+            thumbnailUrl = thumbnailUrl,
             sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
         )
 

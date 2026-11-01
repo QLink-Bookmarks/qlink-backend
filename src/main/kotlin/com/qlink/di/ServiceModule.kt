@@ -10,8 +10,6 @@ import com.qlink.auth.service.RandomUserNameGenerator
 import com.qlink.auth.service.RefreshAuthTokenService
 import com.qlink.auth.service.SignInService
 import com.qlink.auth.service.SignOutService
-import com.qlink.config.LinkPreviewUrlConfig
-import com.qlink.config.S3Config
 import com.qlink.device.service.DeleteDeviceService
 import com.qlink.device.service.PutDeviceService
 import com.qlink.folder.service.AcceptFolderInvitationService
@@ -57,8 +55,6 @@ import org.koin.dsl.module
 
 fun serviceModule() =
     module {
-        single { LinkPreviewUrlConfig.from(get<S3Config>()) }
-
         single {
             CreateLinkPreviewService(
                 tx = get(),
@@ -296,7 +292,7 @@ fun serviceModule() =
                 userRepository = get(),
                 folderAccessValidator = get(),
                 scheduleTodoNotificationService = get(),
-                previewUrlConfig = get(),
+                urlResolver = get(),
             )
         }
 
@@ -323,7 +319,7 @@ fun serviceModule() =
                 linkRepository = get(),
                 userRepository = get(),
                 folderAccessValidator = get(),
-                previewUrlConfig = get(),
+                urlResolver = get(),
             )
         }
 
@@ -335,6 +331,7 @@ fun serviceModule() =
                 userRepository = get(),
                 folderAccessValidator = get(),
                 scheduleTodoNotificationService = get(),
+                urlResolver = get(),
             )
         }
 
@@ -433,7 +430,7 @@ fun serviceModule() =
                 availableModelRepository = get(),
                 aiJobRepository = get(),
                 dispatcher = get(),
-                previewUrlConfig = get(),
+                urlResolver = get(),
             )
         }
 

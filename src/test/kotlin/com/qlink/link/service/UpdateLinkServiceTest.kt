@@ -4,6 +4,7 @@ import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.folder.domain.Folder
 import com.qlink.folder.repository.FolderRepository
+import com.qlink.image.service.PreviewImageUrlResolver
 import com.qlink.link.domain.Link
 import com.qlink.link.dto.UpdateLinkRequest
 import com.qlink.link.dto.UpdateLinkResponse
@@ -23,6 +24,7 @@ import io.kotest.matchers.shouldNotBe
 class UpdateLinkServiceTest :
     BaseServiceTest({
         val updateLinkService = koinGet<UpdateLinkService>()
+        val urlResolver = koinGet<PreviewImageUrlResolver>()
         val userRepository = koinGet<UserRepository>()
         val linkRepository = koinGet<LinkRepository>()
         val folderRepository = koinGet<FolderRepository>()
@@ -72,7 +74,8 @@ class UpdateLinkServiceTest :
                     )
                 updateRequest =
                     LinkFixture.createValidUpdateLinkRequest(folderId = folder.id).copy(
-                        faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                        thumbnailUrl = LinkFixture.validPreviewUrlOf(urlResolver),
+                        faviconUrl = LinkFixture.validPreviewUrlOf(urlResolver, kind = "favicon"),
                         isVideo = true,
                     )
                 otherUserLinkUpdateRequest = LinkFixture.createValidUpdateLinkRequest()
@@ -148,11 +151,11 @@ class UpdateLinkServiceTest :
                         LinkFixture.createRandomLinkOf(
                             ownerId = user.id!!,
                             thumbnailUrl = RandomFixture.randomPreviewUrl(),
-                            faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                            faviconUrl = RandomFixture.randomPreviewUrl(kind = "favicon"),
                             isVideo = true,
                         ),
                     )
-                val request = LinkFixture.createValidUpdateLinkRequest().copy(thumbnailUrl = null)
+                val request = LinkFixture.createValidUpdateLinkRequest()
                 updateLinkService.updateLink(user.id!!, imageLink.id!!, request)
 
                 Then("저장된 이미지 값은 null, 영상 여부는 false다") {

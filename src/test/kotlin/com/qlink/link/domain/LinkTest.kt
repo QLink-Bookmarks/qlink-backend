@@ -24,6 +24,8 @@ class LinkTest :
             val tags = RandomFixture.randomSentenceList()
             val thumbnailUrl = RandomFixture.randomUrl()
             val sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)]
+            val previewBaseUrl = RandomFixture.randomPreviewBaseUrl()
+            val previewEnvironment = RandomFixture.randomPreviewEnvironment()
 
             When("링크 생성을") {
                 val actual =
@@ -222,8 +224,8 @@ class LinkTest :
                         faviconUrl = null,
                         isVideo = false,
                         status = LinkStatus.C,
-                        previewPublicBaseUrl = "https://images.archivelink.app",
-                        previewEnvironment = "dev",
+                        previewPublicBaseUrl = previewBaseUrl,
+                        previewEnvironment = previewEnvironment,
                     )
                 }
 
@@ -249,8 +251,8 @@ class LinkTest :
                         faviconUrl = null,
                         isVideo = false,
                         status = LinkStatus.C,
-                        previewPublicBaseUrl = "https://images.archivelink.app",
-                        previewEnvironment = "dev",
+                        previewPublicBaseUrl = previewBaseUrl,
+                        previewEnvironment = previewEnvironment,
                     )
                 }
 
@@ -295,6 +297,8 @@ class LinkTest :
         Given("수정 테스트") {
             val ownerId = RandomFixture.randomId()
             val link = LinkFixture.createRandomLinkOf(ownerId = ownerId)
+            val previewBaseUrl = RandomFixture.randomPreviewBaseUrl()
+            val previewEnvironment = RandomFixture.randomPreviewEnvironment()
 
             When("링크 수정을") {
                 val folderId = RandomFixture.randomId()
@@ -303,7 +307,7 @@ class LinkTest :
                 val summary = RandomFixture.randomSentenceWithMax(1_000)
                 val memo = RandomFixture.randomSentenceWithMax(1_000)
                 val tags = RandomFixture.randomSentenceList()
-                val thumbnailUrl = RandomFixture.randomPreviewUrl()
+                val thumbnailUrl = RandomFixture.randomPreviewUrl(baseUrl = previewBaseUrl, environment = previewEnvironment)
                 val sourceType = SourceType.entries.first { it != link.sourceType }
 
                 val actual =
@@ -316,8 +320,8 @@ class LinkTest :
                         tags = tags,
                         thumbnailUrl = thumbnailUrl,
                         sourceType = sourceType,
-                        previewPublicBaseUrl = "https://images.archivelink.app",
-                        previewEnvironment = "dev",
+                        previewPublicBaseUrl = previewBaseUrl,
+                        previewEnvironment = previewEnvironment,
                     )
 
                 Then("성공한다") {
@@ -357,6 +361,8 @@ class LinkTest :
                         tags = duplicatedTags,
                         thumbnailUrl = thumbnailUrl,
                         sourceType = sourceType,
+                        previewPublicBaseUrl = previewBaseUrl,
+                        previewEnvironment = previewEnvironment,
                     )
 
                 Then("처음 등장한 순서대로 중복 태그를 제거한다") {
@@ -375,6 +381,8 @@ class LinkTest :
                         tags = RandomFixture.randomSentenceList(),
                         thumbnailUrl = link.thumbnailUrl,
                         sourceType = link.sourceType,
+                        previewPublicBaseUrl = previewBaseUrl,
+                        previewEnvironment = previewEnvironment,
                     )
                 }
 

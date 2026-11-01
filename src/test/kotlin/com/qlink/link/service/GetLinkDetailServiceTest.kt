@@ -79,7 +79,7 @@ class GetLinkDetailServiceTest :
                             workModelId = model.id,
                             status = LinkStatus.A,
                             thumbnailUrl = RandomFixture.randomPreviewUrl(),
-                            faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                            faviconUrl = RandomFixture.randomPreviewUrl(kind = "favicon"),
                             isVideo = true,
                         ),
                     )
@@ -238,7 +238,7 @@ class GetLinkDetailServiceTest :
                             ownerId = owner.id!!,
                             folderId = sharedFolder.id,
                             thumbnailUrl = RandomFixture.randomPreviewUrl(),
-                            faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                            faviconUrl = RandomFixture.randomPreviewUrl(kind = "favicon"),
                             isVideo = true,
                         ),
                     )

@@ -94,7 +94,7 @@ class GetLinksServiceTest :
                                 tags = listOf("검색", "둘째"),
                                 status = LinkStatus.G,
                                 thumbnailUrl = RandomFixture.randomPreviewUrl(),
-                                faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                                faviconUrl = RandomFixture.randomPreviewUrl(kind = "favicon"),
                                 isVideo = true,
                             ),
                         )
@@ -223,7 +223,7 @@ class GetLinksServiceTest :
                                 title = "folder search b",
                                 url = "https://example.com/b",
                                 thumbnailUrl = RandomFixture.randomPreviewUrl(),
-                                faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                                faviconUrl = RandomFixture.randomPreviewUrl(kind = "favicon"),
                                 isVideo = true,
                             ),
                         )
@@ -235,7 +235,7 @@ class GetLinksServiceTest :
                                 title = "folder search c",
                                 url = "https://example.com/c",
                                 thumbnailUrl = RandomFixture.randomPreviewUrl(),
-                                faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                                faviconUrl = RandomFixture.randomPreviewUrl(kind = "favicon"),
                                 isVideo = true,
                             ),
                         )
@@ -695,7 +695,7 @@ class GetLinksServiceTest :
                             ownerId = owner.id!!,
                             folderId = sharedFolder.id,
                             thumbnailUrl = RandomFixture.randomPreviewUrl(),
-                            faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                            faviconUrl = RandomFixture.randomPreviewUrl(kind = "favicon"),
                             isVideo = true,
                         ),
                     )

@@ -8,6 +8,9 @@ class PreviewImageUrlResolver(
     val environment: String
         get() = config.environment
 
+    val publicBaseUrl: String
+        get() = config.publicBaseUrl
+
     fun publicUrl(key: String): String = "${config.publicBaseUrl.trimEnd('/')}/$key"
 
     fun previewUrl(key: String): String? = key.takeIf { it.matches(keyPattern("preview")) }?.let(::publicUrl)

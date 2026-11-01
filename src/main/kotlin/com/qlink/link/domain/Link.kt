@@ -55,25 +55,25 @@ class Link(
         tags: List<String>,
         thumbnailUrl: String?,
         sourceType: SourceType,
+        previewPublicBaseUrl: String,
+        previewEnvironment: String,
         favoriteAt: Instant? = this.favoriteAt,
         faviconUrl: String? = this.faviconUrl,
         isVideo: Boolean = this.isVideo,
-        previewPublicBaseUrl: String? = null,
-        previewEnvironment: String? = null,
     ): Link {
         if (thumbnailUrl != this.thumbnailUrl && thumbnailUrl != null) {
             validatePreviewUrl(
                 value = thumbnailUrl,
-                publicBaseUrl = requireNotNull(previewPublicBaseUrl),
-                environment = requireNotNull(previewEnvironment),
+                publicBaseUrl = previewPublicBaseUrl,
+                environment = previewEnvironment,
                 errorCode = ErrorCode.LINK_THUMBNAIL_URL_NOT_ALLOWED,
             )
         }
         if (faviconUrl != this.faviconUrl && faviconUrl != null) {
             validatePreviewUrl(
                 value = faviconUrl,
-                publicBaseUrl = requireNotNull(previewPublicBaseUrl),
-                environment = requireNotNull(previewEnvironment),
+                publicBaseUrl = previewPublicBaseUrl,
+                environment = previewEnvironment,
                 errorCode = ErrorCode.LINK_FAVICON_URL_NOT_ALLOWED,
             )
         }
@@ -199,10 +199,20 @@ class Link(
             previewEnvironment: String,
         ): Link {
             thumbnailUrl?.let {
-                validatePreviewUrl(it, previewPublicBaseUrl, previewEnvironment, ErrorCode.LINK_THUMBNAIL_URL_NOT_ALLOWED)
+                validatePreviewUrl(
+                    value = it,
+                    publicBaseUrl = previewPublicBaseUrl,
+                    environment = previewEnvironment,
+                    errorCode = ErrorCode.LINK_THUMBNAIL_URL_NOT_ALLOWED,
+                )
             }
             faviconUrl?.let {
-                validatePreviewUrl(it, previewPublicBaseUrl, previewEnvironment, ErrorCode.LINK_FAVICON_URL_NOT_ALLOWED)
+                validatePreviewUrl(
+                    value = it,
+                    publicBaseUrl = previewPublicBaseUrl,
+                    environment = previewEnvironment,
+                    errorCode = ErrorCode.LINK_FAVICON_URL_NOT_ALLOWED,
+                )
             }
             return Link(
                 ownerId = ownerId,

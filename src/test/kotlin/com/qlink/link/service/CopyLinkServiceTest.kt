@@ -67,7 +67,7 @@ class CopyLinkServiceTest :
                             folderId = sharedFolder.id!!,
                             memo = RandomFixture.randomSentenceWithMax(1000),
                             thumbnailUrl = RandomFixture.randomPreviewUrl(),
-                            faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                            faviconUrl = RandomFixture.randomPreviewUrl(kind = "favicon"),
                             isVideo = true,
                         ),
                     )

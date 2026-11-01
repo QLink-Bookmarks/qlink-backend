@@ -3,8 +3,8 @@ package com.qlink.link.service
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireFalse
 import com.qlink.common.transaction.TransactionRunner
-import com.qlink.config.LinkPreviewUrlConfig
 import com.qlink.folder.service.FolderAccessValidator
+import com.qlink.image.service.PreviewImageUrlResolver
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.dto.CreateLinkRequest
@@ -24,7 +24,7 @@ class CreateLinkService(
     private val userRepository: UserRepository,
     private val folderAccessValidator: FolderAccessValidator,
     private val scheduleTodoNotificationService: ScheduleTodoNotificationService,
-    private val previewUrlConfig: LinkPreviewUrlConfig,
+    private val urlResolver: PreviewImageUrlResolver,
 ) {
     suspend fun createLink(
         loginId: Long,
@@ -49,8 +49,8 @@ class CreateLinkService(
                         isVideo = request.isVideo,
                         sourceType = request.sourceType,
                         status = LinkStatus.C,
-                        previewPublicBaseUrl = previewUrlConfig.publicBaseUrl,
-                        previewEnvironment = previewUrlConfig.environment,
+                        previewPublicBaseUrl = urlResolver.publicBaseUrl,
+                        previewEnvironment = urlResolver.environment,
                     )
 
                 val createdLink = linkRepository.insert(link)

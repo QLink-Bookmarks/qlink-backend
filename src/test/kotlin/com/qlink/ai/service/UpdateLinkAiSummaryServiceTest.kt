@@ -10,6 +10,7 @@ import com.qlink.auth.domain.Role
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.folder.repository.FolderRepository
+import com.qlink.image.service.PreviewImageUrlResolver
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.repository.LinkRepository
@@ -31,6 +32,7 @@ import kotlinx.coroutines.withTimeout
 class UpdateLinkAiSummaryServiceTest :
     BaseServiceTest({
         val service = koinGet<UpdateLinkAiSummaryService>()
+        val urlResolver = koinGet<PreviewImageUrlResolver>()
         val userRepository = koinGet<UserRepository>()
         val folderRepository = koinGet<FolderRepository>()
         val linkRepository = koinGet<LinkRepository>()
@@ -74,8 +76,8 @@ class UpdateLinkAiSummaryServiceTest :
                             modelId = model.id!!,
                             url = link.url,
                             title = "요청 제목",
-                            thumbnailUrl = RandomFixture.randomPreviewUrl(),
-                            faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                            thumbnailUrl = LinkFixture.validPreviewUrlOf(urlResolver),
+                            faviconUrl = LinkFixture.validPreviewUrlOf(urlResolver, kind = "favicon"),
                             isVideo = true,
                         )
                     val response = service.updateLinkAiSummary(user.id!!, request)
@@ -133,8 +135,8 @@ class UpdateLinkAiSummaryServiceTest :
                     linkRepository.insert(
                         LinkFixture.createRandomLinkOf(
                             ownerId = user.id!!,
-                            thumbnailUrl = RandomFixture.randomPreviewUrl(),
-                            faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                            thumbnailUrl = LinkFixture.validPreviewUrlOf(urlResolver),
+                            faviconUrl = LinkFixture.validPreviewUrlOf(urlResolver, kind = "favicon"),
                             isVideo = true,
                         ),
                     )
@@ -167,8 +169,8 @@ class UpdateLinkAiSummaryServiceTest :
                             userProviderId = userProvider.id!!,
                             modelId = model.id!!,
                             url = RandomFixture.randomUrl(),
-                            thumbnailUrl = RandomFixture.randomPreviewUrl(),
-                            faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                            thumbnailUrl = LinkFixture.validPreviewUrlOf(urlResolver),
+                            faviconUrl = LinkFixture.validPreviewUrlOf(urlResolver, kind = "favicon"),
                             isVideo = true,
                         )
                     val response = service.updateLinkAiSummary(user.id!!, request)

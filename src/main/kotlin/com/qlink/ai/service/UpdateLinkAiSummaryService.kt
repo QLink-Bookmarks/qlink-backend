@@ -11,9 +11,9 @@ import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireFalse
 import com.qlink.common.transaction.TransactionRunner
-import com.qlink.config.LinkPreviewUrlConfig
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.folder.service.FolderAccessValidator
+import com.qlink.image.service.PreviewImageUrlResolver
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.domain.SourceType
@@ -35,7 +35,7 @@ class UpdateLinkAiSummaryService(
     private val availableModelRepository: AvailableModelRepository,
     private val aiJobRepository: AiJobRepository,
     private val dispatcher: AiSummaryDispatcher,
-    private val previewUrlConfig: LinkPreviewUrlConfig,
+    private val urlResolver: PreviewImageUrlResolver,
 ) {
     suspend fun updateLinkAiSummary(
         loginId: Long,
@@ -77,8 +77,8 @@ class UpdateLinkAiSummaryService(
                                         sourceType = it.sourceType,
                                         faviconUrl = request.faviconUrl,
                                         isVideo = request.isVideo,
-                                        previewPublicBaseUrl = previewUrlConfig.publicBaseUrl,
-                                        previewEnvironment = previewUrlConfig.environment,
+                                        previewPublicBaseUrl = urlResolver.publicBaseUrl,
+                                        previewEnvironment = urlResolver.environment,
                                     ).copyAiStatus(status = LinkStatus.G, workModelId = requestModel.id),
                             )
                         } ?: createAiPendingLink(loginId, request)
@@ -135,8 +135,8 @@ class UpdateLinkAiSummaryService(
                 isVideo = request.isVideo,
                 sourceType = SourceType.INPUT,
                 status = LinkStatus.G,
-                previewPublicBaseUrl = previewUrlConfig.publicBaseUrl,
-                previewEnvironment = previewUrlConfig.environment,
+                previewPublicBaseUrl = urlResolver.publicBaseUrl,
+                previewEnvironment = urlResolver.environment,
             ),
         )
     }

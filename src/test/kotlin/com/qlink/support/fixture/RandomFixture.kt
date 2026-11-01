@@ -200,7 +200,16 @@ object RandomFixture {
 
     fun randomUrl(): String = faker.internet().url()
 
-    fun randomPreviewUrl(prefix: String = "preview"): String = "https://images.archivelink.app/dev-$prefix-${UUID.randomUUID()}.png"
+    fun randomPreviewBaseUrl(): String = "https://cdn-${randomId()}.example.com"
+
+    fun randomPreviewEnvironment(): String = listOf("dev", "prod").random()
+
+    fun randomPreviewUrl(
+        baseUrl: String = randomPreviewBaseUrl(),
+        environment: String = randomPreviewEnvironment(),
+        kind: String = "preview",
+    ): String = "$baseUrl/$environment-$kind-${UUID.randomUUID()}.png"
+
     fun randomCase(value: String): String =
         value
             .map { if (faker.random().nextBoolean()) it.lowercaseChar() else it.uppercaseChar() }

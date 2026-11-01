@@ -70,7 +70,7 @@ class PatchLinkServiceTest :
                                 memo = RandomFixture.randomSentenceWithMax(1000),
                                 tags = listOf("first", "second"),
                                 thumbnailUrl = RandomFixture.randomPreviewUrl(),
-                                faviconUrl = RandomFixture.randomPreviewUrl("favicon"),
+                                faviconUrl = RandomFixture.randomPreviewUrl(kind = "favicon"),
                                 isVideo = true,
                             ),
                         )

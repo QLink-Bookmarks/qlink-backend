@@ -4,7 +4,6 @@ import aws.sdk.kotlin.services.s3.S3Client
 import aws.sdk.kotlin.services.s3.createBucket
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.config.DataSourceConfig
-import com.qlink.config.LinkPreviewUrlConfig
 import com.qlink.config.LinkPreviewConfig
 import com.qlink.config.S3Config
 import com.qlink.config.SecurityConfig
@@ -163,7 +162,6 @@ object ServiceTestEnvironment {
 
     private fun linkPreviewTestModule() =
         module {
-            single { LinkPreviewUrlConfig(publicBaseUrl = "https://images.archivelink.app", environment = "dev") }
             single {
                 LinkPreviewConfig(
                     functionName = "link-preview-test",

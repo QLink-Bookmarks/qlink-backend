@@ -61,6 +61,7 @@ fun aiTestModule() =
                 aiClientRouter = get(),
                 apiKeyCipher = get(),
                 channel = get(),
+                urlResolver = get(),
                 log = LoggerFactory.getLogger(AiSummaryWorker::class.java),
             )
         }
