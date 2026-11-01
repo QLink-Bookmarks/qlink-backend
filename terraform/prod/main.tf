@@ -68,6 +68,9 @@ module "alb" {
   https_listener_tag_name   = var.https_listener_tag_name
   acm_certificate_arn       = var.acm_certificate_arn
   https_listener_ssl_policy = var.https_listener_ssl_policy
+  host_header               = var.api_domain
+  listener_rule_priority    = var.listener_rule_priority
+  listener_rule_tag_name    = var.listener_rule_tag_name
   vpc_id                    = module.network.vpc_id
   security_group_id         = module.security.alb_security_group_id
   public_subnet_ids = [
@@ -82,7 +85,7 @@ module "route53" {
   hosted_zone_id = var.route53_hosted_zone_id
   alias_a_records = {
     prod_api = {
-      name                   = "api.archivelink.app"
+      name                   = var.api_domain
       dns_name               = "dualstack.${module.alb.alb_dns_name}"
       hosted_zone_id         = module.alb.alb_zone_id
       evaluate_target_health = true
