@@ -1,0 +1,28 @@
+name: 개발 서버 애플리케이션 수동 배포
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dev_deploy:
+    if: ${{ github.ref == 'refs/heads/main' }}
+    uses: ./.github/workflows/deploy-pipeline.yml
+    with:
+      env: dev
+      deployment_enabled: true
+      ecr_repository_name: qlink-ecr-dev
+      ecr_repository_tag_name: qlink-ecr-dev
+      rds_db_name: qlink
+      rds_username: qlink
+    secrets:
+      AWS_ACCESS_KEY_ID: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
+      SUBMODULES_SECRET: ${{ secrets.SUBMODULES_SECRET }}
+      TF_VAR_DB_PASSWORD: ${{ secrets.DEV_DB_PASSWORD }}
+      TF_VAR_FCM_SERVICE_ACCOUNT_JSON: ${{ secrets.DEV_FCM_SERVICE_ACCOUNT_JSON }}
+      TF_VAR_EXPO_ACCESS_TOKEN: ${{ secrets.DEV_EXPO_ACCESS_TOKEN }}
+      TF_VAR_APPLE_CLIENT_IDS: ${{ secrets.DEV_APPLE_CLIENT_IDS }}
+      TF_VAR_GOOGLE_CLIENT_IDS: ${{ secrets.DEV_GOOGLE_CLIENT_IDS }}
