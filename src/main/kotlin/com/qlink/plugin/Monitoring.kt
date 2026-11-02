@@ -3,6 +3,7 @@ package com.qlink.plugin
 import com.qlink.auth.domain.JwtPrincipal
 import com.qlink.config.MonitoringConfig
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
@@ -24,6 +25,8 @@ import org.koin.ktor.ext.inject
 import org.slf4j.LoggerFactory
 import org.slf4j.event.Level
 import java.util.UUID
+
+const val REQUESTER_HEADER_NAME = "Alink-Requester"
 
 fun Application.configureMonitoring() {
     val config by inject<MonitoringConfig>()
@@ -49,11 +52,12 @@ fun Application.configureMonitoring() {
             val contentLength = call.request.header(HttpHeaders.ContentLength).dashIfBlank()
             val durationMs = call.processingTimeMillis()
             val status = call.response.status() ?: HttpStatusCode.OK
+            val requester = call.request.header(REQUESTER_HEADER_NAME)
             val event =
-                if (durationMs >= config.httpLogging.slowThresholdMs) {
-                    "[HTTP-SLOW]"
-                } else {
-                    "[HTTP]"
+                when {
+                    requester.isNullOrBlank() && call.request.httpMethod != HttpMethod.Options -> "[HTTP-NO-REQUESTER]"
+                    durationMs >= config.httpLogging.slowThresholdMs -> "[HTTP-SLOW]"
+                    else -> "[HTTP]"
                 }
 
             "$event method=${call.request.httpMethod.value} " +
@@ -63,6 +67,7 @@ fun Application.configureMonitoring() {
                 "status=${status.value}, " +
                 "durationMs=$durationMs, " +
                 "userId=${call.userId()}, " +
+                "requester=${requester.dashIfBlank()}, " +
                 "user-agent=${call.request.header(HttpHeaders.UserAgent).orEmpty()}"
         }
     }

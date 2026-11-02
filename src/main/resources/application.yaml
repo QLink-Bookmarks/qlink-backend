@@ -35,6 +35,7 @@ http:
       - X-Requested-With
       - refresh_token
       - csrf_token
+      - Alink-Requester
     allowCredentials: true
     allowNonSimpleContentTypes: true
     anyHost: true

@@ -156,6 +156,18 @@ variable "route53_hosted_zone_id" {
   type = string
 }
 
+variable "api_domain" {
+  type = string
+}
+
+variable "listener_rule_priority" {
+  type = number
+}
+
+variable "listener_rule_tag_name" {
+  type = string
+}
+
 variable "ecr_repository_name" {
   type = string
 }

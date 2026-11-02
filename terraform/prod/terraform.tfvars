@@ -44,6 +44,9 @@ https_listener_tag_name   = "alink-alb-https-listener-prod"
 acm_certificate_arn       = "arn:aws:acm:ap-northeast-2:650177546654:certificate/5cada5c0-3c8e-4e01-8796-36014f087cde"
 https_listener_ssl_policy = "ELBSecurityPolicy-TLS13-1-2-Res-PQ-2025-09"
 route53_hosted_zone_id    = "Z08989212MZQ9OYDBC0JK"
+api_domain                = "api.archivelink.app"
+listener_rule_priority    = 100
+listener_rule_tag_name    = "prod-api-host-rule"
 
 ecr_image_tag_mutability = "IMMUTABLE"
 ecr_image_scan_on_push   = false
