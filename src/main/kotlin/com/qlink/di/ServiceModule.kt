@@ -10,6 +10,12 @@ import com.qlink.auth.service.RandomUserNameGenerator
 import com.qlink.auth.service.RefreshAuthTokenService
 import com.qlink.auth.service.SignInService
 import com.qlink.auth.service.SignOutService
+import com.qlink.bookmarkimport.service.CreateImportPreviewService
+import com.qlink.bookmarkimport.service.CreateImportReversalService
+import com.qlink.bookmarkimport.service.CreateImportService
+import com.qlink.bookmarkimport.service.GetImportDetailService
+import com.qlink.bookmarkimport.service.GetImportReversalPreviewService
+import com.qlink.bookmarkimport.service.GetImportsService
 import com.qlink.device.service.DeleteDeviceService
 import com.qlink.device.service.PutDeviceService
 import com.qlink.folder.service.AcceptFolderInvitationService
@@ -508,6 +514,63 @@ fun serviceModule() =
                 imageStorage = get(),
                 previewClient = get(),
                 urlResolver = get(),
+            )
+        }
+
+        single {
+            CreateImportPreviewService(
+                tx = get(),
+                userRepository = get(),
+                folderRepository = get(),
+                linkRepository = get(),
+            )
+        }
+
+        single {
+            CreateImportService(
+                tx = get(),
+                userRepository = get(),
+                folderRepository = get(),
+                linkRepository = get(),
+                bookmarkImportRepository = get(),
+                importThumbnailSignal = get(),
+            )
+        }
+
+        single {
+            GetImportsService(
+                tx = get(),
+                userRepository = get(),
+                bookmarkImportRepository = get(),
+            )
+        }
+
+        single {
+            GetImportDetailService(
+                tx = get(),
+                userRepository = get(),
+                folderRepository = get(),
+                bookmarkImportRepository = get(),
+            )
+        }
+
+        single {
+            GetImportReversalPreviewService(
+                tx = get(),
+                userRepository = get(),
+                folderRepository = get(),
+                linkRepository = get(),
+                bookmarkImportRepository = get(),
+            )
+        }
+
+        single {
+            CreateImportReversalService(
+                tx = get(),
+                userRepository = get(),
+                folderRepository = get(),
+                linkRepository = get(),
+                bookmarkImportRepository = get(),
             )
         }
     }
