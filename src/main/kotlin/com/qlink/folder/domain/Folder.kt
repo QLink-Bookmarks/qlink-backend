@@ -26,6 +26,9 @@ class Folder(
         emoji?.let(::validateEmoji)
     }
 
+    val isShared: Boolean
+        get() = sharedAt != null
+
     fun isOwnedBy(userId: Long): Boolean = ownerId == userId
 
     fun validateOwner(ownerId: Long) {
@@ -70,9 +73,24 @@ class Folder(
             Folder(
                 ownerId = ownerId,
                 name = name,
-                emoji = emoji ?: DEFAULT_FOLDER_EMOJIS[Random.nextInt(DEFAULT_FOLDER_EMOJIS.size)],
+                emoji = emoji ?: randomDefaultEmoji(),
                 sharedAt = sharedAt,
             )
+
+        fun createImported(
+            ownerId: Long,
+            name: String,
+            createdAt: Instant,
+        ): Folder =
+            Folder(
+                ownerId = ownerId,
+                name = name,
+                emoji = randomDefaultEmoji(),
+                createdAt = createdAt,
+                updatedAt = createdAt,
+            )
+
+        private fun randomDefaultEmoji(): String = DEFAULT_FOLDER_EMOJIS[Random.nextInt(DEFAULT_FOLDER_EMOJIS.size)]
     }
 
     private fun validateName(name: String) {

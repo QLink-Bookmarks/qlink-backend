@@ -8,6 +8,9 @@ conventions that are not obvious from reading the code.
 - Prefer Kotlin style logics.
 - Readability, Simpleness, and Maintenance are the priorities.
 - For any change in `domain/**` or `service/**`, follow `references/domain-review.md`.
+- Dependencies follow the allowed list in D1–D9 of `references/domain-review.md`; anything not listed is not allowed.
+- One top-level type per file, except DTO files. Pure-mechanism extensions on Kotlin or JDK types go in `common`
+  util files. See F1–F3 in `references/domain-review.md`.
 
 ## Testing Rules
 
@@ -21,7 +24,10 @@ conventions that are not obvious from reading the code.
 - Give fixture functions meaningful names so tests stay reusable and readable.
 - Domain tests should verify pure domain logic without external dependencies.
 - For domain method tests that are not testing object creation, create the domain object through a fixture. The fixture should expose parameters for values relevant to the method under test, while randomizing unrelated valid values.
-- Service tests must extend `BaseServiceTest` and use Koin DI through `support.koinGet<T>()`.
+- Service tests must extend `BaseServiceTest` and use Koin DI through `support.koinGet<T>()`. This applies to application
+  services (`<domain>/service`).
+- A domain service (`<domain>/domain/service/*DomainService`) is tested like a domain: a pure `BehaviorSpec` with fixtures, no
+  `BaseServiceTest`.
 - In service tests, prepare required persisted data in `beforeTest` using fixtures and repositories.
 - In service test `Then` blocks, verify behavior by querying the database through repositories.
 - For intended exception scenarios, test only `BusinessException`.
@@ -62,8 +68,10 @@ When("input is invalid") {
 ## DTO Rules
 
 - Place DTOs under each domain's `dto` package.
-- Keep DTO files limited to `Requests`, `Responses`, and `Queries`.
-- Declare request, response, and query data classes in the matching file.
+- Keep DTO files limited to `Requests`, `Responses`, `Queries`, and `Results` (values returned by domain services;
+  not serialized).
+- Declare request, response, query, and result data classes in the matching file.
+- A domain or VO never uses DTO types; domain services and application services assemble them.
 - Mark API request/response DTOs with `@Serializable`.
 
 ## API Rules

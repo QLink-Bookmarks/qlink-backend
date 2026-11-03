@@ -14,12 +14,12 @@ Draft the list, review it with the user in chat, then write the confirmed versio
 
 Each case maps one-to-one to a Kotest `BehaviorSpec` scenario, so section 4 reads as the skeleton of the test files.
 
-- Group cases under one heading per test target, which is one spec file: `### Domain — <Class>` or `### Service — <Service>`.
+- Group cases under one heading per test target, which is one spec file: `### Domain — <Class>` or `### Service — <Service>`. A domain service (`domain/service`) is a domain target: `### Domain — <Object>`, such as `### Domain — ImportPlanDomainService`. DTOs and `common` utils are never targets (C6).
 - Targets come from section 3: each case is tested where its rule is placed in `규칙 배치`, and each `ErrorCode` where its row in the `ErrorCode` table says it is thrown.
 - Under the heading, a `Given` line is the shared context. Each checkbox beneath it is one `When` + `Then` pair, tagged with the method under test.
 - Line form: `- [ ] \`<method>\` When <action> → Then <result>`
 - Write only the condition being tested. Values that are not the subject stay unnamed, because fixtures randomize them.
-- A domain `Then` is the returned value, the changed state, or the thrown error.
+- A domain `Then` is the returned value, the changed state, or the thrown error. A domain service's `Then` is its returned value; when a case proves that it passes the right facts to the domain that throws, the line describes the rejection without naming the `ErrorCode`.
 - A service `Then` is what a repository query shows afterwards, never a return value alone.
 - A failure case names its `ErrorCode`: `→ Then ErrorCode.FOLDER_NAME_BLANK`. Only `BusinessException` failures are listed.
 - List a failure case only under the class that throws it. A service that calls `Folder.validateOwner` does not repeat `FOLDER_DIFFERENT_OWNER`.

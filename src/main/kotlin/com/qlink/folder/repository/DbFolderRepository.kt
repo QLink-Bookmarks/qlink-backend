@@ -11,6 +11,7 @@ import com.qlink.folder.dto.FolderSearchOrder
 import com.qlink.folder.dto.SearchFoldersQuery
 import com.qlink.folder.repository.table.Folders
 import com.qlink.folder.repository.table.fromDomain
+import com.qlink.folder.repository.table.fromDomainForInsert
 import com.qlink.folder.repository.table.refreshUpdatedAt
 import com.qlink.folder.repository.table.toFolderDomain
 import com.qlink.foldermember.repository.table.FolderMembers
@@ -31,11 +32,14 @@ import org.jetbrains.exposed.v1.core.like
 import org.jetbrains.exposed.v1.core.neq
 import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.jdbc.andWhere
+import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.updateReturning
+import kotlin.time.Instant
+import kotlin.time.toJavaInstant
 import kotlin.time.toKotlinInstant
 
 class DbFolderRepository : FolderRepository {
@@ -46,12 +50,26 @@ class DbFolderRepository : FolderRepository {
             .singleOrNull()
             ?.toFolderDomain()
 
+    override suspend fun findAllByIds(ids: List<Long>): List<Folder> =
+        Folders
+            .selectAll()
+            .where { Folders.id inList ids }
+            .orderBy(Folders.id to SortOrder.ASC)
+            .map { it.toFolderDomain() }
+
     override suspend fun findAllByOwnerId(ownerId: Long): List<Folder> =
         Folders
             .selectAll()
             .where { Folders.ownerId eq ownerId }
             .orderBy(Folders.id to SortOrder.ASC)
             .map { it.toFolderDomain() }
+
+    override suspend fun findCreatedAtById(id: Long): Instant? =
+        Folders
+            .select(Folders.createdAt)
+            .where { Folders.id eq id }
+            .singleOrNull()
+            ?.let { it[Folders.createdAt].toKotlinInstant() }
 
     override suspend fun existsByOwnerIdAndName(
         ownerId: Long,
@@ -77,7 +95,13 @@ class DbFolderRepository : FolderRepository {
             }.empty()
             .not()
 
-    override suspend fun insert(folder: Folder): Folder = Folders.insertReturning { it.fromDomain(folder) }.single().toFolderDomain()
+    override suspend fun insert(folder: Folder): Folder =
+        Folders.insertReturning { it.fromDomainForInsert(folder) }.single().toFolderDomain()
+
+    override suspend fun insertAll(folders: List<Folder>): List<Folder> =
+        Folders
+            .batchInsert(folders) { fromDomainForInsert(it) }
+            .map { it.toFolderDomain() }
 
     override suspend fun search(
         ownerId: Long,
@@ -172,6 +196,10 @@ class DbFolderRepository : FolderRepository {
         Folders.deleteWhere { id eq folderId }
     }
 
+    override suspend fun deleteAllByIds(folderIds: List<Long>) {
+        Folders.deleteWhere { id inList folderIds }
+    }
+
     private fun cursorFilter(
         order: FolderSearchOrder,
         cursorValue: FolderSearchCursorValue,
@@ -179,11 +207,17 @@ class DbFolderRepository : FolderRepository {
     ): Op<Boolean> =
         when (order) {
             FolderSearchOrder.LATEST -> {
-                Folders.id less longLiteral(cursorValue.id ?: Long.MIN_VALUE)
+                val createdAt = cursorValue.createdAt!!.toJavaInstant()
+
+                (Folders.createdAt less createdAt) or
+                    ((Folders.createdAt eq createdAt) and (Folders.id less cursorValue.id!!))
             }
 
             FolderSearchOrder.EARLIEST -> {
-                Folders.id greater longLiteral(cursorValue.id ?: Long.MAX_VALUE)
+                val createdAt = cursorValue.createdAt!!.toJavaInstant()
+
+                (Folders.createdAt greater createdAt) or
+                    ((Folders.createdAt eq createdAt) and (Folders.id greater cursorValue.id!!))
             }
 
             FolderSearchOrder.LAXICO -> {
@@ -208,8 +242,8 @@ class DbFolderRepository : FolderRepository {
         score: org.jetbrains.exposed.v1.core.ExpressionWithColumnTypeAlias<Double>,
     ): Array<Pair<org.jetbrains.exposed.v1.core.Expression<*>, SortOrder>> =
         when (order) {
-            FolderSearchOrder.LATEST -> arrayOf(Folders.id to SortOrder.DESC)
-            FolderSearchOrder.EARLIEST -> arrayOf(Folders.id to SortOrder.ASC)
+            FolderSearchOrder.LATEST -> arrayOf(Folders.createdAt to SortOrder.DESC, Folders.id to SortOrder.DESC)
+            FolderSearchOrder.EARLIEST -> arrayOf(Folders.createdAt to SortOrder.ASC, Folders.id to SortOrder.ASC)
             FolderSearchOrder.LAXICO -> arrayOf(Folders.name to SortOrder.ASC, Folders.id to SortOrder.ASC)
             FolderSearchOrder.SIMILAR -> arrayOf(score to SortOrder.DESC, Folders.id to SortOrder.DESC)
         }

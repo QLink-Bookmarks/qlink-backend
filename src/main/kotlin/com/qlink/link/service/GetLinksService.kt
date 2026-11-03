@@ -42,7 +42,10 @@ class GetLinksService(
             val normalizedOrder =
                 LinkSearchOrder.from(order.ifBlank { DEFAULT_LINK_SEARCH_ORDER })
                     ?: throw BusinessException(ErrorCode.COMMON_INVALID_SORT_ORDER)
-            val cursor = scrollRequest.cursor?.let { SearchCursorCodec.decode(it, normalizedOrder, ::validateCursorValue) }
+            val cursor =
+                scrollRequest.cursor
+                    ?.let { SearchCursorCodec.decode(it, normalizedOrder, ::validateCursorValue) }
+                    ?.withCreatedAt()
             val size = scrollRequest.size.takeIf { it > 0 } ?: DEFAULT_SCROLL_SIZE
             val queries =
                 linkRepository.search(
@@ -107,6 +110,20 @@ class GetLinksService(
         }
     }
 
+    private suspend fun LinkSearchCursor.withCreatedAt(): LinkSearchCursor =
+        when {
+            order !in CREATED_AT_ORDERS || value.createdAt != null -> {
+                this
+            }
+
+            else -> {
+                linkRepository
+                    .findCreatedAtById(value.id!!)
+                    ?.let { copy(value = value.copy(createdAt = it)) }
+                    ?: throw BusinessException(ErrorCode.COMMON_CURSOR_MALFORMED)
+            }
+        }
+
     private fun encodeCursor(
         query: SearchLinksQuery,
         order: LinkSearchOrder,
@@ -116,6 +133,7 @@ class GetLinksService(
             value =
                 LinkSearchCursorValue(
                     id = query.id,
+                    createdAt = query.createdAt,
                     title = query.title,
                     score = query.score,
                     titleScore = query.titleScore,
@@ -134,3 +152,5 @@ class GetLinksService(
             completed = count { it.isCompleted },
         )
 }
+
+private val CREATED_AT_ORDERS = setOf(LinkSearchOrder.LATEST, LinkSearchOrder.EARLIEST)

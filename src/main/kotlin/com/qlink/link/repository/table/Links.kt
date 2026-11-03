@@ -44,6 +44,7 @@ object Links : Table("links") {
 
     init {
         index("links_owner_id_idx", false, ownerId)
+        index("links_owner_id_created_at_id_idx", false, ownerId, createdAt, id)
         index("links_folder_id_idx", false, folderId)
         index("links_status_idx", false, status)
         index("links_work_model_id_idx", false, workModelId)
@@ -88,6 +89,12 @@ fun UpdateBuilder<*>.fromDomain(link: Link) {
     this[Links.status] = link.status
     this[Links.workModelId] = link.workModelId
     this[Links.favoriteAt] = link.favoriteAt?.toJavaInstant()
+}
+
+fun UpdateBuilder<*>.fromDomainForInsert(link: Link) {
+    fromDomain(link)
+    link.createdAt?.let { this[Links.createdAt] = it.toJavaInstant() }
+    link.updatedAt?.let { this[Links.updatedAt] = it.toJavaInstant() }
 }
 
 fun UpdateBuilder<*>.refreshUpdatedAt() {

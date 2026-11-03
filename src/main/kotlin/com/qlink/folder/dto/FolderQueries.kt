@@ -42,6 +42,7 @@ typealias FolderSearchCursor = SearchCursor<FolderSearchCursorValue>
 @Serializable
 data class FolderSearchCursorValue(
     val id: Long? = null,
+    val createdAt: Instant? = null,
     val name: String? = null,
     val score: Double? = null,
 )

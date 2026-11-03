@@ -24,6 +24,7 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import org.jetbrains.exposed.v1.jdbc.insert
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.toKotlinInstant
 
 class GetFoldersServiceTest :
@@ -568,6 +569,120 @@ class GetFoldersServiceTest :
 
                 Then("예외를 반환한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.COMMON_CURSOR_FIELD_MISSING.message) {
+                        get()
+                    }
+                }
+            }
+        }
+
+        Given("생성 시각과 id 순서가 다른 내 폴더들(가져온 옛 폴더 포함)") {
+            lateinit var user: User
+            lateinit var folders: List<Folder>
+
+            beforeTest {
+                user = userRepository.insert(UserFixture.createRandomValidUser())
+                val base = RandomFixture.randomPastInstant()
+                folders =
+                    listOf(
+                        FolderFixture.createFolderWith(ownerId = user.id!!, createdAt = base + 3.hours),
+                        FolderFixture.createImportedFolderOf(ownerId = user.id!!, createdAt = base),
+                        FolderFixture.createFolderWith(ownerId = user.id!!, createdAt = base + 1.hours),
+                        FolderFixture.createFolderWith(ownerId = user.id!!, createdAt = base + 1.hours),
+                    ).map { folderRepository.insert(it) }
+            }
+
+            suspend fun storedLatestOrder(): List<Long> =
+                folderRepository
+                    .findAllByIds(folders.map { it.id!! })
+                    .sortedWith(compareByDescending<Folder> { it.createdAt }.thenByDescending { it.id })
+                    .map { it.id!! }
+
+            suspend fun getFolders(
+                order: String,
+                cursor: String? = null,
+                size: Int = 10,
+            ) = getFoldersService.getFolders(
+                loginId = user.id!!,
+                query = null,
+                order = order,
+                scrollRequest = ScrollRequest(cursor = cursor, size = size),
+            )
+
+            When("latest로 조회하면") {
+                val get = suspend { getFolders(order = "latest") }
+
+                Then("createdAt 내림차순, 같으면 id 내림차순이다") {
+                    val response = get()
+
+                    response.contents.map { it.id } shouldBe storedLatestOrder()
+                    response.contents.map { it.id } shouldBe listOf(folders[0].id, folders[3].id, folders[2].id, folders[1].id)
+                }
+            }
+
+            When("earliest로 조회하면") {
+                val get = suspend { getFolders(order = "earliest") }
+
+                Then("createdAt 오름차순, 같으면 id 오름차순이다") {
+                    val response = get()
+
+                    response.contents.map { it.id } shouldBe storedLatestOrder().reversed()
+                }
+            }
+
+            When("같은 createdAt 폴더가 페이지 경계에 걸쳐 새 커서로 이어 읽으면") {
+                val get =
+                    suspend {
+                        val firstPage = getFolders(order = "latest", size = 2)
+                        firstPage to getFolders(order = "latest", cursor = firstPage.nextCursor, size = 2)
+                    }
+
+                Then("빠짐·중복 없이 이어진다") {
+                    val (firstPage, secondPage) = get()
+
+                    firstPage.hasNext shouldBe true
+                    secondPage.hasNext shouldBe false
+                    (firstPage.contents + secondPage.contents).map { it.id } shouldBe storedLatestOrder()
+                }
+            }
+
+            When("createdAt이 없는 옛 커서(id만)로 이어 읽으면") {
+                val get =
+                    suspend {
+                        getFolders(
+                            order = "latest",
+                            cursor =
+                                Base64CursorCodec.encode(
+                                    FolderSearchCursor(
+                                        order = FolderSearchOrder.LATEST,
+                                        value = FolderSearchCursorValue(id = folders[3].id),
+                                    ),
+                                ),
+                        )
+                    }
+
+                Then("그 id 행의 createdAt 기준으로 이어진다") {
+                    val response = get()
+
+                    response.contents.map { it.id } shouldBe storedLatestOrder().dropWhile { it != folders[3].id }.drop(1)
+                }
+            }
+
+            When("옛 커서의 id 행이 지워졌으면") {
+                val get =
+                    suspend {
+                        val deletedId = folders[3].id!!
+                        folderRepository.deleteById(deletedId)
+                        getFolders(
+                            order = "latest",
+                            cursor =
+                                Base64CursorCodec.encode(
+                                    FolderSearchCursor(order = FolderSearchOrder.LATEST, value = FolderSearchCursorValue(id = deletedId)),
+                                ),
+                        )
+                    }
+
+                Then("예외가 발생한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.COMMON_CURSOR_MALFORMED.message) {
                         get()
                     }
                 }

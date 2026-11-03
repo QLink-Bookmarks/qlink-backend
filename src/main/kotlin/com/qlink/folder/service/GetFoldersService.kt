@@ -34,7 +34,10 @@ class GetFoldersService(
             val normalizedOrder =
                 FolderSearchOrder.from(order.ifBlank { DEFAULT_FOLDER_SEARCH_ORDER })
                     ?: throw BusinessException(ErrorCode.COMMON_INVALID_SORT_ORDER)
-            val cursor = scrollRequest.cursor?.let { SearchCursorCodec.decode(it, normalizedOrder, ::validateCursorValue) }
+            val cursor =
+                scrollRequest.cursor
+                    ?.let { SearchCursorCodec.decode(it, normalizedOrder, ::validateCursorValue) }
+                    ?.withCreatedAt()
             val size = scrollRequest.size.takeIf { it > 0 } ?: DEFAULT_SCROLL_SIZE
             val queries =
                 folderRepository.search(
@@ -88,6 +91,20 @@ class GetFoldersService(
         }
     }
 
+    private suspend fun FolderSearchCursor.withCreatedAt(): FolderSearchCursor =
+        when {
+            order !in CREATED_AT_ORDERS || value.createdAt != null -> {
+                this
+            }
+
+            else -> {
+                folderRepository
+                    .findCreatedAtById(value.id!!)
+                    ?.let { copy(value = value.copy(createdAt = it)) }
+                    ?: throw BusinessException(ErrorCode.COMMON_CURSOR_MALFORMED)
+            }
+        }
+
     private fun encodeCursor(
         query: SearchFoldersQuery,
         order: FolderSearchOrder,
@@ -97,8 +114,11 @@ class GetFoldersService(
             value =
                 FolderSearchCursorValue(
                     id = query.id,
+                    createdAt = query.createdAt,
                     name = query.name,
                     score = query.score,
                 ),
         )
 }
+
+private val CREATED_AT_ORDERS = setOf(FolderSearchOrder.LATEST, FolderSearchOrder.EARLIEST)

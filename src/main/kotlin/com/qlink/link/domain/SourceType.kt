@@ -4,4 +4,5 @@ enum class SourceType {
     INPUT,
     QR,
     COPY,
+    IMPORT,
 }

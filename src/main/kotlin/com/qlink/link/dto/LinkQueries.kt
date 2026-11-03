@@ -65,6 +65,7 @@ typealias LinkSearchCursor = SearchCursor<LinkSearchCursorValue>
 @Serializable
 data class LinkSearchCursorValue(
     val id: Long? = null,
+    val createdAt: Instant? = null,
     val title: String? = null,
     val score: Double? = null,
     val titleScore: Double? = null,

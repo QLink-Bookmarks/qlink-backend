@@ -16,6 +16,7 @@ object LinkFixture {
 
     fun createRandomLinkOf(
         ownerId: Long,
+        id: Long = RandomFixture.randomId(),
         folderId: Long? = null,
         url: String = RandomFixture.randomUrl(),
         title: String = RandomFixture.randomSentenceWithMax(300),
@@ -29,9 +30,10 @@ object LinkFixture {
         status: LinkStatus = LinkStatus.C,
         workModelId: Long? = null,
         favoriteAt: Instant? = null,
+        createdAt: Instant? = null,
     ): Link =
         Link(
-            id = RandomFixture.randomId(),
+            id = id,
             ownerId = ownerId,
             folderId = folderId,
             url = url,
@@ -46,7 +48,30 @@ object LinkFixture {
             workModelId = workModelId,
             favoriteAt = favoriteAt,
             tags = tags,
+            createdAt = createdAt,
+            updatedAt = createdAt,
         )
+
+    fun createImportedLinkOf(
+        ownerId: Long,
+        folderId: Long? = null,
+        url: String = RandomFixture.randomUrl(),
+        title: String = RandomFixture.randomSentenceWithMax(300),
+        createdAt: Instant = RandomFixture.randomPastInstant(),
+    ): Link =
+        Link(
+            id = RandomFixture.randomId(),
+            ownerId = ownerId,
+            folderId = folderId,
+            url = url,
+            title = title,
+            tags = emptyList(),
+            sourceType = SourceType.IMPORT,
+            createdAt = createdAt,
+            updatedAt = createdAt,
+        )
+
+    fun randomRequestSourceType(): SourceType = SourceType.entries.filter { it != SourceType.IMPORT }.random()
 
     fun createLinkFromPreviewRequest(
         publicBaseUrl: String = RandomFixture.randomPreviewBaseUrl(),

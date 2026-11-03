@@ -7,7 +7,9 @@ import com.qlink.config.DataSourceConfig
 import com.qlink.config.LinkPreviewConfig
 import com.qlink.config.S3Config
 import com.qlink.config.SecurityConfig
+import com.qlink.di.bookmarkImportModule
 import com.qlink.di.dataModule
+import com.qlink.di.linkPreviewModule
 import com.qlink.di.repositoryModule
 import com.qlink.di.serviceModule
 import com.qlink.di.storageModule
@@ -136,6 +138,8 @@ object ServiceTestEnvironment {
                 dataModule(testApplicationConfig(), testDataSourceConfig()),
                 transactionModule(),
                 repositoryModule(),
+                linkPreviewModule(testApplicationConfig()),
+                bookmarkImportModule(),
                 securityTestModule(),
                 notificationTestModule(),
                 aiTestModule(),
