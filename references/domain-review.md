@@ -56,7 +56,7 @@ A service never reads a domain's fields to make a decision P1 or P2 assigns to t
 
 A type depends on another when it names, holds, takes, returns or calls it. Only the dependencies listed below are allowed, one line each. Anything not listed is not allowed, and no dependencies form a cycle. A domain service is optional. It exists only for a decision that spans several domains (P2), so a call never has to go through one. Every item may use `common` (C2). M3 still limits which domains a domain-layer type may name.
 
-- **D1** Route → application service, always, and the request and response DTOs it maps. A route calls nothing else.
+- **D1** Route → application service, always, the request and response DTOs it maps, and the call's authentication principal (`JwtPrincipal`, plugin helpers such as `jwtPrincipalOrGuest`) to read the user. A route calls nothing else.
 - **D2** Application service → repository; → domain (its behavior); → domain service, only when a decision spans domains (P2); → DTO; → client (P4); → worker, only when a case needs it, such as a wake signal. It may also use its own helper classes (S4) and a shared-step service (S5). It may build, pass and read VOs and enums, but calls their behavior only when no other way exists.
 - **D3** Worker → usually nothing; it runs alone. When it has a structure, the worker is only the trigger: worker → application service, which then goes → repository and domain (D2).
 - **D4** Repository → its tables (persistence) and its own domain's domains, VOs and enums; → DTOs, always, such as `Queries`.
