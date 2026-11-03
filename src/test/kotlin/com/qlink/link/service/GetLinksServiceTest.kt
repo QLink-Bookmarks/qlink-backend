@@ -723,6 +723,112 @@ class GetLinksServiceTest :
                 }
             }
         }
+
+        Given("생성 시각과 id 순서가 다른 내 링크들(가져온 옛 링크 포함)") {
+            lateinit var user: User
+            lateinit var links: List<Link>
+
+            beforeTest {
+                user = userRepository.insert(UserFixture.createRandomValidUser())
+                val base = RandomFixture.randomPastInstant()
+                links =
+                    listOf(
+                        LinkFixture.createRandomLinkOf(ownerId = user.id!!, createdAt = base + 3.hours),
+                        LinkFixture.createImportedLinkOf(ownerId = user.id!!, createdAt = base),
+                        LinkFixture.createRandomLinkOf(ownerId = user.id!!, createdAt = base + 1.hours),
+                        LinkFixture.createRandomLinkOf(ownerId = user.id!!, createdAt = base + 1.hours),
+                    ).map { linkRepository.insert(it) }
+            }
+
+            suspend fun storedLatestOrder(): List<Long> =
+                linkRepository
+                    .findAllByIds(links.map { it.id!! })
+                    .sortedWith(compareByDescending<Link> { it.createdAt }.thenByDescending { it.id })
+                    .map { it.id!! }
+
+            suspend fun getLinks(
+                order: String,
+                cursor: String? = null,
+                size: Int = 10,
+            ) = getLinksService.getLinks(
+                loginId = user.id!!,
+                query = null,
+                folderId = null,
+                order = order,
+                scrollRequest = ScrollRequest(cursor = cursor, size = size),
+            )
+
+            When("latest로 조회하면") {
+                val get = suspend { getLinks(order = "latest") }
+
+                Then("createdAt 내림차순, 같으면 id 내림차순이다") {
+                    val response = get()
+
+                    response.contents.map { it.id } shouldBe storedLatestOrder()
+                    response.contents.map { it.id } shouldBe listOf(links[0].id, links[3].id, links[2].id, links[1].id)
+                }
+            }
+
+            When("earliest로 조회하면") {
+                val get = suspend { getLinks(order = "earliest") }
+
+                Then("createdAt 오름차순, 같으면 id 오름차순이다") {
+                    val response = get()
+
+                    response.contents.map { it.id } shouldBe storedLatestOrder().reversed()
+                }
+            }
+
+            When("같은 createdAt 링크가 페이지 경계에 걸쳐 새 커서로 이어 읽으면") {
+                val get =
+                    suspend {
+                        val firstPage = getLinks(order = "latest", size = 2)
+                        firstPage to getLinks(order = "latest", cursor = firstPage.nextCursor, size = 2)
+                    }
+
+                Then("빠짐·중복 없이 이어진다") {
+                    val (firstPage, secondPage) = get()
+
+                    firstPage.hasNext shouldBe true
+                    secondPage.hasNext shouldBe false
+                    (firstPage.contents + secondPage.contents).map { it.id } shouldBe storedLatestOrder()
+                }
+            }
+
+            When("createdAt이 없는 옛 커서(id만)로 이어 읽으면") {
+                val get =
+                    suspend {
+                        getLinks(
+                            order = "latest",
+                            cursor = createCursor(order = LinkSearchOrder.LATEST, value = LinkSearchCursorValue(id = links[3].id)),
+                        )
+                    }
+
+                Then("그 id 행의 createdAt 기준으로 이어진다") {
+                    val response = get()
+
+                    response.contents.map { it.id } shouldBe storedLatestOrder().dropWhile { it != links[3].id }.drop(1)
+                }
+            }
+
+            When("옛 커서의 id 행이 지워졌으면") {
+                val get =
+                    suspend {
+                        val deletedId = links[3].id!!
+                        linkRepository.deleteById(deletedId)
+                        getLinks(
+                            order = "latest",
+                            cursor = createCursor(order = LinkSearchOrder.LATEST, value = LinkSearchCursorValue(id = deletedId)),
+                        )
+                    }
+
+                Then("예외가 발생한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.COMMON_CURSOR_MALFORMED.message) {
+                        get()
+                    }
+                }
+            }
+        }
     })
 
 private fun createCursor(

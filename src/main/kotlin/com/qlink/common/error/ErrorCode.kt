@@ -54,6 +54,7 @@ enum class ErrorCode(
     LINK_THUMBNAIL_URL_NOT_ALLOWED("LINK_400_0009", 400, "허용되지 않는 대표 이미지 URL이에요"),
     LINK_FAVICON_URL_NOT_ALLOWED("LINK_400_0010", 400, "허용되지 않는 파비콘 URL이에요"),
     LINK_PREVIEW_URL_INVALID("LINK_400_0008", 400, "프리뷰 URL이 올바르지 않아요"),
+    LINK_SOURCE_TYPE_NOT_ALLOWED("LINK_400_0011", 400, "직접 지정할 수 없는 출처 유형이에요"),
 
     LINK_DIFFERENT_OWNER("LINK_403_0001", 403, "링크에 대한 권한이 없어요"),
 
@@ -151,4 +152,21 @@ enum class ErrorCode(
     IMAGE_URL_INVALID("IMAGE_400_0006", 400, "페이지 URL이 올바르지 않아요"),
     IMAGE_OWNER_NOT_FOUND("IMAGE_404_0001", 404, "로그인 사용자를 찾을 수 없어요"),
     IMAGE_UPLOAD_FAILED("IMAGE_500_0001", 500, "이미지 업로드에 실패했어요"),
+
+    // Import
+    IMPORT_LINKS_EMPTY("IMPORT_400_0001", 400, "가져올 링크가 없어요"),
+    IMPORT_LINKS_OVER_MAX("IMPORT_400_0002", 400, "한 번에 가져올 수 있는 링크는 최대 3,000개에요"),
+    IMPORT_FOLDERS_OVER_MAX("IMPORT_400_0003", 400, "한 번에 가져올 수 있는 폴더는 최대 3,000개에요"),
+    IMPORT_KEY_DUPLICATED("IMPORT_400_0004", 400, "가져오기 항목의 키가 중복되었어요"),
+    IMPORT_FOLDER_KEY_NOT_FOUND("IMPORT_400_0005", 400, "링크가 가리키는 폴더 항목이 없어요"),
+    IMPORT_FOLDER_NAME_BLANK("IMPORT_400_0006", 400, "폴더 이름이 입력되지 않았어요"),
+    IMPORT_FOLDER_NAME_OVER_MAX("IMPORT_400_0007", 400, "폴더 이름은 최대 100자에요"),
+    IMPORT_FILE_NAME_BLANK("IMPORT_400_0008", 400, "파일 이름이 입력되지 않았어요"),
+    IMPORT_FILE_NAME_OVER_MAX("IMPORT_400_0009", 400, "파일 이름은 최대 255자에요"),
+    IMPORT_REVERSAL_ITEMS_EMPTY("IMPORT_400_0010", 400, "되돌릴 항목이 선택되지 않았어요"),
+    IMPORT_REVERSAL_ITEM_INVALID("IMPORT_400_0011", 400, "이 가져오기로 추가된 항목이 아니에요"),
+    IMPORT_OWNER_NOT_FOUND("IMPORT_404_0001", 404, "로그인 사용자를 찾을 수 없어요"),
+    IMPORT_NOT_FOUND("IMPORT_404_0002", 404, "가져오기 기록을 찾을 수 없어요"),
+    IMPORT_PREVIEW_OWNER_NOT_FOUND("IMPORT_404_0003", 404, "로그인 사용자를 찾을 수 없어요"),
+    IMPORT_REVERSAL_FOLDER_SHARED("IMPORT_422_0002", 422, "공유 중인 폴더는 되돌릴 수 없어요"),
 }

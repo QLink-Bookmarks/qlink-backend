@@ -33,6 +33,9 @@ class Link(
 ) {
     val tags: List<String> = tags.distinct()
 
+    val hasPreview: Boolean
+        get() = thumbnailUrl != null || faviconUrl != null
+
     init {
         validateUrl(url)
         validateTitle(title)
@@ -150,6 +153,39 @@ class Link(
             }
         }
 
+    fun fillPreview(
+        thumbnailUrl: String?,
+        faviconUrl: String?,
+        isVideo: Boolean,
+    ): Link =
+        when {
+            hasPreview -> {
+                this
+            }
+
+            else -> {
+                Link(
+                    id = id,
+                    ownerId = ownerId,
+                    folderId = folderId,
+                    url = url,
+                    title = title,
+                    summary = summary,
+                    memo = memo,
+                    tags = tags,
+                    thumbnailUrl = thumbnailUrl,
+                    faviconUrl = faviconUrl,
+                    isVideo = isVideo,
+                    sourceType = sourceType,
+                    status = status,
+                    workModelId = workModelId,
+                    favoriteAt = favoriteAt,
+                    createdAt = createdAt,
+                    updatedAt = updatedAt,
+                )
+            }
+        }
+
     private fun resolveFavoriteAt(
         isFavorite: Boolean,
         now: Instant,
@@ -179,7 +215,7 @@ class Link(
         title.requireNotOver(MAX_TITLE_LENGTH, ErrorCode.LINK_TITLE_OVER_MAX)
     }
 
-    private fun URI.isWebScheme(): Boolean = scheme.lowercase() in WEB_PROTOCOL
+    private fun URI.isWebScheme(): Boolean = scheme?.lowercase() in WEB_PROTOCOL
 
     companion object {
         fun createFromRequest(
@@ -198,6 +234,7 @@ class Link(
             previewPublicBaseUrl: String,
             previewEnvironment: String,
         ): Link {
+            (sourceType != SourceType.IMPORT).requireTrue(ErrorCode.LINK_SOURCE_TYPE_NOT_ALLOWED)
             thumbnailUrl?.let {
                 validatePreviewUrl(
                     value = it,
@@ -229,6 +266,25 @@ class Link(
                 status = status,
             )
         }
+
+        fun createImported(
+            ownerId: Long,
+            folderId: Long?,
+            url: String,
+            title: String,
+            createdAt: Instant,
+        ): Link =
+            Link(
+                ownerId = ownerId,
+                folderId = folderId,
+                url = url,
+                title = title,
+                tags = emptyList(),
+                sourceType = SourceType.IMPORT,
+                status = LinkStatus.C,
+                createdAt = createdAt,
+                updatedAt = createdAt,
+            )
 
         private fun validatePreviewUrl(
             value: String,

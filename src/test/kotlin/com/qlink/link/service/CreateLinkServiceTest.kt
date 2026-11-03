@@ -6,7 +6,6 @@ import com.qlink.folder.domain.Folder
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.foldermember.repository.FolderMemberRepository
 import com.qlink.image.service.PreviewImageUrlResolver
-import com.qlink.link.domain.SourceType
 import com.qlink.link.dto.CreateLinkRequest
 import com.qlink.link.dto.CreateLinkTodoRequest
 import com.qlink.link.repository.LinkRepository
@@ -30,7 +29,6 @@ import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import java.util.concurrent.TimeUnit
-import kotlin.random.Random
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.toKotlinInstant
@@ -62,7 +60,7 @@ class CreateLinkServiceTest :
                         title = RandomFixture.randomSentenceWithMax(300),
                         summary = RandomFixture.randomSentenceWithMax(1_000),
                         memo = RandomFixture.randomSentenceWithMax(1_000),
-                        sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
+                        sourceType = LinkFixture.randomRequestSourceType(),
                         thumbnailUrl = LinkFixture.validPreviewUrlOf(urlResolver),
                         faviconUrl = LinkFixture.validPreviewUrlOf(urlResolver, kind = "favicon"),
                         isVideo = true,
@@ -112,7 +110,7 @@ class CreateLinkServiceTest :
                         title = RandomFixture.randomSentenceWithMax(300),
                         summary = RandomFixture.randomSentenceWithMax(1_000),
                         memo = RandomFixture.randomSentenceWithMax(1_000),
-                        sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
+                        sourceType = LinkFixture.randomRequestSourceType(),
                         thumbnailUrl = LinkFixture.validPreviewUrlOf(urlResolver),
                         tags = RandomFixture.randomSentenceList(),
                         todos = todos,
@@ -155,7 +153,7 @@ class CreateLinkServiceTest :
                         title = RandomFixture.randomSentenceWithMax(300),
                         summary = RandomFixture.randomSentenceWithMax(1_000),
                         memo = RandomFixture.randomSentenceWithMax(1_000),
-                        sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
+                        sourceType = LinkFixture.randomRequestSourceType(),
                         thumbnailUrl = LinkFixture.validPreviewUrlOf(urlResolver),
                         tags = RandomFixture.randomSentenceList(),
                     )
@@ -180,7 +178,7 @@ class CreateLinkServiceTest :
                         title = RandomFixture.randomSentenceWithMax(300),
                         summary = RandomFixture.randomSentenceWithMax(1_000),
                         memo = RandomFixture.randomSentenceWithMax(1_000),
-                        sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
+                        sourceType = LinkFixture.randomRequestSourceType(),
                         thumbnailUrl = LinkFixture.validPreviewUrlOf(urlResolver),
                         tags = RandomFixture.randomSentenceList(),
                     )
@@ -211,7 +209,7 @@ class CreateLinkServiceTest :
                             folderId = sharedFolder.id,
                             url = RandomFixture.randomUrl(),
                             title = RandomFixture.randomSentenceWithMax(300),
-                            sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
+                            sourceType = LinkFixture.randomRequestSourceType(),
                             tags = RandomFixture.randomSentenceList(),
                         )
 
@@ -236,7 +234,7 @@ class CreateLinkServiceTest :
                             folderId = sharedFolder.id,
                             url = RandomFixture.randomUrl(),
                             title = RandomFixture.randomSentenceWithMax(300),
-                            sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
+                            sourceType = LinkFixture.randomRequestSourceType(),
                             tags = RandomFixture.randomSentenceList(),
                         )
 
@@ -253,7 +251,7 @@ class CreateLinkServiceTest :
                         title = RandomFixture.randomSentenceWithMax(300),
                         summary = RandomFixture.randomSentenceWithMax(1_000),
                         memo = RandomFixture.randomSentenceWithMax(1_000),
-                        sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
+                        sourceType = LinkFixture.randomRequestSourceType(),
                         thumbnailUrl = LinkFixture.validPreviewUrlOf(urlResolver),
                         tags = RandomFixture.randomSentenceList(),
                         todos =

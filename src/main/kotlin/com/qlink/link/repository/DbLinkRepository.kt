@@ -17,6 +17,7 @@ import com.qlink.link.dto.LinkSearchOrder
 import com.qlink.link.dto.SearchLinksQuery
 import com.qlink.link.repository.table.Links
 import com.qlink.link.repository.table.fromDomain
+import com.qlink.link.repository.table.fromDomainForInsert
 import com.qlink.link.repository.table.refreshUpdatedAt
 import com.qlink.link.repository.table.toLinkDomain
 import org.jetbrains.exposed.v1.core.Expression
@@ -29,6 +30,7 @@ import org.jetbrains.exposed.v1.core.alias
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greater
+import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.isNotNull
 import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.core.less
@@ -37,20 +39,28 @@ import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.core.plus
 import org.jetbrains.exposed.v1.core.times
 import org.jetbrains.exposed.v1.jdbc.andWhere
+import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 import org.jetbrains.exposed.v1.jdbc.updateReturning
+import kotlin.time.Instant
+import kotlin.time.toJavaInstant
 import kotlin.time.toKotlinInstant
 
 class DbLinkRepository : LinkRepository {
     override suspend fun insert(link: Link): Link =
         Links
-            .insertReturning { it.fromDomain(link) }
+            .insertReturning { it.fromDomainForInsert(link) }
             .single()
             .toLinkDomain()
+
+    override suspend fun insertAll(links: List<Link>): List<Link> =
+        Links
+            .batchInsert(links) { fromDomainForInsert(it) }
+            .map { it.toLinkDomain() }
 
     override suspend fun findById(linkId: Long): Link? =
         Links
@@ -58,6 +68,33 @@ class DbLinkRepository : LinkRepository {
             .where { Links.id eq linkId }
             .singleOrNull()
             ?.toLinkDomain()
+
+    override suspend fun findAllByIds(linkIds: List<Long>): List<Link> =
+        Links
+            .selectAll()
+            .where { Links.id inList linkIds }
+            .orderBy(Links.id to SortOrder.ASC)
+            .map { it.toLinkDomain() }
+
+    override suspend fun findAllByFolderIds(folderIds: List<Long>): List<Link> =
+        Links
+            .selectAll()
+            .where { Links.folderId inList folderIds }
+            .orderBy(Links.id to SortOrder.ASC)
+            .map { it.toLinkDomain() }
+
+    override suspend fun findAllUrlsByOwnerId(ownerId: Long): List<String> =
+        Links
+            .select(Links.url)
+            .where { Links.ownerId eq ownerId }
+            .map { it[Links.url] }
+
+    override suspend fun findCreatedAtById(linkId: Long): Instant? =
+        Links
+            .select(Links.createdAt)
+            .where { Links.id eq linkId }
+            .singleOrNull()
+            ?.let { it[Links.createdAt].toKotlinInstant() }
 
     override suspend fun findDetailById(
         linkId: Long,
@@ -268,8 +305,24 @@ class DbLinkRepository : LinkRepository {
             }.single()
             .toLinkDomain()
 
+    override suspend fun updatePreview(link: Link): Boolean =
+        Links.update(
+            where = { (Links.id eq link.id!!) and Links.thumbnailUrl.isNull() and Links.faviconUrl.isNull() },
+        ) {
+            it[Links.thumbnailUrl] = link.thumbnailUrl
+            it[Links.faviconUrl] = link.faviconUrl
+            it[Links.isVideo] = link.isVideo
+        } == 1
+
     override suspend fun detachFolder(folderId: Long) {
         Links.update(where = { Links.folderId eq folderId }) {
+            it[Links.folderId] = null
+            it.refreshUpdatedAt()
+        }
+    }
+
+    override suspend fun detachFolders(folderIds: List<Long>) {
+        Links.update(where = { Links.folderId inList folderIds }) {
             it[Links.folderId] = null
             it.refreshUpdatedAt()
         }
@@ -281,6 +334,10 @@ class DbLinkRepository : LinkRepository {
 
     override suspend fun deleteById(linkId: Long) {
         Links.deleteWhere { id eq linkId }
+    }
+
+    override suspend fun deleteAllByIds(linkIds: List<Long>) {
+        Links.deleteWhere { id inList linkIds }
     }
 
     private fun scoreExpression(
@@ -300,11 +357,17 @@ class DbLinkRepository : LinkRepository {
     ): Op<Boolean> =
         when (order) {
             LinkSearchOrder.LATEST -> {
-                Links.id less longLiteral(cursorValue.id ?: Long.MIN_VALUE)
+                val createdAt = cursorValue.createdAt!!.toJavaInstant()
+
+                (Links.createdAt less createdAt) or
+                    ((Links.createdAt eq createdAt) and (Links.id less cursorValue.id!!))
             }
 
             LinkSearchOrder.EARLIEST -> {
-                Links.id greater longLiteral(cursorValue.id ?: Long.MAX_VALUE)
+                val createdAt = cursorValue.createdAt!!.toJavaInstant()
+
+                (Links.createdAt greater createdAt) or
+                    ((Links.createdAt eq createdAt) and (Links.id greater cursorValue.id!!))
             }
 
             LinkSearchOrder.LAXICO -> {
@@ -458,11 +521,11 @@ class DbLinkRepository : LinkRepository {
     ): Array<Pair<Expression<*>, SortOrder>> =
         when (order) {
             LinkSearchOrder.LATEST -> {
-                arrayOf(Links.id to SortOrder.DESC)
+                arrayOf(Links.createdAt to SortOrder.DESC, Links.id to SortOrder.DESC)
             }
 
             LinkSearchOrder.EARLIEST -> {
-                arrayOf(Links.id to SortOrder.ASC)
+                arrayOf(Links.createdAt to SortOrder.ASC, Links.id to SortOrder.ASC)
             }
 
             LinkSearchOrder.LAXICO -> {

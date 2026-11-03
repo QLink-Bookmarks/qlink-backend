@@ -14,6 +14,8 @@ import com.qlink.auth.repository.AuthProviderRepository
 import com.qlink.auth.repository.DbAuthProviderRepository
 import com.qlink.auth.repository.DbRefreshTokenRepository
 import com.qlink.auth.repository.RefreshTokenRepository
+import com.qlink.bookmarkimport.repository.BookmarkImportRepository
+import com.qlink.bookmarkimport.repository.DbBookmarkImportRepository
 import com.qlink.device.repository.DbDeviceTokenRepository
 import com.qlink.device.repository.DeviceTokenRepository
 import com.qlink.folder.repository.DbFolderRepository
@@ -92,5 +94,9 @@ fun repositoryModule() =
 
         single<RefreshTokenRepository> {
             DbRefreshTokenRepository()
+        }
+
+        single<BookmarkImportRepository> {
+            DbBookmarkImportRepository()
         }
     }

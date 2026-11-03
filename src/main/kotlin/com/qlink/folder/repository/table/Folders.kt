@@ -25,6 +25,7 @@ object Folders : Table("folders") {
 
     init {
         index("folders_owner_id_idx", false, ownerId)
+        index("folders_owner_id_created_at_id_idx", false, ownerId, createdAt, id)
     }
 }
 
@@ -44,6 +45,12 @@ fun UpdateBuilder<*>.fromDomain(folder: Folder) {
     this[Folders.name] = folder.name
     this[Folders.emoji] = folder.emoji
     this[Folders.sharedAt] = folder.sharedAt?.toJavaInstant()
+}
+
+fun UpdateBuilder<*>.fromDomainForInsert(folder: Folder) {
+    fromDomain(folder)
+    folder.createdAt?.let { this[Folders.createdAt] = it.toJavaInstant() }
+    folder.updatedAt?.let { this[Folders.updatedAt] = it.toJavaInstant() }
 }
 
 fun UpdateBuilder<*>.refreshUpdatedAt() {

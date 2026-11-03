@@ -7,6 +7,7 @@ import com.qlink.support.fixture.RandomFixture
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.core.spec.style.BehaviorSpec
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 
 class FolderTest :
@@ -219,6 +220,45 @@ class FolderTest :
                     shouldThrowWithMessage<BusinessException>(ErrorCode.FOLDER_EMOJI_INVALID.message) {
                         update()
                     }
+                }
+            }
+        }
+
+        Given("가져온 폴더를 만들 때") {
+            val ownerId = RandomFixture.randomId()
+            val name = RandomFixture.randomSentenceWithMax(100)
+            val createdAt = RandomFixture.randomPastInstant()
+
+            When("유효하면") {
+                val folder = Folder.createImported(ownerId = ownerId, name = name, createdAt = createdAt)
+
+                Then("주어진 소유자·이름, createdAt·updatedAt이 주어진 시각, 기본 이모지 중 하나") {
+                    folder.ownerId shouldBe ownerId
+                    folder.name shouldBe name
+                    folder.createdAt shouldBe createdAt
+                    folder.updatedAt shouldBe createdAt
+                    folder.sharedAt shouldBe null
+                    folder.emoji shouldNotBe null
+                }
+            }
+        }
+
+        Given("공유 여부가 다른 폴더") {
+            val ownerId = RandomFixture.randomId()
+
+            When("sharedAt이 있으면") {
+                val folder = FolderFixture.createSharedFolderOf(ownerId = ownerId)
+
+                Then("true") {
+                    folder.isShared shouldBe true
+                }
+            }
+
+            When("sharedAt이 없으면") {
+                val folder = FolderFixture.createValidUnsharedFolder(ownerId)
+
+                Then("false") {
+                    folder.isShared shouldBe false
                 }
             }
         }

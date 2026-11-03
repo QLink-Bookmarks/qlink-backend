@@ -17,5 +17,6 @@ fun appModules(
     aiModule(config = config, log = log),
     storageModule(config = S3Config.from(config)),
     linkPreviewModule(config),
+    bookmarkImportModule(),
     serviceModule(),
 )

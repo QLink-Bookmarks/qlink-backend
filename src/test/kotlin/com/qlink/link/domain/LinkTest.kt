@@ -11,7 +11,6 @@ import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import kotlin.random.Random
 
 class LinkTest :
     BehaviorSpec({
@@ -23,7 +22,7 @@ class LinkTest :
             val summary = RandomFixture.randomSentenceWithMax(10_000)
             val tags = RandomFixture.randomSentenceList()
             val thumbnailUrl = RandomFixture.randomUrl()
-            val sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)]
+            val sourceType = LinkFixture.randomRequestSourceType()
             val previewBaseUrl = RandomFixture.randomPreviewBaseUrl()
             val previewEnvironment = RandomFixture.randomPreviewEnvironment()
 
@@ -147,6 +146,26 @@ class LinkTest :
                 Then("생성을 실패한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_URL_NOT_HTTP.message) {
                         notWebCreate()
+                    }
+                }
+            }
+
+            When("URL에 스킴이 없으면") {
+                val noSchemeCreate = {
+                    Link(
+                        ownerId = ownerId,
+                        folderId = folderId,
+                        url = "//example-${RandomFixture.randomId()}.com/x",
+                        title = title,
+                        summary = summary,
+                        tags = tags,
+                        sourceType = sourceType,
+                    )
+                }
+
+                Then("생성을 실패한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_URL_NOT_HTTP.message) {
+                        noSchemeCreate()
                     }
                 }
             }
@@ -390,6 +409,134 @@ class LinkTest :
                     shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_URL_BLANK.message) {
                         update()
                     }
+                }
+            }
+        }
+
+        Given("가져온 링크를 만들 때") {
+            val ownerId = RandomFixture.randomId()
+            val folderId = RandomFixture.randomId()
+            val url = RandomFixture.randomUrl()
+            val title = RandomFixture.randomSentenceWithMax(300)
+            val createdAt = RandomFixture.randomPastInstant()
+
+            When("유효하면") {
+                val link = Link.createImported(ownerId = ownerId, folderId = folderId, url = url, title = title, createdAt = createdAt)
+
+                Then("sourceType=IMPORT, status=C, createdAt·updatedAt이 주어진 시각, 주어진 폴더") {
+                    link.sourceType shouldBe SourceType.IMPORT
+                    link.status shouldBe LinkStatus.C
+                    link.createdAt shouldBe createdAt
+                    link.updatedAt shouldBe createdAt
+                    link.folderId shouldBe folderId
+                    link.ownerId shouldBe ownerId
+                    link.url shouldBe url
+                    link.title shouldBe title
+                }
+            }
+        }
+
+        Given("요청으로 링크를 만들 때") {
+            val previewBaseUrl = RandomFixture.randomPreviewBaseUrl()
+            val previewEnvironment = RandomFixture.randomPreviewEnvironment()
+
+            fun createFromRequest(sourceType: SourceType): Link =
+                Link.createFromRequest(
+                    ownerId = RandomFixture.randomId(),
+                    folderId = null,
+                    url = RandomFixture.randomUrl(),
+                    title = RandomFixture.randomSentenceWithMax(300),
+                    summary = null,
+                    memo = null,
+                    tags = emptyList(),
+                    thumbnailUrl = null,
+                    faviconUrl = null,
+                    isVideo = false,
+                    sourceType = sourceType,
+                    status = LinkStatus.C,
+                    previewPublicBaseUrl = previewBaseUrl,
+                    previewEnvironment = previewEnvironment,
+                )
+
+            When("sourceType이 IMPORT면") {
+                val create = { createFromRequest(SourceType.IMPORT) }
+
+                Then("예외가 발생한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_SOURCE_TYPE_NOT_ALLOWED.message) {
+                        create()
+                    }
+                }
+            }
+
+            When("sourceType이 INPUT·QR·COPY면") {
+                val links = listOf(SourceType.INPUT, SourceType.QR, SourceType.COPY).map(::createFromRequest)
+
+                Then("링크가 만들어진다") {
+                    links.map { it.sourceType } shouldBe listOf(SourceType.INPUT, SourceType.QR, SourceType.COPY)
+                }
+            }
+        }
+
+        Given("sourceType=IMPORT인 링크") {
+            val link = LinkFixture.createImportedLinkOf(ownerId = RandomFixture.randomId())
+            val previewBaseUrl = RandomFixture.randomPreviewBaseUrl()
+            val previewEnvironment = RandomFixture.randomPreviewEnvironment()
+
+            When("sourceType=IMPORT로 수정하면") {
+                val updated =
+                    link.update(
+                        folderId = link.folderId,
+                        url = RandomFixture.randomUrl(),
+                        title = RandomFixture.randomSentenceWithMax(300),
+                        summary = null,
+                        memo = RandomFixture.randomSentenceWithMax(100),
+                        tags = emptyList(),
+                        thumbnailUrl = null,
+                        sourceType = SourceType.IMPORT,
+                        previewPublicBaseUrl = previewBaseUrl,
+                        previewEnvironment = previewEnvironment,
+                    )
+
+                Then("IMPORT가 유지된다") {
+                    updated.sourceType shouldBe SourceType.IMPORT
+                }
+            }
+        }
+
+        Given("미리보기를 채울 링크") {
+            val ownerId = RandomFixture.randomId()
+            val thumbnailUrl = RandomFixture.randomUrl()
+            val faviconUrl = RandomFixture.randomUrl()
+
+            When("썸네일·파비콘이 둘 다 비었으면") {
+                val link = LinkFixture.createImportedLinkOf(ownerId = ownerId)
+                val filled = link.fillPreview(thumbnailUrl = thumbnailUrl, faviconUrl = faviconUrl, isVideo = true)
+
+                Then("thumbnailUrl·faviconUrl·isVideo가 채워지고 제목은 그대로") {
+                    filled.thumbnailUrl shouldBe thumbnailUrl
+                    filled.faviconUrl shouldBe faviconUrl
+                    filled.isVideo shouldBe true
+                    filled.title shouldBe link.title
+                    filled.id shouldBe link.id
+                    filled.createdAt shouldBe link.createdAt
+                }
+            }
+
+            When("썸네일이 이미 있으면") {
+                val link = LinkFixture.createRandomLinkOf(ownerId = ownerId, thumbnailUrl = RandomFixture.randomUrl(), faviconUrl = null)
+                val filled = link.fillPreview(thumbnailUrl = thumbnailUrl, faviconUrl = faviconUrl, isVideo = true)
+
+                Then("링크가 바뀌지 않는다") {
+                    filled shouldBe link
+                }
+            }
+
+            When("파비콘이 이미 있으면") {
+                val link = LinkFixture.createRandomLinkOf(ownerId = ownerId, thumbnailUrl = null, faviconUrl = RandomFixture.randomUrl())
+                val filled = link.fillPreview(thumbnailUrl = thumbnailUrl, faviconUrl = faviconUrl, isVideo = true)
+
+                Then("링크가 바뀌지 않는다") {
+                    filled shouldBe link
                 }
             }
         }

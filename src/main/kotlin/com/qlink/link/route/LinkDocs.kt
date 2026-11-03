@@ -45,6 +45,7 @@ internal fun createLinkDocs(): RouteConfig.() -> Unit =
                         ErrorCode.LINK_TITLE_OVER_MAX,
                         ErrorCode.LINK_THUMBNAIL_URL_NOT_ALLOWED,
                         ErrorCode.LINK_FAVICON_URL_NOT_ALLOWED,
+                        ErrorCode.LINK_SOURCE_TYPE_NOT_ALLOWED,
                         ErrorCode.TODO_TITLE_BLANK,
                         ErrorCode.TODO_TITLE_OVER_MAX,
                         ErrorCode.TODO_REPEAT_FIELDS_INCOMPLETE,
@@ -159,7 +160,9 @@ internal fun getLinksDocs(): RouteConfig.() -> Unit =
             queryParameter<String?>("query") { description = "검색어" }
             queryParameter<Long?>("folderId") { description = "폴더 ID 필터" }
             queryParameter<Boolean?>("isFavorite") { description = "바로가기 필터 (true: 바로가기만, false: 일반만, 미지정: 전체)" }
-            queryParameter<String>("order") { description = "정렬 기준 (latest / earliest / laxico / similar), 기본값: latest" }
+            queryParameter<String>("order") {
+                description = "정렬 기준 (latest / earliest: 생성 시각(createdAt) 기준, 같으면 id / laxico / similar), 기본값: latest"
+            }
             queryParameter<String?>("cursor") { description = "페이지네이션 커서" }
             queryParameter<Int>("size") { description = "페이지 크기, 기본값: 15" }
         }
