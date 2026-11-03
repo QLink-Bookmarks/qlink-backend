@@ -222,6 +222,45 @@ class BookmarkImportTest :
             }
         }
 
+        Given("되돌린 적 있는 기록과 항목 집계") {
+            val bookmarkImport =
+                ImportFixture.createBookmarkImportOf(
+                    ownerId = RandomFixture.randomId(),
+                    linkCount = 4,
+                    reversedAt = RandomFixture.randomPastInstant(),
+                )
+
+            When("끝난 썸네일 수와 지울 수 있는 항목 수로 요약 상태를 구하면") {
+                val state =
+                    bookmarkImport.summaryState(
+                        finishedThumbnailCount = 1,
+                        removableLinkCount = 0,
+                        removableNewFolderCount = RandomFixture.randomInt(1, 10),
+                    )
+
+                Then("progress는 끝난 수 ÷ 만든 링크 수, isReversible은 남은 항목 여부, status는 그에 따른 되돌리기 상태다") {
+                    state.progress shouldBe 0.25
+                    state.isReversible shouldBe true
+                    state.status shouldBe ImportStatus.PARTIALLY_UNDONE
+                }
+            }
+
+            When("지울 수 있는 항목이 남지 않은 집계로 요약 상태를 구하면") {
+                val state =
+                    bookmarkImport.summaryState(
+                        finishedThumbnailCount = 4,
+                        removableLinkCount = 0,
+                        removableNewFolderCount = 0,
+                    )
+
+                Then("progress 1, isReversible false, UNDONE이다") {
+                    state.progress shouldBe 1.0
+                    state.isReversible shouldBe false
+                    state.status shouldBe ImportStatus.UNDONE
+                }
+            }
+        }
+
         Given("항목 행과 지금의 사실") {
             val ownerId = RandomFixture.randomId()
             val bookmarkImport = ImportFixture.createBookmarkImportOf(ownerId = ownerId)

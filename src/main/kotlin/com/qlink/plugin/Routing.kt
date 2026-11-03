@@ -4,6 +4,7 @@ import com.qlink.ai.route.aiRoutes
 import com.qlink.auth.domain.JwtPrincipal
 import com.qlink.auth.domain.Role
 import com.qlink.auth.route.authRoutes
+import com.qlink.bookmarkimport.route.importRoutes
 import com.qlink.device.route.deviceRoutes
 import com.qlink.folder.route.folderRoutes
 import com.qlink.image.route.imageRoutes
@@ -46,6 +47,7 @@ fun Application.configureRouting() {
             deviceRoutes()
             folderRoutes()
             imageRoutes()
+            importRoutes()
             linkRoutes()
             linkPreviewRoutes()
             notificationRoutes()

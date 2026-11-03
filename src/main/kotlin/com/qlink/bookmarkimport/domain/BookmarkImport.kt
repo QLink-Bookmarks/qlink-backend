@@ -49,6 +49,20 @@ class BookmarkImport(
             else -> ImportStatus.UNDONE
         }
 
+    fun summaryState(
+        finishedThumbnailCount: Int,
+        removableLinkCount: Int,
+        removableNewFolderCount: Int,
+    ): ImportSummaryState =
+        isReversible(removableLinkCount = removableLinkCount, removableNewFolderCount = removableNewFolderCount)
+            .let { isReversible ->
+                ImportSummaryState(
+                    status = status(isReversible),
+                    progress = progress(finishedThumbnailCount),
+                    isReversible = isReversible,
+                )
+            }
+
     fun reversalTargets(
         linkIds: List<Long>,
         folderIds: List<Long>,
