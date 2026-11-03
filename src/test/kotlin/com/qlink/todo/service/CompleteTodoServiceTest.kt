@@ -4,11 +4,13 @@ import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.link.domain.Link
 import com.qlink.link.repository.LinkRepository
+import com.qlink.notification.domain.Notification
 import com.qlink.notification.domain.NotificationContext
 import com.qlink.notification.repository.NotificationRepository
 import com.qlink.notification.service.ScheduleTodoNotificationService
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.LinkFixture
+import com.qlink.support.fixture.NotificationFixture
 import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.TodoFixture
 import com.qlink.support.fixture.UserFixture
@@ -30,6 +32,12 @@ class CompleteTodoServiceTest :
         val todoRepository = koinGet<TodoRepository>()
         val notificationRepository = koinGet<NotificationRepository>()
         val scheduleTodoNotificationService = koinGet<ScheduleTodoNotificationService>()
+
+        suspend fun notificationsOf(todo: Todo): List<Notification> =
+            notificationRepository.findByContext(
+                context = NotificationContext.TODO,
+                contextId = todo.id!!,
+            )
 
         Given("할 일 완료 상태 변경 서비스 테스트") {
             lateinit var user: User
@@ -192,6 +200,112 @@ class CompleteTodoServiceTest :
                     shouldThrowWithMessage<BusinessException>(ErrorCode.TODO_DIFFERENT_OWNER.message) {
                         complete()
                     }
+                }
+            }
+        }
+
+        Given("알림이 이미 발송(fired)된 완료된 할 일") {
+            lateinit var user: User
+            lateinit var todo: Todo
+            lateinit var fired: Notification
+
+            beforeTest {
+                user = userRepository.insert(UserFixture.createRandomValidUser())
+                val link = linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = user.id!!))
+                todo =
+                    todoRepository.insert(
+                        TodoFixture.createOverdueCompletedTodoOf(
+                            linkId = link.id!!,
+                            ownerId = user.id!!,
+                        ),
+                    )
+                fired =
+                    notificationRepository.insert(
+                        NotificationFixture.createTodoNotificationOf(
+                            todo = todo,
+                            firedAt = RandomFixture.randomPastInstant(),
+                        ),
+                    )
+            }
+
+            When("완료를 취소하면") {
+                val incomplete =
+                    suspend {
+                        completeTodoService.completeTodo(
+                            user.id!!,
+                            todo.id!!,
+                            TodoFixture.createCompleteTodoRequest(isCompleted = false),
+                        )
+                    }
+
+                Then("할 일의 완료 시간이 지워지고 알림은 발송된 알림 1건만 남는다") {
+                    incomplete()
+
+                    todoRepository.findById(todo.id!!)!!.completedAt shouldBe null
+                    notificationsOf(todo).map { it.id } shouldBe listOf(fired.id)
+                }
+            }
+
+            When("완료 취소 후 다시 완료하고 다시 완료 취소하면") {
+                val toggle =
+                    suspend {
+                        listOf(false, true, false).forEach { isCompleted ->
+                            completeTodoService.completeTodo(
+                                user.id!!,
+                                todo.id!!,
+                                TodoFixture.createCompleteTodoRequest(isCompleted = isCompleted),
+                            )
+                        }
+                    }
+
+                Then("할 일은 미완료이고 알림은 발송된 알림 1건만 남는다") {
+                    toggle()
+
+                    todoRepository.findById(todo.id!!)!!.isCompleted shouldBe false
+                    notificationsOf(todo).map { it.id } shouldBe listOf(fired.id)
+                }
+            }
+        }
+
+        Given("알림이 이미 실패(failed)한 완료된 할 일") {
+            lateinit var user: User
+            lateinit var todo: Todo
+            lateinit var failed: Notification
+
+            beforeTest {
+                user = userRepository.insert(UserFixture.createRandomValidUser())
+                val link = linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = user.id!!))
+                todo =
+                    todoRepository.insert(
+                        TodoFixture.createOverdueCompletedTodoOf(
+                            linkId = link.id!!,
+                            ownerId = user.id!!,
+                        ),
+                    )
+                failed =
+                    notificationRepository.insert(
+                        NotificationFixture.createTodoNotificationOf(
+                            todo = todo,
+                            failedAt = RandomFixture.randomPastInstant(),
+                        ),
+                    )
+            }
+
+            When("완료를 취소하면") {
+                val incomplete =
+                    suspend {
+                        completeTodoService.completeTodo(
+                            user.id!!,
+                            todo.id!!,
+                            TodoFixture.createCompleteTodoRequest(isCompleted = false),
+                        )
+                    }
+
+                Then("할 일의 완료 시간이 지워지고 알림은 실패한 알림 1건만 남는다") {
+                    incomplete()
+
+                    todoRepository.findById(todo.id!!)!!.completedAt shouldBe null
+                    notificationsOf(todo).map { it.id } shouldBe listOf(failed.id)
                 }
             }
         }

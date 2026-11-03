@@ -106,6 +106,13 @@ object RandomFixture {
 
     fun randomPastInstant(): Instant = pastDateTime(365, TimeUnit.DAYS).toInstant().toKotlinInstant()
 
+    fun randomFutureInstantAfterTomorrow(): Instant =
+        OffsetDateTime
+            .now(ZoneOffset.UTC)
+            .let { now -> randomDateTimeBetween(from = now.plusDays(2), to = now.plusDays(365)) }
+            .toInstant()
+            .toKotlinInstant()
+
     fun futureDateTime(
         futureScope: Int,
         timeUnit: TimeUnit,

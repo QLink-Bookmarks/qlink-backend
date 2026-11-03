@@ -35,6 +35,17 @@ object TodoFixture {
             completedAt = completedAt,
         )
 
+    fun createOverdueCompletedTodoOf(
+        linkId: Long,
+        ownerId: Long,
+    ): Todo =
+        createRandomTodoOf(
+            linkId = linkId,
+            ownerId = ownerId,
+            reminderAt = RandomFixture.randomPastInstant(),
+            completedAt = RandomFixture.randomPastInstant(),
+        )
+
     fun createValidUpdateTodoRequest(
         linkId: Long,
         title: String = RandomFixture.randomSentenceWithMax(50),
