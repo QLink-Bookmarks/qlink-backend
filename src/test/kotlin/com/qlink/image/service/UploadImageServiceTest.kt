@@ -9,6 +9,8 @@ import com.qlink.config.S3Config
 import com.qlink.image.domain.ImagePurpose
 import com.qlink.image.domain.ImageType
 import com.qlink.image.storage.S3ImageStorage
+import com.qlink.link.client.LinkPreviewCaller
+import com.qlink.link.client.LinkPreviewExtraction
 import com.qlink.link.client.LinkPreviewMode
 import com.qlink.link.client.LinkPreviewResult
 import com.qlink.support.BaseServiceTest
@@ -173,11 +175,11 @@ class UploadImageServiceTest :
                 )
             }
 
-            When("유효한 페이지 URL을 전달하면") {
+            When("Lambda가 파비콘 키를 돌려주면") {
                 val key = LinkPreviewFixture.key(kind = "favicon", environment = s3Config.environment)
                 val upload =
                     suspend {
-                        previewClient.result = LinkPreviewResult(faviconKey = key)
+                        previewClient.respond(LinkPreviewResult(faviconKey = key))
                         requestFavicon()()
                     }
 
@@ -187,6 +189,7 @@ class UploadImageServiceTest :
                     response.url shouldBe "${s3Config.publicBaseUrl}/$key"
                     previewClient.calls shouldContainExactly listOf(pageUrl to LinkPreviewMode.FAVICON_ONLY)
                     previewClient.faviconBytes shouldContainExactly listOf(null)
+                    previewClient.callers shouldContainExactly listOf(LinkPreviewCaller.FAVICON_UPLOAD)
                     shouldKeep(user)
                 }
             }
@@ -231,23 +234,29 @@ class UploadImageServiceTest :
             }
 
             When("Lambda 호출이 실패하면") {
-                val throwing =
+                val upload =
                     suspend {
-                        previewClient.failure = IllegalStateException(RandomFixture.randomSentenceWithMax(50))
-                        requestFavicon()()
-                    }
-                val empty =
-                    suspend {
-                        previewClient.failure = null
-                        previewClient.result = null
+                        previewClient.extraction = LinkPreviewExtraction.Failed
                         requestFavicon()()
                     }
 
                 Then("이미지 업로드 실패 예외를 반환한다") {
-                    listOf(throwing, empty).forEach { upload ->
-                        shouldThrowWithMessage<BusinessException>(ErrorCode.IMAGE_UPLOAD_FAILED.message) {
-                            upload()
-                        }
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.IMAGE_UPLOAD_FAILED.message) {
+                        upload()
+                    }
+                }
+            }
+
+            When("Lambda가 스로틀링을 알리면") {
+                val upload =
+                    suspend {
+                        previewClient.extraction = LinkPreviewExtraction.Throttled
+                        requestFavicon()()
+                    }
+
+                Then("이미지 업로드 실패 예외를 반환한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.IMAGE_UPLOAD_FAILED.message) {
+                        upload()
                     }
                 }
             }
@@ -255,7 +264,7 @@ class UploadImageServiceTest :
             When("Lambda 결과에 파비콘 키가 없으면") {
                 val upload =
                     suspend {
-                        previewClient.result = LinkPreviewResult(thumbnailKey = LinkPreviewFixture.key(kind = "preview"))
+                        previewClient.respond(LinkPreviewResult(thumbnailKey = LinkPreviewFixture.key(kind = "preview")))
                         requestFavicon()()
                     }
 
@@ -276,7 +285,7 @@ class UploadImageServiceTest :
                         "${s3Config.environment}-favicon-${RandomFixture.randomId()}.png",
                     ).map { key ->
                         suspend {
-                            previewClient.result = LinkPreviewResult(faviconKey = key)
+                            previewClient.respond(LinkPreviewResult(faviconKey = key))
                             requestFavicon()()
                         }
                     }

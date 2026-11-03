@@ -9,6 +9,8 @@ import com.qlink.common.transaction.TransactionRunner
 import com.qlink.config.LinkPreviewConfig
 import com.qlink.image.service.PreviewImageUrlResolver
 import com.qlink.link.client.LambdaLinkPreviewSyncClient
+import com.qlink.link.client.LinkPreviewCaller
+import com.qlink.link.client.LinkPreviewExtraction
 import com.qlink.link.client.LinkPreviewMode
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.RandomFixture
@@ -18,6 +20,8 @@ import com.qlink.user.domain.User
 import com.qlink.user.repository.UserRepository
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.types.shouldBeInstanceOf
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import org.testcontainers.containers.localstack.LocalStackContainer
 import org.testcontainers.utility.DockerImageName
 import org.testcontainers.utility.MountableFile
@@ -37,6 +41,7 @@ class LinkPreviewLambdaIntegrationTest :
                 .withServices(LocalStackContainer.Service.LAMBDA, LocalStackContainer.Service.S3)
         val userRepository = koinGet<UserRepository>()
         val tx = koinGet<TransactionRunner>()
+        val meterRegistry = SimpleMeterRegistry()
         lateinit var client: LambdaClient
         lateinit var previewClient: LambdaLinkPreviewSyncClient
         lateinit var service: CreateLinkPreviewService
@@ -107,7 +112,8 @@ class LinkPreviewLambdaIntegrationTest :
                     region = localStack.region,
                     endpoint = localStack.endpoint.toString(),
                 )
-            previewClient = LambdaLinkPreviewSyncClient(lambdaClient = client, config = config)
+            previewClient =
+                LambdaLinkPreviewSyncClient(lambdaClient = client, config = config, meterRegistry = meterRegistry)
             service =
                 CreateLinkPreviewService(
                     tx = tx,
@@ -175,13 +181,20 @@ class LinkPreviewLambdaIntegrationTest :
             When("favicon 바이트를 전달하면") {
                 Then("Lambda가 바이트를 받고 favicon 객체 키를 반환한다") {
                     val bytes = byteArrayOf(137.toByte(), 80, 78, 71)
-                    val result =
+                    val extraction =
                         previewClient.extract(
                             url = "https://example.com/favicon",
                             mode = LinkPreviewMode.FAVICON_ONLY,
+                            caller = LinkPreviewCaller.FAVICON_UPLOAD,
                             faviconBytes = bytes,
                         )
-                    result?.faviconKey shouldBe "dev-favicon-${"b".repeat(64)}.png"
+                    val result = extraction.shouldBeInstanceOf<LinkPreviewExtraction.Success>().result
+                    result.faviconKey shouldBe "dev-favicon-${"b".repeat(64)}.png"
+                    meterRegistry
+                        .find("link_preview_lambda_duration")
+                        .tags("caller", "favicon_upload", "outcome", "success")
+                        .timer()
+                        ?.count() shouldBe 1L
                     val head =
                         localStack.execInContainer(
                             "awslocal",
@@ -190,7 +203,7 @@ class LinkPreviewLambdaIntegrationTest :
                             "--bucket",
                             "alink-previews-dev",
                             "--key",
-                            result!!.faviconKey!!,
+                            result.faviconKey!!,
                         )
                     head.exitCode shouldBe 0
                     head.stdout shouldContain "image/png"

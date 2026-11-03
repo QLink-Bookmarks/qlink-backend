@@ -5,12 +5,13 @@ import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireFalse
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.image.service.PreviewImageUrlResolver
+import com.qlink.link.client.LinkPreviewCaller
+import com.qlink.link.client.LinkPreviewExtraction
 import com.qlink.link.client.LinkPreviewMode
 import com.qlink.link.client.LinkPreviewResult
 import com.qlink.link.client.LinkPreviewSyncClient
 import com.qlink.link.dto.CreateLinkPreviewResponse
 import com.qlink.user.repository.UserRepository
-import kotlinx.coroutines.CancellationException
 import java.net.URI
 
 class CreateLinkPreviewService(
@@ -28,15 +29,8 @@ class CreateLinkPreviewService(
         }
         if (!isAbsoluteHttpUrl(url)) throw BusinessException(ErrorCode.LINK_PREVIEW_URL_INVALID)
 
-        val result =
-            try {
-                previewClient.extract(url = url, mode = LinkPreviewMode.PREVIEW)
-            } catch (error: CancellationException) {
-                throw error
-            } catch (_: Exception) {
-                null
-            }
-        return createResponse(url = url, result = result)
+        val extraction = previewClient.extract(url = url, mode = LinkPreviewMode.PREVIEW, caller = LinkPreviewCaller.LINK_PREVIEW)
+        return createResponse(url = url, result = (extraction as? LinkPreviewExtraction.Success)?.result)
     }
 
     private fun createResponse(

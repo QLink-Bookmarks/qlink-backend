@@ -18,9 +18,12 @@ import com.qlink.ai.worker.AiSummaryDispatcher
 import com.qlink.ai.worker.AiSummaryWorker
 import com.qlink.auth.domain.Role
 import com.qlink.common.crypto.ApiKeyCipher
+import com.qlink.config.WorkerConfig
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import kotlinx.coroutines.channels.Channel
 import org.koin.dsl.module
 import org.slf4j.LoggerFactory
+import kotlin.time.Duration.Companion.minutes
 
 fun aiTestModule() =
     module {
@@ -62,6 +65,15 @@ fun aiTestModule() =
                 apiKeyCipher = get(),
                 channel = get(),
                 urlResolver = get(),
+                config =
+                    WorkerConfig(
+                        pollInterval = 10.minutes,
+                        importThumbnailConcurrency = 3,
+                        importThumbnailParallelism = 2,
+                        importThumbnailBatchSize = 100,
+                        aiSummaryParallelism = 1,
+                    ),
+                meterRegistry = SimpleMeterRegistry(),
                 log = LoggerFactory.getLogger(AiSummaryWorker::class.java),
             )
         }

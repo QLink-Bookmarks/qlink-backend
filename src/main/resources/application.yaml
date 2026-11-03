@@ -74,6 +74,15 @@ linkPreview:
   lambdaFunction: alink-link-preview-dev:live
   lambdaEndpoint: http://localhost:4566
 
+worker:
+  pollIntervalMinutes: 10
+  importThumbnail:
+    concurrency: 3
+    parallelism: 2
+    batchSize: 100
+  aiSummary:
+    parallelism: 1
+
 logging:
   http:
     slowThresholdMs: 1000
