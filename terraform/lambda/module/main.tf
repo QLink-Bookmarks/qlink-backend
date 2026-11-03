@@ -20,7 +20,7 @@ resource "aws_lambda_function" "preview" {
   timeout          = 20
   publish          = true
 
-  reserved_concurrent_executions = 10
+  reserved_concurrent_executions = 30
 
   tags = {
     GitCommit = var.git_sha
