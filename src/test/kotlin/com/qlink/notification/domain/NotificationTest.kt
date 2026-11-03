@@ -2,6 +2,7 @@ package com.qlink.notification.domain
 
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
+import com.qlink.support.fixture.NotificationFixture
 import com.qlink.support.fixture.RandomFixture
 import com.qlink.todo.domain.Todo
 import io.kotest.assertions.throwables.shouldThrowWithMessage
@@ -131,6 +132,89 @@ class NotificationTest :
 
                 Then("false 를 반환한다") {
                     notification.isFrom(otherTodo) shouldBe false
+                }
+            }
+        }
+
+        Given("같은 일정 알림 판별 테스트") {
+            val notification = NotificationFixture.createRandomNotificationOf(userId = RandomFixture.randomId())
+
+            When("사용자·context·contextId·발송 예정 시각이 모두 같으면") {
+                val other = NotificationFixture.createSameScheduleNotificationOf(notification = notification)
+
+                Then("true 를 반환한다") {
+                    notification.isSameSchedule(other) shouldBe true
+                }
+            }
+
+            When("일정은 같고 한쪽이 이미 발송·실패한 알림이면") {
+                val fired =
+                    NotificationFixture.createSameScheduleNotificationOf(
+                        notification = notification,
+                        firedAt = RandomFixture.randomPastInstant(),
+                    )
+                val failed =
+                    NotificationFixture.createSameScheduleNotificationOf(
+                        notification = notification,
+                        failedAt = RandomFixture.randomPastInstant(),
+                    )
+
+                Then("상태와 무관하게 true 를 반환한다") {
+                    notification.isSameSchedule(fired) shouldBe true
+                    notification.isSameSchedule(failed) shouldBe true
+                }
+            }
+
+            When("발송 예정 시각이 다르면") {
+                val other =
+                    NotificationFixture.createRandomNotificationOf(
+                        userId = notification.userId,
+                        contextId = notification.contextId,
+                        willFireAt = notification.willFireAt.plus(1.days),
+                    )
+
+                Then("false 를 반환한다") {
+                    notification.isSameSchedule(other) shouldBe false
+                }
+            }
+
+            When("contextId가 다르면") {
+                val other =
+                    NotificationFixture.createRandomNotificationOf(
+                        userId = notification.userId,
+                        contextId = notification.contextId + 1,
+                        willFireAt = notification.willFireAt,
+                    )
+
+                Then("false 를 반환한다") {
+                    notification.isSameSchedule(other) shouldBe false
+                }
+            }
+
+            When("사용자가 다르면") {
+                val other =
+                    NotificationFixture.createRandomNotificationOf(
+                        userId = notification.userId + 1,
+                        contextId = notification.contextId,
+                        willFireAt = notification.willFireAt,
+                    )
+
+                Then("false 를 반환한다") {
+                    notification.isSameSchedule(other) shouldBe false
+                }
+            }
+
+            When("context가 다르면") {
+                val other =
+                    NotificationFixture.createRandomNotificationOf(
+                        userId = notification.userId,
+                        context = NotificationContext.ANNOUNCE,
+                        contextId = notification.contextId,
+                        willFireAt = notification.willFireAt,
+                    )
+
+                Then("false 를 반환한다") {
+                    notification.isSameSchedule(other) shouldBe false
                 }
             }
         }

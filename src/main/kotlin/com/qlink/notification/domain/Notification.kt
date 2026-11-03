@@ -48,6 +48,12 @@ class Notification(
 
     fun isFrom(todo: Todo): Boolean = isTodo && contextId == todo.id && willFireAt == todo.reminderAt
 
+    fun isSameSchedule(other: Notification): Boolean =
+        userId == other.userId &&
+            context == other.context &&
+            contextId == other.contextId &&
+            willFireAt == other.willFireAt
+
     fun markScheduled(scheduledAt: Instant): Notification =
         copy(
             scheduledAt = scheduledAt,
