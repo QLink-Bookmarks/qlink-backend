@@ -1,6 +1,5 @@
 package com.qlink.bookmarkimport.domain
 
-import com.qlink.folder.domain.Folder
 import kotlin.time.Instant
 
 class ImportFolder(
@@ -12,17 +11,25 @@ class ImportFolder(
     val reversedAt: Instant? = null,
     val createdAt: Instant? = null,
 ) {
-    fun displayName(current: Folder?): String = current?.name ?: name
+    fun displayName(currentName: String?): String = currentName ?: name
 
-    fun reversalState(current: Folder?): ReversalFolderState =
+    fun reversalState(
+        isDeleted: Boolean,
+        isShared: Boolean,
+    ): ReversalFolderState =
         when {
             reversedAt != null -> ReversalFolderState.REVERSED
-            current == null -> ReversalFolderState.DELETED
-            current.isShared -> ReversalFolderState.SHARED
+            isDeleted -> ReversalFolderState.DELETED
+            isShared -> ReversalFolderState.SHARED
             else -> ReversalFolderState.ACTIVE
         }
 
-    fun isRemovable(current: Folder?): Boolean = kind == ImportFolderKind.NEW && reversalState(current) == ReversalFolderState.ACTIVE
+    fun withState(
+        isDeleted: Boolean,
+        isShared: Boolean,
+    ): ImportFolderState = ImportFolderState(folder = this, isDeleted = isDeleted, isShared = isShared)
+
+    fun isRemovable(state: ReversalFolderState): Boolean = kind == ImportFolderKind.NEW && state == ReversalFolderState.ACTIVE
 
     fun reverse(now: Instant): ImportFolder =
         ImportFolder(

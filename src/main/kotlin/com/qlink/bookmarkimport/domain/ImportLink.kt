@@ -1,6 +1,5 @@
 package com.qlink.bookmarkimport.domain
 
-import com.qlink.link.domain.Link
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
@@ -21,15 +20,23 @@ class ImportLink(
     val isThumbnailPending: Boolean
         get() = thumbnailStatus == ThumbnailStatus.PENDING
 
-    fun reversalState(current: Link?): ReversalLinkState =
+    fun reversalState(
+        isDeleted: Boolean,
+        isEdited: Boolean,
+    ): ReversalLinkState =
         when {
             reversedAt != null -> ReversalLinkState.REVERSED
-            current == null -> ReversalLinkState.DELETED
-            current.isEditedFrom(this) -> ReversalLinkState.EDITED
+            isDeleted -> ReversalLinkState.DELETED
+            isEdited -> ReversalLinkState.EDITED
             else -> ReversalLinkState.IMPORTED
         }
 
-    fun isRemovable(current: Link?): Boolean = reversalState(current) in REMOVABLE_STATES
+    fun withState(
+        isDeleted: Boolean,
+        isEdited: Boolean,
+    ): ImportLinkState = ImportLinkState(link = this, isDeleted = isDeleted, isEdited = isEdited)
+
+    fun isRemovable(state: ReversalLinkState): Boolean = state in REMOVABLE_STATES
 
     fun reverse(now: Instant): ImportLink =
         copy(
@@ -37,10 +44,13 @@ class ImportLink(
             reversedAt = now,
         )
 
-    fun prepareThumbnail(current: Link?): ImportLink =
+    fun prepareThumbnail(
+        isDeleted: Boolean,
+        hasPreview: Boolean,
+    ): ImportLink =
         when {
-            current == null -> copy(thumbnailStatus = ThumbnailStatus.STOPPED)
-            current.hasPreview -> completeThumbnail()
+            isDeleted -> copy(thumbnailStatus = ThumbnailStatus.STOPPED)
+            hasPreview -> completeThumbnail()
             else -> this
         }
 
@@ -49,9 +59,6 @@ class ImportLink(
     fun failThumbnail(): ImportLink = copy(thumbnailStatus = ThumbnailStatus.FAILED)
 
     fun releaseThumbnail(): ImportLink = copy(thumbnailStatus = ThumbnailStatus.PENDING, startedAt = null)
-
-    private fun Link.isEditedFrom(imported: ImportLink): Boolean =
-        url != imported.url || title != imported.title || !memo.isNullOrEmpty() || tags.isNotEmpty()
 
     private fun copy(
         thumbnailStatus: ThumbnailStatus = this.thumbnailStatus,

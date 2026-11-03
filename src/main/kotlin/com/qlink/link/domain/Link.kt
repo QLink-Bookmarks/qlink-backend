@@ -153,6 +153,13 @@ class Link(
             }
         }
 
+    fun isEditedFrom(
+        url: String,
+        title: String,
+    ): Boolean = this.url != url || this.title != title
+
+    fun hasUserContent(): Boolean = !memo.isNullOrEmpty() || tags.isNotEmpty()
+
     fun fillPreview(
         thumbnailUrl: String?,
         faviconUrl: String?,

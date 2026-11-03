@@ -7,8 +7,6 @@ import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireNotBlank
 import com.qlink.common.error.requireNotOver
 import com.qlink.common.error.requireTrue
-import com.qlink.folder.domain.Folder
-import com.qlink.link.domain.Link
 import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -51,94 +49,17 @@ class BookmarkImport(
             else -> ImportStatus.UNDONE
         }
 
-    fun reversalPreview(
-        folders: List<ImportFolder>,
-        links: List<ImportLink>,
-        currentLinks: List<Link>,
-        currentFolders: List<Folder>,
-    ): ImportReversalPreview {
-        val currentLinkById = currentLinks.associateBy { it.id }
-        val currentFolderById = currentFolders.associateBy { it.id }
-        val importFolderById = folders.associateBy { it.id }
-        val importFolderByFolderId = folders.associateBy { it.folderId }
-        val importedLinkIds = links.mapTo(HashSet()) { it.linkId }
-        val importedLinks =
-            links.map { row ->
-                val current = currentLinkById[row.linkId]
-                val folderId = if (current != null) current.folderId else row.importFolderId?.let { importFolderById[it]?.folderId }
-
-                folderId to
-                    ReversalPreviewLink(
-                        linkId = row.linkId,
-                        title = current?.title ?: row.title,
-                        url = current?.url ?: row.url,
-                        state = row.reversalState(current),
-                    )
-            }
-        val addedLaterLinks =
-            currentLinks
-                .filter { it.id !in importedLinkIds && importFolderByFolderId[it.folderId]?.kind == ImportFolderKind.NEW }
-                .map {
-                    it.folderId to
-                        ReversalPreviewLink(linkId = it.id!!, title = it.title, url = it.url, state = ReversalLinkState.ADDED_LATER)
-                }
-        val linksByFolderId = (importedLinks + addedLaterLinks).groupBy({ it.first }, { it.second })
-        val importGroups =
-            folders.map { row ->
-                val current = currentFolderById[row.folderId]
-
-                ReversalPreviewFolder(
-                    kind = row.kind,
-                    state = row.reversalState(current),
-                    folderId = row.folderId,
-                    name = row.displayName(current),
-                    emoji = current?.emoji,
-                    links = linksByFolderId[row.folderId].orEmpty(),
-                )
-            }
-        val otherGroups =
-            linksByFolderId
-                .filterKeys { it != null && it !in importFolderByFolderId }
-                .map { (folderId, groupLinks) ->
-                    val current = currentFolderById[folderId]
-
-                    ReversalPreviewFolder(
-                        kind = ImportFolderKind.EXISTING,
-                        state = ReversalFolderState.ACTIVE,
-                        folderId = folderId,
-                        name = current?.name,
-                        emoji = current?.emoji,
-                        links = groupLinks,
-                    )
-                }
-        val unfiledGroup =
-            linksByFolderId[null]?.let { groupLinks ->
-                ReversalPreviewFolder(
-                    kind = ImportFolderKind.UNFILED,
-                    state = ReversalFolderState.ACTIVE,
-                    folderId = null,
-                    name = null,
-                    emoji = null,
-                    links = groupLinks,
-                )
-            }
-
-        return ImportReversalPreview(folders = importGroups + otherGroups + listOfNotNull(unfiledGroup))
-    }
-
     fun reverse(
         linkIds: List<Long>,
         folderIds: List<Long>,
-        folders: List<ImportFolder>,
-        links: List<ImportLink>,
-        currentLinks: List<Link>,
-        currentFolders: List<Folder>,
+        folders: List<ImportFolderState>,
+        links: List<ImportLinkState>,
         now: Instant,
     ): ImportReversal {
         (linkIds.isNotEmpty() || folderIds.isNotEmpty()).requireTrue(ErrorCode.IMPORT_REVERSAL_ITEMS_EMPTY)
 
-        val newFolderByFolderId = folders.filter { it.kind == ImportFolderKind.NEW }.associateBy { it.folderId }
-        val importLinkByLinkId = links.associateBy { it.linkId }
+        val newFolderByFolderId = folders.filter { it.folder.kind == ImportFolderKind.NEW }.associateBy { it.folder.folderId }
+        val linkByLinkId = links.associateBy { it.link.linkId }
         val selectedFolders =
             folderIds.distinct().map {
                 newFolderByFolderId[it]
@@ -146,18 +67,14 @@ class BookmarkImport(
             }
         val selectedLinks =
             linkIds.distinct().map {
-                importLinkByLinkId[it]
+                linkByLinkId[it]
                     ?: throw BusinessException(ErrorCode.IMPORT_REVERSAL_ITEM_INVALID)
             }
-        val currentFolderById = currentFolders.associateBy { it.id }
-        val currentLinkById = currentLinks.associateBy { it.id }
-        val removableFolders =
-            selectedFolders.filter { row ->
-                val state = row.reversalState(currentFolderById[row.folderId])
-                (state != ReversalFolderState.SHARED).requireTrue(ErrorCode.IMPORT_REVERSAL_FOLDER_SHARED)
-                state == ReversalFolderState.ACTIVE
-            }
-        val removableLinks = selectedLinks.filter { it.isRemovable(currentLinkById[it.linkId]) }
+        selectedFolders
+            .none { it.state == ReversalFolderState.SHARED }
+            .requireTrue(ErrorCode.IMPORT_REVERSAL_FOLDER_SHARED)
+        val removableFolders = selectedFolders.filter { it.folder.isRemovable(it.state) }.map { it.folder }
+        val removableLinks = selectedLinks.filter { it.link.isRemovable(it.state) }.map { it.link }
         val reversesAny = removableFolders.isNotEmpty() || removableLinks.isNotEmpty()
 
         return ImportReversal(
@@ -246,3 +163,25 @@ class ImportReversal(
     val importLinks: List<ImportLink>,
     val importFolders: List<ImportFolder>,
 )
+
+class ImportFolderState private constructor(
+    val folder: ImportFolder,
+    val state: ReversalFolderState,
+) {
+    constructor(
+        folder: ImportFolder,
+        isDeleted: Boolean,
+        isShared: Boolean,
+    ) : this(folder = folder, state = folder.reversalState(isDeleted = isDeleted, isShared = isShared))
+}
+
+class ImportLinkState private constructor(
+    val link: ImportLink,
+    val state: ReversalLinkState,
+) {
+    constructor(
+        link: ImportLink,
+        isDeleted: Boolean,
+        isEdited: Boolean,
+    ) : this(link = link, state = link.reversalState(isDeleted = isDeleted, isEdited = isEdited))
+}

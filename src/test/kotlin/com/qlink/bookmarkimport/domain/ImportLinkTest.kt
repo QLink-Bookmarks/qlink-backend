@@ -1,8 +1,6 @@
 package com.qlink.bookmarkimport.domain
 
-import com.qlink.link.domain.Link
 import com.qlink.support.fixture.ImportFixture
-import com.qlink.support.fixture.LinkFixture
 import com.qlink.support.fixture.RandomFixture
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
@@ -33,93 +31,61 @@ class ImportLinkTest :
             }
         }
 
-        Given("가져오기 링크 행과 지금의 링크") {
-            val ownerId = RandomFixture.randomId()
-            val imported = LinkFixture.createImportedLinkOf(ownerId = ownerId)
-            val row =
-                ImportFixture.createImportLinkOf(
-                    importId = RandomFixture.randomId(),
-                    linkId = RandomFixture.randomId(),
-                    url = imported.url,
-                    title = imported.title,
-                )
-
-            fun Link.edited(
-                url: String = this.url,
-                title: String = this.title,
-                memo: String? = this.memo,
-                tags: List<String> = this.tags,
-                folderId: Long? = this.folderId,
-            ): Link =
-                LinkFixture.createRandomLinkOf(
-                    ownerId = ownerId,
-                    folderId = folderId,
-                    url = url,
-                    title = title,
-                    memo = memo,
-                    tags = tags,
-                    thumbnailUrl = thumbnailUrl,
-                )
+        Given("가져오기 링크 행") {
+            val row = ImportFixture.createImportLinkOf(importId = RandomFixture.randomId(), linkId = RandomFixture.randomId())
 
             When("되돌리기로 지웠으면") {
-                val state = row.reverse(Clock.System.now()).reversalState(null)
+                val state = row.reverse(Clock.System.now()).reversalState(isDeleted = true, isEdited = true)
 
                 Then("REVERSED") {
                     state shouldBe ReversalLinkState.REVERSED
                 }
             }
 
-            When("사용자가 지웠으면") {
-                val state = row.reversalState(null)
+            When("지워졌으면") {
+                val state = row.reversalState(isDeleted = true, isEdited = false)
 
                 Then("DELETED") {
                     state shouldBe ReversalLinkState.DELETED
                 }
             }
 
-            When("url이나 title이 가져올 때와 다르면") {
-                val urlChanged = row.reversalState(imported.edited(url = RandomFixture.randomUrl()))
-                val titleChanged = row.reversalState(imported.edited(title = "${imported.title.take(200)} ${RandomFixture.randomId()}"))
+            When("수정됐으면") {
+                val state = row.reversalState(isDeleted = false, isEdited = true)
 
                 Then("EDITED") {
-                    urlChanged shouldBe ReversalLinkState.EDITED
-                    titleChanged shouldBe ReversalLinkState.EDITED
+                    state shouldBe ReversalLinkState.EDITED
                 }
             }
 
-            When("memo나 tags가 비어 있지 않으면") {
-                val memoAdded = row.reversalState(imported.edited(memo = RandomFixture.randomSentenceWithMax(100)))
-                val tagsAdded = row.reversalState(imported.edited(tags = listOf("tag-${RandomFixture.randomId()}")))
-
-                Then("EDITED") {
-                    memoAdded shouldBe ReversalLinkState.EDITED
-                    tagsAdded shouldBe ReversalLinkState.EDITED
-                }
-            }
-
-            When("즐겨찾기·폴더 이동·썸네일·AI 요약만 바뀌었으면") {
-                val current =
-                    LinkFixture.createRandomLinkOf(
-                        ownerId = ownerId,
-                        folderId = RandomFixture.randomId(),
-                        url = imported.url,
-                        title = imported.title,
-                        summary = RandomFixture.randomSentenceWithMax(100),
-                        tags = emptyList(),
-                        thumbnailUrl = RandomFixture.randomUrl(),
-                        faviconUrl = RandomFixture.randomUrl(),
-                        favoriteAt = RandomFixture.randomPastInstant(),
-                    )
-                val state = row.reversalState(current)
+            When("그 밖이면") {
+                val state = row.reversalState(isDeleted = false, isEdited = false)
 
                 Then("IMPORTED") {
                     state shouldBe ReversalLinkState.IMPORTED
                 }
             }
 
-            When("IMPORTED·EDITED면") {
-                val importedRemovable = row.isRemovable(imported)
-                val editedRemovable = row.isRemovable(imported.edited(memo = RandomFixture.randomSentenceWithMax(100)))
+            When("되돌린 행에 지금 상태를 붙이면") {
+                val state = row.reverse(Clock.System.now()).withState(isDeleted = false, isEdited = false)
+
+                Then("행에서 정한 REVERSED가 붙는다") {
+                    state.state shouldBe ReversalLinkState.REVERSED
+                }
+            }
+
+            When("수정된 행에 상태를 붙이면") {
+                val state = row.withState(isDeleted = false, isEdited = true)
+
+                Then("그 행과 EDITED가 함께 담긴다") {
+                    state.link shouldBe row
+                    state.state shouldBe ReversalLinkState.EDITED
+                }
+            }
+
+            When("상태가 IMPORTED·EDITED면") {
+                val importedRemovable = row.isRemovable(ReversalLinkState.IMPORTED)
+                val editedRemovable = row.isRemovable(ReversalLinkState.EDITED)
 
                 Then("true") {
                     importedRemovable shouldBe true
@@ -127,9 +93,9 @@ class ImportLinkTest :
                 }
             }
 
-            When("DELETED·REVERSED면") {
-                val deletedRemovable = row.isRemovable(null)
-                val reversedRemovable = row.reverse(Clock.System.now()).isRemovable(imported)
+            When("상태가 DELETED·REVERSED면") {
+                val deletedRemovable = row.isRemovable(ReversalLinkState.DELETED)
+                val reversedRemovable = row.isRemovable(ReversalLinkState.REVERSED)
 
                 Then("false") {
                     deletedRemovable shouldBe false
@@ -139,8 +105,6 @@ class ImportLinkTest :
         }
 
         Given("썸네일 작업 상태별 행") {
-            val ownerId = RandomFixture.randomId()
-
             fun rowOf(status: ThumbnailStatus): ImportLink =
                 ImportFixture.createImportLinkOf(
                     importId = RandomFixture.randomId(),
@@ -173,7 +137,7 @@ class ImportLinkTest :
             }
 
             When("링크가 지워졌으면") {
-                val prepared = rowOf(ThumbnailStatus.PENDING).prepareThumbnail(null)
+                val prepared = rowOf(ThumbnailStatus.PENDING).prepareThumbnail(isDeleted = true, hasPreview = false)
 
                 Then("STOPPED, 호출하지 않음") {
                     prepared.thumbnailStatus shouldBe ThumbnailStatus.STOPPED
@@ -181,9 +145,8 @@ class ImportLinkTest :
                 }
             }
 
-            When("링크에 썸네일이 있으면") {
-                val current = LinkFixture.createRandomLinkOf(ownerId = ownerId, thumbnailUrl = RandomFixture.randomUrl(), faviconUrl = null)
-                val prepared = rowOf(ThumbnailStatus.PENDING).prepareThumbnail(current)
+            When("링크에 미리보기가 있으면") {
+                val prepared = rowOf(ThumbnailStatus.PENDING).prepareThumbnail(isDeleted = false, hasPreview = true)
 
                 Then("DONE, 호출하지 않음") {
                     prepared.thumbnailStatus shouldBe ThumbnailStatus.DONE
@@ -191,19 +154,9 @@ class ImportLinkTest :
                 }
             }
 
-            When("링크에 파비콘만 있으면") {
-                val current = LinkFixture.createRandomLinkOf(ownerId = ownerId, thumbnailUrl = null, faviconUrl = RandomFixture.randomUrl())
-                val prepared = rowOf(ThumbnailStatus.PENDING).prepareThumbnail(current)
-
-                Then("DONE, 호출하지 않음") {
-                    prepared.thumbnailStatus shouldBe ThumbnailStatus.DONE
-                    prepared.isThumbnailPending shouldBe false
-                }
-            }
-
-            When("썸네일·파비콘이 둘 다 비었으면") {
+            When("미리보기가 없으면") {
                 val row = rowOf(ThumbnailStatus.PENDING)
-                val prepared = row.prepareThumbnail(LinkFixture.createImportedLinkOf(ownerId = ownerId))
+                val prepared = row.prepareThumbnail(isDeleted = false, hasPreview = false)
 
                 Then("실행한다(상태 그대로)") {
                     prepared.thumbnailStatus shouldBe ThumbnailStatus.PENDING

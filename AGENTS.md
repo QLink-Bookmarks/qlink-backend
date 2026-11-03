@@ -21,7 +21,10 @@ conventions that are not obvious from reading the code.
 - Give fixture functions meaningful names so tests stay reusable and readable.
 - Domain tests should verify pure domain logic without external dependencies.
 - For domain method tests that are not testing object creation, create the domain object through a fixture. The fixture should expose parameters for values relevant to the method under test, while randomizing unrelated valid values.
-- Service tests must extend `BaseServiceTest` and use Koin DI through `support.koinGet<T>()`.
+- Service tests must extend `BaseServiceTest` and use Koin DI through `support.koinGet<T>()`. This applies to application
+  services (`<domain>/service`).
+- A domain service (`<domain>/domain/service`) is tested like a domain: a pure `BehaviorSpec` with fixtures, no
+  `BaseServiceTest`.
 - In service tests, prepare required persisted data in `beforeTest` using fixtures and repositories.
 - In service test `Then` blocks, verify behavior by querying the database through repositories.
 - For intended exception scenarios, test only `BusinessException`.

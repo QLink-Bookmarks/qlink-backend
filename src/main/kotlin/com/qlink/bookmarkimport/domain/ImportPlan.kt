@@ -1,7 +1,5 @@
 package com.qlink.bookmarkimport.domain
 
-import com.qlink.folder.domain.Folder
-import com.qlink.link.domain.Link
 import kotlin.time.Instant
 
 class ImportPlan(
@@ -11,8 +9,8 @@ class ImportPlan(
     val failures: List<ImportPlanFailure>,
     val skippedCount: Int,
 ) {
-    val newFolders: List<Folder>
-        get() = folders.filter { it.kind == ImportFolderKind.NEW }.map { it.folder }
+    val newFolders: List<ImportPlanFolder>
+        get() = folders.filter { it.kind == ImportFolderKind.NEW }
 
     val linkCount: Int
         get() = links.size
@@ -23,53 +21,23 @@ class ImportPlan(
     val failedCount: Int
         get() = failures.size
 
-    fun toLinks(savedNewFolders: List<Folder>): List<Link> {
-        val savedByName = savedNewFolders.associateBy { it.name }
-
-        return links.map { link ->
-            Link.createImported(
-                ownerId = ownerId,
-                folderId = link.folder?.savedFolderIdIn(savedByName),
-                url = link.url,
-                title = link.title,
-                createdAt = link.createdAt,
-            )
-        }
-    }
+    fun folderIdOf(
+        link: ImportPlanLink,
+        newFolderIdByName: Map<String, Long>,
+    ): Long? = link.folder?.savedFolderIdIn(newFolderIdByName)
 
     fun toImportFolders(
         importId: Long,
-        savedNewFolders: List<Folder>,
-    ): List<ImportFolder> {
-        val savedByName = savedNewFolders.associateBy { it.name }
-
-        return folders.map { folder ->
+        newFolderIdByName: Map<String, Long>,
+    ): List<ImportFolder> =
+        folders.map { folder ->
             ImportFolder.create(
                 importId = importId,
-                folderId = folder.savedFolderIdIn(savedByName),
+                folderId = folder.savedFolderIdIn(newFolderIdByName),
                 kind = folder.kind,
-                name = folder.folder.name,
+                name = folder.name,
             )
         }
-    }
-
-    fun toImportLinks(
-        importId: Long,
-        savedLinks: List<Link>,
-        savedImportFolders: List<ImportFolder>,
-    ): List<ImportLink> {
-        val importFolderIdByFolderId = savedImportFolders.associate { it.folderId to it.id }
-
-        return savedLinks.map { link ->
-            ImportLink.create(
-                importId = importId,
-                linkId = link.id!!,
-                importFolderId = link.folderId?.let(importFolderIdByFolderId::get),
-                url = link.url,
-                title = link.title,
-            )
-        }
-    }
 
     fun toImportFailures(importId: Long): List<ImportFailure> =
         failures.map {
@@ -81,14 +49,27 @@ class ImportPlan(
             )
         }
 
-    private fun ImportPlanFolder.savedFolderIdIn(savedByName: Map<String, Folder>): Long =
-        folder.id ?: savedByName.getValue(folder.name).id!!
+    private fun ImportPlanFolder.savedFolderIdIn(newFolderIdByName: Map<String, Long>): Long = folderId ?: newFolderIdByName.getValue(name)
 }
 
-class ImportPlanFolder(
+class ImportPlanFolder private constructor(
     val kind: ImportFolderKind,
-    val folder: Folder,
-)
+    val folderId: Long?,
+    val name: String,
+    val createdAt: Instant?,
+) {
+    companion object {
+        fun existing(
+            folderId: Long,
+            name: String,
+        ): ImportPlanFolder = ImportPlanFolder(kind = ImportFolderKind.EXISTING, folderId = folderId, name = name, createdAt = null)
+
+        fun new(
+            name: String,
+            createdAt: Instant,
+        ): ImportPlanFolder = ImportPlanFolder(kind = ImportFolderKind.NEW, folderId = null, name = name, createdAt = createdAt)
+    }
+}
 
 class ImportPlanLink(
     val url: String,

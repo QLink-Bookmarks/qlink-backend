@@ -7,7 +7,13 @@ import com.qlink.bookmarkimport.domain.ImportFailure
 import com.qlink.bookmarkimport.domain.ImportFailureReason
 import com.qlink.bookmarkimport.domain.ImportFolder
 import com.qlink.bookmarkimport.domain.ImportFolderKind
+import com.qlink.bookmarkimport.domain.ImportFolderState
 import com.qlink.bookmarkimport.domain.ImportLink
+import com.qlink.bookmarkimport.domain.ImportLinkState
+import com.qlink.bookmarkimport.domain.ImportPlan
+import com.qlink.bookmarkimport.domain.ImportPlanFailure
+import com.qlink.bookmarkimport.domain.ImportPlanFolder
+import com.qlink.bookmarkimport.domain.ImportPlanLink
 import com.qlink.bookmarkimport.domain.ImportSource
 import com.qlink.bookmarkimport.domain.ImportSourceFolder
 import com.qlink.bookmarkimport.domain.ImportSourceLink
@@ -125,6 +131,63 @@ object ImportFixture {
             thumbnailStatus = thumbnailStatus,
             startedAt = startedAt,
             reversedAt = reversedAt,
+        )
+
+    fun createFolderStateOf(
+        folder: ImportFolder,
+        isDeleted: Boolean = false,
+        isShared: Boolean = false,
+    ): ImportFolderState = folder.withState(isDeleted = isDeleted, isShared = isShared)
+
+    fun createLinkStateOf(
+        link: ImportLink,
+        isDeleted: Boolean = false,
+        isEdited: Boolean = false,
+    ): ImportLinkState = link.withState(isDeleted = isDeleted, isEdited = isEdited)
+
+    fun createExistingPlanFolder(
+        folderId: Long = RandomFixture.randomId(),
+        name: String = "기존 ${RandomFixture.randomId()}",
+    ): ImportPlanFolder = ImportPlanFolder.existing(folderId = folderId, name = name)
+
+    fun createNewPlanFolder(
+        name: String = "새 ${RandomFixture.randomId()}",
+        createdAt: Instant = RandomFixture.randomPastInstant(),
+    ): ImportPlanFolder = ImportPlanFolder.new(name = name, createdAt = createdAt)
+
+    fun createPlanLinkOf(
+        folder: ImportPlanFolder?,
+        url: String = randomUniqueUrl(),
+        title: String = RandomFixture.randomSentenceWithMax(300),
+        createdAt: Instant = RandomFixture.randomPastInstant(),
+    ): ImportPlanLink =
+        ImportPlanLink(
+            url = url,
+            title = title,
+            createdAt = createdAt,
+            folder = folder,
+        )
+
+    fun createPlanFailureOf(reason: ImportFailureReason = ImportFailureReason.entries.random()): ImportPlanFailure =
+        ImportPlanFailure(
+            title = RandomFixture.randomSentenceWithMax(300),
+            url = RandomFixture.randomUrl(),
+            reason = reason,
+        )
+
+    fun createPlanOf(
+        folders: List<ImportPlanFolder>,
+        links: List<ImportPlanLink>,
+        failures: List<ImportPlanFailure> = emptyList(),
+        ownerId: Long = RandomFixture.randomId(),
+        skippedCount: Int = RandomFixture.randomInt(0, 10),
+    ): ImportPlan =
+        ImportPlan(
+            ownerId = ownerId,
+            folders = folders,
+            links = links,
+            failures = failures,
+            skippedCount = skippedCount,
         )
 
     fun createImportFailureOf(

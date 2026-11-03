@@ -1,12 +1,9 @@
 package com.qlink.bookmarkimport.domain
 
-import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireNotBlank
 import com.qlink.common.error.requireNotOver
 import com.qlink.common.error.requireTrue
-import com.qlink.folder.domain.Folder
-import com.qlink.link.domain.Link
 import java.net.URI
 import java.text.Normalizer
 import kotlin.time.Instant
@@ -20,7 +17,16 @@ class ImportSourceFolder(
     val folderId: Long? = null,
     val name: String,
     val createdAt: Instant? = null,
-)
+) {
+    val comparableName: String
+        get() = comparableNameOf(name)
+
+    fun createdAtOr(now: Instant): Instant = createdAt.orNow(now)
+
+    companion object {
+        fun comparableNameOf(name: String): String = Normalizer.normalize(name.trim(), Normalizer.Form.NFC)
+    }
+}
 
 class ImportSourceLink(
     val key: String,
@@ -28,7 +34,16 @@ class ImportSourceLink(
     val title: String? = null,
     val folderKey: String? = null,
     val createdAt: Instant? = null,
-)
+) {
+    fun failureReason(): ImportFailureReason? =
+        when {
+            url.length > ImportSource.LINK_URL_MAX_LENGTH -> ImportFailureReason.URL_INVALID
+            title.isNullOrBlank() || title.length > ImportSource.LINK_TITLE_MAX_LENGTH -> ImportFailureReason.TITLE_INVALID
+            else -> null
+        }
+
+    fun createdAtOr(now: Instant): Instant = createdAt.orNow(now)
+}
 
 class ImportSource(
     val folders: List<ImportSourceFolder>,
@@ -40,136 +55,45 @@ class ImportSource(
         (folders.size <= FOLDERS_MAX_COUNT).requireTrue(ErrorCode.IMPORT_FOLDERS_OVER_MAX)
         links.map { it.key }.isDistinct().requireTrue(ErrorCode.IMPORT_KEY_DUPLICATED)
         folders.map { it.key }.isDistinct().requireTrue(ErrorCode.IMPORT_KEY_DUPLICATED)
-        folders.forEach { validateFolderName(it.name.comparableName()) }
+        folders.forEach { validateFolderName(it.comparableName) }
         folders
             .mapTo(HashSet()) { it.key }
             .let { keys -> links.all { link -> link.folderKey == null || link.folderKey in keys } }
             .requireTrue(ErrorCode.IMPORT_FOLDER_KEY_NOT_FOUND)
     }
 
-    fun preview(
-        myFolders: List<Folder>,
-        myUrls: List<String>,
-    ): ImportPreview {
-        val owned = OwnedFolders(myFolders)
-        val numberedNames = NumberedNames(myFolders.map { it.name } + folders.map { it.name })
+    fun previewLinks(myUrls: List<String>): List<ImportPreviewLink> {
         val savedUrls = myUrls.mapNotNullTo(HashSet(), ::normalizeUrl)
         val requestUrls = HashSet<String>()
 
-        return ImportPreview(
-            folders = folders.map { previewFolder(it, owned, numberedNames) },
-            links =
-                links.map { link ->
-                    ImportPreviewLink(
-                        key = link.key,
-                        status =
-                            when (val url = normalizeUrl(link.url)) {
-                                null -> ImportPreviewLinkStatus.NEW
-                                in savedUrls -> ImportPreviewLinkStatus.SAVED
-                                else -> if (requestUrls.add(url)) ImportPreviewLinkStatus.NEW else ImportPreviewLinkStatus.IN_FILE_DUPLICATE
-                            },
-                    )
-                },
-        )
+        return links.map { link ->
+            ImportPreviewLink(
+                key = link.key,
+                status =
+                    when (val url = normalizeUrl(link.url)) {
+                        null -> ImportPreviewLinkStatus.NEW
+                        in savedUrls -> ImportPreviewLinkStatus.SAVED
+                        else -> if (requestUrls.add(url)) ImportPreviewLinkStatus.NEW else ImportPreviewLinkStatus.IN_FILE_DUPLICATE
+                    },
+            )
+        }
     }
 
-    fun plan(
-        ownerId: Long,
-        myFolders: List<Folder>,
+    fun newLinks(
+        failedKeys: Set<String>,
         myUrls: List<String>,
-        now: Instant,
-    ): ImportPlan {
-        val checkedLinks = links.map { it to it.failureReason(ownerId, now) }
-        val validLinks = checkedLinks.filter { (_, reason) -> reason == null }.map { (link, _) -> link }
+    ): List<ImportSourceLink> {
         val knownUrls = myUrls.mapNotNullTo(HashSet(), ::normalizeUrl)
-        val createdLinks = validLinks.filter { link -> normalizeUrl(link.url)?.let(knownUrls::add) ?: true }
-        val folderByKey = planFolders(ownerId, myFolders, createdLinks.mapNotNullTo(HashSet()) { it.folderKey }, now)
 
-        return ImportPlan(
-            ownerId = ownerId,
-            folders = folderByKey.values.distinct(),
-            links =
-                createdLinks.map { link ->
-                    ImportPlanLink(
-                        url = link.url,
-                        title = link.title.orEmpty(),
-                        createdAt = link.createdAt.orNow(now),
-                        folder = link.folderKey?.let(folderByKey::getValue),
-                    )
-                },
-            failures =
-                checkedLinks.mapNotNull { (link, reason) ->
-                    reason?.let { ImportPlanFailure(title = link.title.orEmpty(), url = link.url, reason = it) }
-                },
-            skippedCount = validLinks.size - createdLinks.size,
-        )
+        return links
+            .filterNot { it.key in failedKeys }
+            .filter { link -> normalizeUrl(link.url)?.let(knownUrls::add) ?: true }
     }
 
-    private fun previewFolder(
-        folder: ImportSourceFolder,
-        owned: OwnedFolders,
-        numberedNames: NumberedNames,
-    ): ImportPreviewFolder {
-        val name = folder.name.trim()
-
-        return owned.unsharedNamed(name)?.let {
-            ImportPreviewFolder(key = folder.key, matchType = ImportFolderMatchType.EXISTING, folderId = it.id, suggestedName = it.name)
-        } ?: when {
-            owned.hasSharedNamed(name) -> {
-                ImportPreviewFolder(
-                    key = folder.key,
-                    matchType = ImportFolderMatchType.SHARED_CONFLICT,
-                    folderId = null,
-                    suggestedName = numberedNames.next(name),
-                )
-            }
-
-            else -> {
-                ImportPreviewFolder(key = folder.key, matchType = ImportFolderMatchType.NEW, folderId = null, suggestedName = name)
-            }
-        }
-    }
-
-    private fun planFolders(
-        ownerId: Long,
-        myFolders: List<Folder>,
-        usedKeys: Set<String>,
-        now: Instant,
-    ): Map<String, ImportPlanFolder> {
-        val owned = OwnedFolders(myFolders)
-        val numberedNames = NumberedNames(myFolders.map { it.name } + folders.map { it.name })
-        val usedFolders = folders.filter { it.key in usedKeys }
-        val targetByKey = usedFolders.associate { it.key to owned.targetOf(it, numberedNames) }
-        val planFolderByTarget =
-            usedFolders
-                .groupBy { targetByKey.getValue(it.key) }
-                .mapValues { (target, entries) -> target.toPlanFolder(ownerId, entries.minOf { it.createdAt.orNow(now) }) }
-
-        return targetByKey.mapValues { (_, target) -> planFolderByTarget.getValue(target) }
-    }
-
-    private fun ImportSourceLink.failureReason(
-        ownerId: Long,
-        now: Instant,
-    ): ImportFailureReason? =
-        when {
-            url.length > LINK_URL_MAX_LENGTH -> {
-                ImportFailureReason.URL_INVALID
-            }
-
-            title.isNullOrBlank() || title.length > LINK_TITLE_MAX_LENGTH -> {
-                ImportFailureReason.TITLE_INVALID
-            }
-
-            else -> {
-                try {
-                    Link.createImported(ownerId = ownerId, folderId = null, url = url, title = title, createdAt = now)
-                    null
-                } catch (e: BusinessException) {
-                    ImportFailureReason.from(e.errorCode)
-                }
-            }
-        }
+    fun foldersOf(links: List<ImportSourceLink>): List<ImportSourceFolder> =
+        links
+            .mapNotNullTo(HashSet()) { it.folderKey }
+            .let { keys -> folders.filter { it.key in keys } }
 
     private fun validateFolderName(name: String) {
         name.requireNotBlank(ErrorCode.IMPORT_FOLDER_NAME_BLANK)
@@ -184,89 +108,6 @@ class ImportSource(
         const val LINK_TITLE_MAX_LENGTH = 300
     }
 }
-
-private sealed interface FolderTarget {
-    fun toPlanFolder(
-        ownerId: Long,
-        createdAt: Instant,
-    ): ImportPlanFolder
-}
-
-private data class ExistingFolderTarget(
-    val folder: Folder,
-) : FolderTarget {
-    override fun toPlanFolder(
-        ownerId: Long,
-        createdAt: Instant,
-    ): ImportPlanFolder = ImportPlanFolder(kind = ImportFolderKind.EXISTING, folder = folder)
-}
-
-private data class NewFolderTarget(
-    val name: String,
-) : FolderTarget {
-    override fun toPlanFolder(
-        ownerId: Long,
-        createdAt: Instant,
-    ): ImportPlanFolder =
-        ImportPlanFolder(
-            kind = ImportFolderKind.NEW,
-            folder = Folder.createImported(ownerId = ownerId, name = name, createdAt = createdAt),
-        )
-}
-
-private class OwnedFolders(
-    folders: List<Folder>,
-) {
-    private val unsharedById = folders.filterNot { it.isShared }.associateBy { it.id }
-    private val unsharedByName = folders.filterNot { it.isShared }.firstByComparableName()
-    private val sharedNames = folders.filter { it.isShared }.mapTo(HashSet()) { it.name.comparableName() }
-
-    fun unsharedNamed(name: String): Folder? = unsharedByName[name.comparableName()]
-
-    fun hasSharedNamed(name: String): Boolean = name.comparableName() in sharedNames
-
-    fun targetOf(
-        source: ImportSourceFolder,
-        numberedNames: NumberedNames,
-    ): FolderTarget {
-        val name = source.name.comparableName()
-
-        return (source.folderId?.let(unsharedById::get) ?: unsharedNamed(name))
-            ?.let(::ExistingFolderTarget)
-            ?: NewFolderTarget(name = if (hasSharedNamed(name)) numberedNames.of(name) else name)
-    }
-
-    private fun List<Folder>.firstByComparableName(): Map<String, Folder> =
-        groupBy { it.name.comparableName() }.mapValues { (_, folders) -> folders.first() }
-}
-
-private class NumberedNames(
-    takenNames: List<String>,
-) {
-    private val taken = takenNames.mapTo(HashSet()) { it.comparableName() }
-    private val assigned = HashMap<String, String>()
-
-    fun of(name: String): String = assigned.getOrPut(name.comparableName()) { next(name) }
-
-    fun next(name: String): String =
-        generateSequence(2) { it + 1 }
-            .map { numbered(name.trim(), it) }
-            .first { taken.add(it.comparableName()) }
-
-    private fun numbered(
-        name: String,
-        number: Int,
-    ): String {
-        val suffix = " $number"
-
-        return name
-            .take(ImportSource.FOLDER_NAME_MAX_LENGTH - suffix.length)
-            .let { head -> if (head.lastOrNull()?.isHighSurrogate() == true) head.dropLast(1) else head }
-            .plus(suffix)
-    }
-}
-
-private fun String.comparableName(): String = Normalizer.normalize(trim(), Normalizer.Form.NFC)
 
 private fun Instant?.orNow(now: Instant): Instant = this?.takeIf { it <= now } ?: now
 

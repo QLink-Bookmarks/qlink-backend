@@ -540,4 +540,134 @@ class LinkTest :
                 }
             }
         }
+
+        Given("가져올 때 url·title과 비교할 링크") {
+            val ownerId = RandomFixture.randomId()
+            val importedUrl = RandomFixture.randomUrl()
+            val importedTitle = RandomFixture.randomSentenceWithMax(200)
+
+            fun linkOf(
+                url: String = importedUrl,
+                title: String = importedTitle,
+                memo: String? = null,
+                tags: List<String> = emptyList(),
+            ): Link = LinkFixture.createRandomLinkOf(ownerId = ownerId, url = url, title = title, memo = memo, tags = tags)
+
+            When("url이나 title이 다르면") {
+                val urlChanged = linkOf(url = RandomFixture.randomUrl()).isEditedFrom(url = importedUrl, title = importedTitle)
+                val titleChanged =
+                    linkOf(
+                        title = "$importedTitle ${RandomFixture.randomId()}",
+                    ).isEditedFrom(url = importedUrl, title = importedTitle)
+
+                Then("true") {
+                    urlChanged shouldBe true
+                    titleChanged shouldBe true
+                }
+            }
+
+            When("url·title이 같고 memo·tags만 있으면") {
+                val edited =
+                    linkOf(memo = RandomFixture.randomSentenceWithMax(100), tags = listOf("tag-${RandomFixture.randomId()}"))
+                        .isEditedFrom(url = importedUrl, title = importedTitle)
+
+                Then("false") {
+                    edited shouldBe false
+                }
+            }
+
+            When("즐겨찾기·폴더·썸네일·AI 요약만 다르면") {
+                val current =
+                    LinkFixture.createRandomLinkOf(
+                        ownerId = ownerId,
+                        folderId = RandomFixture.randomId(),
+                        url = importedUrl,
+                        title = importedTitle,
+                        summary = RandomFixture.randomSentenceWithMax(100),
+                        tags = emptyList(),
+                        thumbnailUrl = RandomFixture.randomUrl(),
+                        faviconUrl = RandomFixture.randomUrl(),
+                        favoriteAt = RandomFixture.randomPastInstant(),
+                    )
+                val edited = current.isEditedFrom(url = importedUrl, title = importedTitle)
+
+                Then("false") {
+                    edited shouldBe false
+                }
+            }
+        }
+
+        Given("사용자가 넣는 memo·tags 상태가 다른 링크") {
+            val ownerId = RandomFixture.randomId()
+
+            When("memo가 있으면") {
+                val hasUserContent =
+                    LinkFixture
+                        .createRandomLinkOf(ownerId = ownerId, memo = RandomFixture.randomSentenceWithMax(100), tags = emptyList())
+                        .hasUserContent()
+
+                Then("true") {
+                    hasUserContent shouldBe true
+                }
+            }
+
+            When("tags가 있으면") {
+                val hasUserContent =
+                    LinkFixture
+                        .createRandomLinkOf(ownerId = ownerId, memo = null, tags = listOf("tag-${RandomFixture.randomId()}"))
+                        .hasUserContent()
+
+                Then("true") {
+                    hasUserContent shouldBe true
+                }
+            }
+
+            When("memo·tags가 둘 다 비었으면") {
+                val hasUserContent = LinkFixture.createRandomLinkOf(ownerId = ownerId, memo = "", tags = emptyList()).hasUserContent()
+
+                Then("false") {
+                    hasUserContent shouldBe false
+                }
+            }
+        }
+
+        Given("미리보기 상태가 다른 링크") {
+            val ownerId = RandomFixture.randomId()
+
+            When("썸네일이 있으면") {
+                val hasPreview =
+                    LinkFixture
+                        .createRandomLinkOf(
+                            ownerId = ownerId,
+                            thumbnailUrl = RandomFixture.randomUrl(),
+                            faviconUrl = null,
+                        ).hasPreview
+
+                Then("true") {
+                    hasPreview shouldBe true
+                }
+            }
+
+            When("파비콘만 있으면") {
+                val hasPreview =
+                    LinkFixture
+                        .createRandomLinkOf(
+                            ownerId = ownerId,
+                            thumbnailUrl = null,
+                            faviconUrl = RandomFixture.randomUrl(),
+                        ).hasPreview
+
+                Then("true") {
+                    hasPreview shouldBe true
+                }
+            }
+
+            When("둘 다 없으면") {
+                val hasPreview = LinkFixture.createRandomLinkOf(ownerId = ownerId, thumbnailUrl = null, faviconUrl = null).hasPreview
+
+                Then("false") {
+                    hasPreview shouldBe false
+                }
+            }
+        }
     })

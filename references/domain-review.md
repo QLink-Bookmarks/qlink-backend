@@ -22,12 +22,12 @@ Section 3 is complete only when every section 2 rule appears in exactly one `규
 Apply in order. The first rule that matches decides.
 
 - **P1** Decided from one domain object's own state and the method's arguments → a method on that domain. Invariants checked at creation or update go in `init` or the factory.
-- **P2** Decided from two or more domain objects already loaded, with no repository → a method on the domain the use case changes; for a read, the domain being accessed. The other domains are passed in as arguments.
+- **P2** Decided from objects of two or more domains already loaded, with no repository → a domain service in the `domain/service` package of the domain the use case changes; for a read, the domain being accessed. A domain service is an `object` with no repository and no I/O. Each domain contributes its facts through its own P1 methods, which take primitives or that domain's own types. The domain service only reads those facts, combines them and builds the combined domains' instances through their factories. Application services call the domain service.
 - **P3** Decided by a repository result alone (existence of the authenticated user or a related resource, uniqueness, count) → the application service, with `requireTrue`, `requireFalse` or `?: throw`. When the result has to be interpreted (role, state, time), load it as a domain and go back to P1 or P2.
 - **P4** Ordering, cascades across domains, transaction boundaries, external clients (AI, push, storage) and notification dispatch → the application service.
 - **P5** Never in a route, repository or table mapping.
 
-A service never reads a domain's fields to make a decision P1 or P2 assigns to the domain. `if (folder.ownerId == loginId)` or `folder.sharedAt != null && …` in a service is a violation; the domain exposes the decision as a method.
+A service never reads a domain's fields to make a decision P1 or P2 assigns to the domain. `if (folder.ownerId == loginId)` or `folder.sharedAt != null && …` in a service is a violation; the domain or domain service exposes the decision as a method.
 
 ## Model
 
@@ -36,9 +36,10 @@ A service never reads a domain's fields to make a decision P1 or P2 assigns to t
   - A closed set of values → an enum in the owning domain's package, parsed by a `from`-style function.
   - A VO only when the same validation or behavior is needed by two or more domains, or two or more fields are valid only together.
   - Otherwise a primitive, validated by a private function inside the domain.
-- **M3** A domain refers to another domain by id, never by holding the object as a field. A domain method may take another domain object as an argument (P2).
+- **M3** A domain refers to another domain by id. It never holds another domain object as a field, never takes one as an argument and never imports another domain's package. Among domain-layer code, only a domain service (P2) imports more than one domain.
 - **M4** A domain is immutable; a state change returns a new instance. Domain time values are `kotlin.time.Instant`. A domain never reads the clock, not even as a default argument; the service passes the time in.
 - **M5** Each domain has its own package. A domain with no use case of its own has only `domain` and `repository` packages.
+- **M6** A domain service is named for what it does, such as `ImportPlanner` or `ImportTracker`, never with the `Service` suffix. That suffix is reserved for S1 application services.
 
 ## Common
 
@@ -100,6 +101,7 @@ Known now:
 - `GetLinkDetailService` checks access on `LinkDetailQuery`, which carries decision-only fields (Q1, Q3).
 - `CreateFolderInvitationService` reads `folder.sharedAt` to decide whether the folder is shared (P1).
 - `Link.changeFavorite` reads the clock as a default argument (M4).
+- `Notification` imports `todo.domain.Todo`, and `User` and `UserProvider` import `auth.domain.Role` (M3).
 
 ## Ambiguity
 
