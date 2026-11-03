@@ -7,13 +7,12 @@ import com.qlink.bookmarkimport.domain.ImportFailure
 import com.qlink.bookmarkimport.domain.ImportFailureReason
 import com.qlink.bookmarkimport.domain.ImportFolder
 import com.qlink.bookmarkimport.domain.ImportFolderKind
-import com.qlink.bookmarkimport.domain.ImportFolderState
 import com.qlink.bookmarkimport.domain.ImportLink
-import com.qlink.bookmarkimport.domain.ImportLinkState
 import com.qlink.bookmarkimport.domain.ImportPlan
 import com.qlink.bookmarkimport.domain.ImportPlanFailure
 import com.qlink.bookmarkimport.domain.ImportPlanFolder
 import com.qlink.bookmarkimport.domain.ImportPlanLink
+import com.qlink.bookmarkimport.domain.ImportReversalFacts
 import com.qlink.bookmarkimport.domain.ImportSource
 import com.qlink.bookmarkimport.domain.ImportSourceFolder
 import com.qlink.bookmarkimport.domain.ImportSourceLink
@@ -133,17 +132,18 @@ object ImportFixture {
             reversedAt = reversedAt,
         )
 
-    fun createFolderStateOf(
-        folder: ImportFolder,
-        isDeleted: Boolean = false,
-        isShared: Boolean = false,
-    ): ImportFolderState = folder.withState(isDeleted = isDeleted, isShared = isShared)
-
-    fun createLinkStateOf(
-        link: ImportLink,
-        isDeleted: Boolean = false,
-        isEdited: Boolean = false,
-    ): ImportLinkState = link.withState(isDeleted = isDeleted, isEdited = isEdited)
+    fun createReversalFactsOf(
+        deletedFolderIds: Set<Long> = setOf(RandomFixture.randomId()),
+        sharedFolderIds: Set<Long> = setOf(RandomFixture.randomId()),
+        deletedLinkIds: Set<Long> = setOf(RandomFixture.randomId()),
+        editedLinkIds: Set<Long> = setOf(RandomFixture.randomId()),
+    ): ImportReversalFacts =
+        ImportReversalFacts(
+            deletedFolderIds = deletedFolderIds,
+            sharedFolderIds = sharedFolderIds,
+            deletedLinkIds = deletedLinkIds,
+            editedLinkIds = editedLinkIds,
+        )
 
     fun createExistingPlanFolder(
         folderId: Long = RandomFixture.randomId(),

@@ -3,9 +3,8 @@ package com.qlink.bookmarkimport.domain.service
 import com.qlink.bookmarkimport.domain.BookmarkImport
 import com.qlink.bookmarkimport.domain.ImportFolder
 import com.qlink.bookmarkimport.domain.ImportFolderKind
-import com.qlink.bookmarkimport.domain.ImportFolderState
 import com.qlink.bookmarkimport.domain.ImportLink
-import com.qlink.bookmarkimport.domain.ImportLinkState
+import com.qlink.bookmarkimport.domain.ImportReversalFacts
 import com.qlink.bookmarkimport.domain.ReversalFolderState
 import com.qlink.bookmarkimport.domain.ReversalLinkState
 import com.qlink.bookmarkimport.dto.ImportReversal
@@ -33,6 +32,7 @@ object ImportTrackDomainService {
         val importFolderById = folders.associateBy { it.id }
         val importFolderByFolderId = folders.associateBy { it.folderId }
         val importedLinkIds = links.mapTo(HashSet()) { it.linkId }
+        val facts = reversalFacts(folders = folders, links = links, currentLinks = currentLinks, currentFolders = currentFolders)
         val importedLinks =
             links.map { row ->
                 val current = currentLinkById[row.linkId]
@@ -43,7 +43,7 @@ object ImportTrackDomainService {
                         linkId = row.linkId,
                         title = current?.title ?: row.title,
                         url = current?.url ?: row.url,
-                        state = row.stateWith(current).state,
+                        state = row.reversalState(facts),
                     )
             }
         val addedLaterLinks =
@@ -60,7 +60,7 @@ object ImportTrackDomainService {
 
                 ReversalPreviewFolder(
                     kind = row.kind,
-                    state = row.stateWith(current).state,
+                    state = row.reversalState(facts),
                     folderId = row.folderId,
                     name = folderName(row, current),
                     emoji = current?.emoji,
@@ -107,23 +107,23 @@ object ImportTrackDomainService {
         currentFolders: List<Folder>,
         now: Instant,
     ): ImportReversal {
-        val currentFolderById = currentFolders.associateBy { it.id }
-        val currentLinkById = currentLinks.associateBy { it.id }
-
         val targets =
             bookmarkImport.reversalTargets(
                 linkIds = linkIds,
                 folderIds = folderIds,
-                folders = folders.map { it.stateWith(currentFolderById[it.folderId]) },
-                links = links.map { it.stateWith(currentLinkById[it.linkId]) },
+                folders = folders,
+                links = links,
+                facts = reversalFacts(folders = folders, links = links, currentLinks = currentLinks, currentFolders = currentFolders),
             )
+        val linkByLinkId = links.associateBy { it.linkId }
+        val newFolderByFolderId = folders.filter { it.kind == ImportFolderKind.NEW }.associateBy { it.folderId }
 
         return ImportReversal(
             bookmarkImport = bookmarkImport.reverse(targets = targets, now = now),
             linkIds = targets.linkIds,
             folderIds = targets.folderIds,
-            importLinks = targets.links.map { it.reverse(now) },
-            importFolders = targets.folders.map { it.reverse(now) },
+            importLinks = targets.linkIds.map { linkByLinkId.getValue(it).reverse(now) },
+            importFolders = targets.folderIds.map { newFolderByFolderId.getValue(it).reverse(now) },
         )
     }
 
@@ -132,11 +132,25 @@ object ImportTrackDomainService {
         current: Link?,
     ): ImportLink = link.prepareThumbnail(isDeleted = current == null, hasPreview = current?.hasPreview == true)
 
-    private fun ImportFolder.stateWith(current: Folder?): ImportFolderState =
-        withState(isDeleted = current == null, isShared = current?.isShared == true)
+    private fun reversalFacts(
+        folders: List<ImportFolder>,
+        links: List<ImportLink>,
+        currentLinks: List<Link>,
+        currentFolders: List<Folder>,
+    ): ImportReversalFacts {
+        val currentFolderIds = currentFolders.mapNotNullTo(HashSet()) { it.id }
+        val currentLinkById = currentLinks.associateBy { it.id }
 
-    private fun ImportLink.stateWith(current: Link?): ImportLinkState =
-        withState(isDeleted = current == null, isEdited = current?.isEditedOrFilledFrom(this) == true)
+        return ImportReversalFacts(
+            deletedFolderIds = folders.map { it.folderId }.filterNotTo(HashSet()) { it in currentFolderIds },
+            sharedFolderIds = currentFolders.filter { it.isShared }.mapNotNullTo(HashSet()) { it.id },
+            deletedLinkIds = links.map { it.linkId }.filterNotTo(HashSet()) { it in currentLinkById },
+            editedLinkIds =
+                links
+                    .filter { row -> currentLinkById[row.linkId]?.isEditedOrFilledFrom(row) == true }
+                    .mapTo(HashSet()) { it.linkId },
+        )
+    }
 
     private fun Link.isEditedOrFilledFrom(row: ImportLink): Boolean = isEditedFrom(url = row.url, title = row.title) || hasUserContent()
 }

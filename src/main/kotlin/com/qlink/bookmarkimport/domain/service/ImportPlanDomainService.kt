@@ -92,7 +92,18 @@ object ImportPlanDomainService {
         plan: ImportPlan,
         importId: Long,
         savedNewFolders: List<Folder>,
-    ): List<ImportFolder> = plan.toImportFolders(importId = importId, newFolderIdByName = savedNewFolders.idByName())
+    ): List<ImportFolder> {
+        val newFolderIdByName = savedNewFolders.idByName()
+
+        return plan.folders.map { folder ->
+            ImportFolder.create(
+                importId = importId,
+                folderId = folder.savedFolderId(newFolderIdByName),
+                kind = folder.kind,
+                name = folder.name,
+            )
+        }
+    }
 
     fun importLinks(
         importId: Long,

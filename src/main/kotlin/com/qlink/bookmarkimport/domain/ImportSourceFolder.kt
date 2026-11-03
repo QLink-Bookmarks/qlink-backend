@@ -15,6 +15,8 @@ class ImportSourceFolder(
     fun createdAtOr(now: Instant): Instant = createdAt?.coerceAtMost(now) ?: now
 
     companion object {
+        const val NAME_MAX_LENGTH = 100
+
         fun comparableNameOf(name: String): String = name.trim().toNfc()
     }
 }

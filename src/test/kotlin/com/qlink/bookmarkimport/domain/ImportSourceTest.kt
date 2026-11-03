@@ -138,7 +138,7 @@ class ImportSourceTest :
             }
 
             When("폴더 이름이 정확히 100자(UTF-16)면") {
-                val name = RandomFixture.randomFixedSentence(ImportSource.FOLDER_NAME_MAX_LENGTH)
+                val name = RandomFixture.randomFixedSentence(ImportSourceFolder.NAME_MAX_LENGTH)
                 val source = ImportFixture.createSource(folders = listOf(ImportFixture.createSourceFolder(name = name)))
 
                 Then("원본이 만들어진다") {
@@ -147,17 +147,17 @@ class ImportSourceTest :
             }
 
             When("NFC로 정규화한 폴더 이름이 정확히 100자면") {
-                val decomposed = Normalizer.normalize("가".repeat(ImportSource.FOLDER_NAME_MAX_LENGTH), Normalizer.Form.NFD)
+                val decomposed = Normalizer.normalize("가".repeat(ImportSourceFolder.NAME_MAX_LENGTH), Normalizer.Form.NFD)
                 val source = ImportFixture.createSource(folders = listOf(ImportFixture.createSourceFolder(name = decomposed)))
 
                 Then("원본이 만들어진다") {
-                    decomposed.length shouldBe ImportSource.FOLDER_NAME_MAX_LENGTH * 2
+                    decomposed.length shouldBe ImportSourceFolder.NAME_MAX_LENGTH * 2
                     source.folders.single().name shouldBe decomposed
                 }
             }
 
             When("폴더 이름이 101자면") {
-                val name = RandomFixture.randomFixedSentence(ImportSource.FOLDER_NAME_MAX_LENGTH + 1)
+                val name = RandomFixture.randomFixedSentence(ImportSourceFolder.NAME_MAX_LENGTH + 1)
                 val create = { ImportFixture.createSource(folders = listOf(ImportFixture.createSourceFolder(name = name))) }
 
                 Then("예외가 발생한다") {

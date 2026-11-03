@@ -15,18 +15,18 @@ class ImportSourceLinkTest :
 
             When("URL이 정확히 2,048자면") {
                 val prefix = "https://${ImportFixture.randomKey()}.com/"
-                val url = prefix + "a".repeat(ImportSource.LINK_URL_MAX_LENGTH - prefix.length)
+                val url = prefix + "a".repeat(ImportSourceLink.URL_MAX_LENGTH - prefix.length)
                 val reason = ImportFixture.createSourceLink(url = url).failureReason()
 
                 Then("실패 아님") {
-                    url shouldHaveLength ImportSource.LINK_URL_MAX_LENGTH
+                    url shouldHaveLength ImportSourceLink.URL_MAX_LENGTH
                     reason shouldBe null
                 }
             }
 
             When("URL이 2,049자면") {
                 val prefix = "https://${ImportFixture.randomKey()}.com/"
-                val url = prefix + "a".repeat(ImportSource.LINK_URL_MAX_LENGTH + 1 - prefix.length)
+                val url = prefix + "a".repeat(ImportSourceLink.URL_MAX_LENGTH + 1 - prefix.length)
                 val reason = ImportFixture.createSourceLink(url = url).failureReason()
 
                 Then("URL_INVALID") {
@@ -43,7 +43,7 @@ class ImportSourceLinkTest :
             }
 
             When("제목이 정확히 300자면") {
-                val title = RandomFixture.randomFixedSentence(ImportSource.LINK_TITLE_MAX_LENGTH)
+                val title = RandomFixture.randomFixedSentence(ImportSourceLink.TITLE_MAX_LENGTH)
                 val reason = ImportFixture.createSourceLink(title = title).failureReason()
 
                 Then("실패 아님") {
@@ -54,7 +54,7 @@ class ImportSourceLinkTest :
             When("제목이 301자면") {
                 val reason =
                     ImportFixture
-                        .createSourceLink(title = RandomFixture.randomFixedSentence(ImportSource.LINK_TITLE_MAX_LENGTH + 1))
+                        .createSourceLink(title = RandomFixture.randomFixedSentence(ImportSourceLink.TITLE_MAX_LENGTH + 1))
                         .failureReason()
 
                 Then("TITLE_INVALID") {

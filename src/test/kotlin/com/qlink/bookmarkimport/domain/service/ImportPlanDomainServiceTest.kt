@@ -5,7 +5,6 @@ import com.qlink.bookmarkimport.domain.ImportFolderKind
 import com.qlink.bookmarkimport.domain.ImportFolderMatchType
 import com.qlink.bookmarkimport.domain.ImportPlan
 import com.qlink.bookmarkimport.domain.ImportPreviewLinkStatus
-import com.qlink.bookmarkimport.domain.ImportSource
 import com.qlink.bookmarkimport.domain.ImportSourceFolder
 import com.qlink.bookmarkimport.domain.ImportSourceLink
 import com.qlink.bookmarkimport.domain.ThumbnailStatus
@@ -127,25 +126,25 @@ class ImportPlanDomainServiceTest :
             }
 
             When("100자 이름이 SHARED_CONFLICT면") {
-                val name = RandomFixture.randomFixedSentence(ImportSource.FOLDER_NAME_MAX_LENGTH)
+                val name = RandomFixture.randomFixedSentence(ImportSourceFolder.NAME_MAX_LENGTH)
                 val shared = FolderFixture.createSharedFolderOf(ownerId = ownerId, name = name)
                 val preview = previewOf(listOf(ImportFixture.createSourceFolder(name = name)), listOf(shared))
 
                 Then("suggestedName은 원래 이름 끝을 줄여 번호를 붙인 100자다") {
                     val suggestedName = preview.folders.single().suggestedName
-                    suggestedName shouldHaveLength ImportSource.FOLDER_NAME_MAX_LENGTH
-                    suggestedName shouldBe "${name.take(ImportSource.FOLDER_NAME_MAX_LENGTH - 2)} 2"
+                    suggestedName shouldHaveLength ImportSourceFolder.NAME_MAX_LENGTH
+                    suggestedName shouldBe "${name.take(ImportSourceFolder.NAME_MAX_LENGTH - 2)} 2"
                 }
             }
 
             When("100자 이름의 SHARED_CONFLICT 번호 자리가 이모지 중간에 걸리면") {
-                val name = RandomFixture.randomFixedSentence(ImportSource.FOLDER_NAME_MAX_LENGTH - 3) + "😀" + "b"
+                val name = RandomFixture.randomFixedSentence(ImportSourceFolder.NAME_MAX_LENGTH - 3) + "😀" + "b"
                 val shared = FolderFixture.createSharedFolderOf(ownerId = ownerId, name = name)
                 val preview = previewOf(listOf(ImportFixture.createSourceFolder(name = name)), listOf(shared))
 
                 Then("이모지를 통째로 빼고 번호를 붙인다") {
-                    name shouldHaveLength ImportSource.FOLDER_NAME_MAX_LENGTH
-                    preview.folders.single().suggestedName shouldBe "${name.take(ImportSource.FOLDER_NAME_MAX_LENGTH - 3)} 2"
+                    name shouldHaveLength ImportSourceFolder.NAME_MAX_LENGTH
+                    preview.folders.single().suggestedName shouldBe "${name.take(ImportSourceFolder.NAME_MAX_LENGTH - 3)} 2"
                 }
             }
 
@@ -411,7 +410,7 @@ class ImportPlanDomainServiceTest :
                 val prefix = "https://${ImportFixture.randomKey()}.com/"
                 val tooLong =
                     ImportFixture.createSourceLink(
-                        url = prefix + "a".repeat(ImportSource.LINK_URL_MAX_LENGTH + 1 - prefix.length),
+                        url = prefix + "a".repeat(ImportSourceLink.URL_MAX_LENGTH + 1 - prefix.length),
                     )
                 val valid = ImportFixture.createSourceLink()
                 val plan = planOf(links = listOf(tooLong, valid))
@@ -427,18 +426,18 @@ class ImportPlanDomainServiceTest :
 
             When("URL이 정확히 2,048자면") {
                 val prefix = "https://${ImportFixture.randomKey()}.com/"
-                val url = prefix + "a".repeat(ImportSource.LINK_URL_MAX_LENGTH - prefix.length)
+                val url = prefix + "a".repeat(ImportSourceLink.URL_MAX_LENGTH - prefix.length)
                 val plan = planOf(links = listOf(ImportFixture.createSourceLink(url = url)))
 
                 Then("만들 링크에 담긴다") {
-                    url shouldHaveLength ImportSource.LINK_URL_MAX_LENGTH
+                    url shouldHaveLength ImportSourceLink.URL_MAX_LENGTH
                     plan.links.single().url shouldBe url
                     plan.failures.shouldBeEmpty()
                 }
             }
 
             When("제목이 정확히 300자면") {
-                val title = RandomFixture.randomFixedSentence(ImportSource.LINK_TITLE_MAX_LENGTH)
+                val title = RandomFixture.randomFixedSentence(ImportSourceLink.TITLE_MAX_LENGTH)
                 val plan = planOf(links = listOf(ImportFixture.createSourceLink(title = title)))
 
                 Then("만들 링크에 담긴다") {

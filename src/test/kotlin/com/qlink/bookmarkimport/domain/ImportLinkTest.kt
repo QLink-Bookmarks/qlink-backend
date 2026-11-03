@@ -35,7 +35,11 @@ class ImportLinkTest :
             val row = ImportFixture.createImportLinkOf(importId = RandomFixture.randomId(), linkId = RandomFixture.randomId())
 
             When("되돌리기로 지웠으면") {
-                val state = row.reverse(Clock.System.now()).reversalState(isDeleted = true, isEdited = true)
+                val reversed = row.reverse(Clock.System.now())
+                val state =
+                    reversed.reversalState(
+                        ImportFixture.createReversalFactsOf(deletedLinkIds = setOf(row.linkId), editedLinkIds = setOf(row.linkId)),
+                    )
 
                 Then("REVERSED") {
                     state shouldBe ReversalLinkState.REVERSED
@@ -43,7 +47,7 @@ class ImportLinkTest :
             }
 
             When("지워졌으면") {
-                val state = row.reversalState(isDeleted = true, isEdited = false)
+                val state = row.reversalState(ImportFixture.createReversalFactsOf(deletedLinkIds = setOf(row.linkId)))
 
                 Then("DELETED") {
                     state shouldBe ReversalLinkState.DELETED
@@ -51,7 +55,7 @@ class ImportLinkTest :
             }
 
             When("수정됐으면") {
-                val state = row.reversalState(isDeleted = false, isEdited = true)
+                val state = row.reversalState(ImportFixture.createReversalFactsOf(editedLinkIds = setOf(row.linkId)))
 
                 Then("EDITED") {
                     state shouldBe ReversalLinkState.EDITED
@@ -59,27 +63,10 @@ class ImportLinkTest :
             }
 
             When("그 밖이면") {
-                val state = row.reversalState(isDeleted = false, isEdited = false)
+                val state = row.reversalState(ImportFixture.createReversalFactsOf())
 
                 Then("IMPORTED") {
                     state shouldBe ReversalLinkState.IMPORTED
-                }
-            }
-
-            When("되돌린 행에 지금 상태를 붙이면") {
-                val state = row.reverse(Clock.System.now()).withState(isDeleted = false, isEdited = false)
-
-                Then("행에서 정한 REVERSED가 붙는다") {
-                    state.state shouldBe ReversalLinkState.REVERSED
-                }
-            }
-
-            When("수정된 행에 상태를 붙이면") {
-                val state = row.withState(isDeleted = false, isEdited = true)
-
-                Then("그 행과 EDITED가 함께 담긴다") {
-                    state.link shouldBe row
-                    state.state shouldBe ReversalLinkState.EDITED
                 }
             }
 

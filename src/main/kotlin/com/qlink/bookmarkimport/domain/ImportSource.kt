@@ -56,7 +56,7 @@ class ImportSource(
 
     private fun validateFolderName(name: String) {
         name.requireNotBlank(ErrorCode.IMPORT_FOLDER_NAME_BLANK)
-        name.requireNotOver(FOLDER_NAME_MAX_LENGTH, ErrorCode.IMPORT_FOLDER_NAME_OVER_MAX)
+        name.requireNotOver(ImportSourceFolder.NAME_MAX_LENGTH, ErrorCode.IMPORT_FOLDER_NAME_OVER_MAX)
     }
 
     private fun comparableUrlOf(url: String): String? =
@@ -65,9 +65,6 @@ class ImportSource(
     companion object {
         const val LINKS_MAX_COUNT = 3000
         const val FOLDERS_MAX_COUNT = 3000
-        const val FOLDER_NAME_MAX_LENGTH = 100
-        const val LINK_URL_MAX_LENGTH = 2048
-        const val LINK_TITLE_MAX_LENGTH = 300
 
         private val TRACKING_QUERY_KEYS = setOf("fbclid", "gclid", "igshid", "mc_cid", "mc_eid")
         private val TRACKING_QUERY_KEY_PREFIXES = setOf("utm_")

@@ -1,6 +1,5 @@
 package com.qlink.bookmarkimport.domain.service
 
-import com.qlink.bookmarkimport.domain.ImportSource
 import com.qlink.bookmarkimport.domain.ImportSourceFolder
 import com.qlink.common.text.takeKeepingSurrogatePairs
 
@@ -23,6 +22,6 @@ internal class NumberedFolderNames(
     ): String {
         val suffix = " $number"
 
-        return name.takeKeepingSurrogatePairs(ImportSource.FOLDER_NAME_MAX_LENGTH - suffix.length) + suffix
+        return name.takeKeepingSurrogatePairs(ImportSourceFolder.NAME_MAX_LENGTH - suffix.length) + suffix
     }
 }

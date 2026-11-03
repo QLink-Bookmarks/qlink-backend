@@ -222,7 +222,7 @@ class BookmarkImportTest :
             }
         }
 
-        Given("항목 행과 되돌리기 상태") {
+        Given("항목 행과 지금의 사실") {
             val ownerId = RandomFixture.randomId()
             val bookmarkImport = ImportFixture.createBookmarkImportOf(ownerId = ownerId)
             val importId = bookmarkImport.id!!
@@ -242,27 +242,36 @@ class BookmarkImportTest :
             fun linkRow(reversedAt: Instant? = null): ImportLink =
                 ImportFixture.createImportLinkOf(importId = importId, linkId = RandomFixture.randomId(), reversedAt = reversedAt)
 
-            val active = ImportFixture.createFolderStateOf(folderRow())
-            val shared = ImportFixture.createFolderStateOf(folderRow(), isShared = true)
-            val existing = ImportFixture.createFolderStateOf(folderRow(ImportFolderKind.EXISTING))
-            val deletedFolder = ImportFixture.createFolderStateOf(folderRow(), isDeleted = true)
-            val reversedFolder = ImportFixture.createFolderStateOf(folderRow(reversedAt = now), isDeleted = true)
-            val imported = ImportFixture.createLinkStateOf(linkRow())
-            val edited = ImportFixture.createLinkStateOf(linkRow(), isEdited = true)
-            val inShared = ImportFixture.createLinkStateOf(linkRow())
-            val deletedLink = ImportFixture.createLinkStateOf(linkRow(), isDeleted = true)
-            val reversedLink = ImportFixture.createLinkStateOf(linkRow(reversedAt = now), isDeleted = true)
+            val active = folderRow()
+            val shared = folderRow()
+            val existing = folderRow(ImportFolderKind.EXISTING)
+            val deletedFolder = folderRow()
+            val reversedFolder = folderRow(reversedAt = now)
+            val imported = linkRow()
+            val edited = linkRow()
+            val inShared = linkRow()
+            val deletedLink = linkRow()
+            val reversedLink = linkRow(reversedAt = now)
             val addedLaterLinkId = RandomFixture.randomId()
+            val currentFacts =
+                ImportFixture.createReversalFactsOf(
+                    deletedFolderIds = setOf(deletedFolder.folderId, reversedFolder.folderId),
+                    sharedFolderIds = setOf(shared.folderId),
+                    deletedLinkIds = setOf(deletedLink.linkId, reversedLink.linkId),
+                    editedLinkIds = setOf(edited.linkId),
+                )
 
             fun reverse(
                 linkIds: List<Long> = emptyList(),
                 folderIds: List<Long> = emptyList(),
+                facts: ImportReversalFacts = currentFacts,
             ): ImportReversalTargets =
                 bookmarkImport.reversalTargets(
                     linkIds = linkIds,
                     folderIds = folderIds,
                     folders = listOf(active, shared, existing, deletedFolder, reversedFolder),
                     links = listOf(imported, edited, inShared, deletedLink, reversedLink),
+                    facts = facts,
                 )
 
             When("linkIds·folderIds가 모두 비었으면") {
@@ -276,7 +285,7 @@ class BookmarkImportTest :
             }
 
             When("EXISTING 폴더 id가 있으면") {
-                val action = { reverse(folderIds = listOf(existing.folder.folderId)) }
+                val action = { reverse(folderIds = listOf(existing.folderId)) }
 
                 Then("예외가 발생한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.IMPORT_REVERSAL_ITEM_INVALID.message) {
@@ -286,7 +295,7 @@ class BookmarkImportTest :
             }
 
             When("가져오기 링크 행이 아닌 링크 id(ADDED_LATER)가 있으면") {
-                val action = { reverse(linkIds = listOf(imported.link.linkId, addedLaterLinkId)) }
+                val action = { reverse(linkIds = listOf(imported.linkId, addedLaterLinkId)) }
 
                 Then("예외가 발생한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.IMPORT_REVERSAL_ITEM_INVALID.message) {
@@ -310,7 +319,7 @@ class BookmarkImportTest :
             }
 
             When("고른 NEW 폴더의 상태가 SHARED면") {
-                val action = { reverse(folderIds = listOf(shared.folder.folderId)) }
+                val action = { reverse(folderIds = listOf(shared.folderId)) }
 
                 Then("예외가 발생한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.IMPORT_REVERSAL_FOLDER_SHARED.message) {
@@ -322,44 +331,40 @@ class BookmarkImportTest :
             When("IMPORTED·EDITED 링크와 ACTIVE NEW 폴더를 고르면") {
                 val targets =
                     reverse(
-                        linkIds = listOf(imported.link.linkId, edited.link.linkId),
-                        folderIds = listOf(active.folder.folderId),
+                        linkIds = listOf(imported.linkId, edited.linkId),
+                        folderIds = listOf(active.folderId),
                     )
 
                 Then("지울 링크·폴더에 담기고, 그 대상으로 되돌린 기록은 reversedAt이 채워진다") {
-                    targets.linkIds shouldContainExactly listOf(imported.link.linkId, edited.link.linkId)
-                    targets.folderIds shouldContainExactly listOf(active.folder.folderId)
-                    targets.links.map { it.id } shouldContainExactly listOf(imported.link.id, edited.link.id)
-                    targets.folders.map { it.id } shouldContainExactly listOf(active.folder.id)
+                    targets.linkIds shouldContainExactly listOf(imported.linkId, edited.linkId)
+                    targets.folderIds shouldContainExactly listOf(active.folderId)
                     bookmarkImport.reverse(targets = targets, now = now).reversedAt shouldBe now
                 }
             }
 
             When("링크만 고르면") {
-                val targets = reverse(linkIds = listOf(imported.link.linkId))
+                val targets = reverse(linkIds = listOf(imported.linkId))
 
                 Then("링크만 지울 대상이다") {
-                    targets.linkIds shouldContainExactly listOf(imported.link.linkId)
+                    targets.linkIds shouldContainExactly listOf(imported.linkId)
                     targets.folderIds.shouldBeEmpty()
-                    targets.folders.shouldBeEmpty()
                 }
             }
 
             When("폴더만 고르면") {
-                val targets = reverse(folderIds = listOf(active.folder.folderId))
+                val targets = reverse(folderIds = listOf(active.folderId))
 
                 Then("폴더만 지울 대상이다") {
-                    targets.folderIds shouldContainExactly listOf(active.folder.folderId)
+                    targets.folderIds shouldContainExactly listOf(active.folderId)
                     targets.linkIds.shouldBeEmpty()
-                    targets.links.shouldBeEmpty()
                 }
             }
 
             When("DELETED·REVERSED 항목을 고르면") {
                 val targets =
                     reverse(
-                        linkIds = listOf(deletedLink.link.linkId, reversedLink.link.linkId),
-                        folderIds = listOf(deletedFolder.folder.folderId, reversedFolder.folder.folderId),
+                        linkIds = listOf(deletedLink.linkId, reversedLink.linkId),
+                        folderIds = listOf(deletedFolder.folderId, reversedFolder.folderId),
                     )
 
                 Then("거절하지 않고 지울 대상에서 빼며, 그 대상으로 되돌린 기록은 그대로다") {
@@ -369,11 +374,29 @@ class BookmarkImportTest :
                 }
             }
 
+            When("되돌린 행이 지금은 있고 공유·수정 중이면") {
+                val targets =
+                    reverse(
+                        linkIds = listOf(reversedLink.linkId),
+                        folderIds = listOf(reversedFolder.folderId),
+                        facts =
+                            ImportFixture.createReversalFactsOf(
+                                sharedFolderIds = setOf(reversedFolder.folderId),
+                                editedLinkIds = setOf(reversedLink.linkId),
+                            ),
+                    )
+
+                Then("REVERSED로 남아 거절하지 않고 지울 대상에서 뺀다") {
+                    targets.linkIds.shouldBeEmpty()
+                    targets.folderIds.shouldBeEmpty()
+                }
+            }
+
             When("SHARED NEW 폴더는 고르지 않고 그 안의 가져온 링크만 고르면") {
-                val targets = reverse(linkIds = listOf(inShared.link.linkId))
+                val targets = reverse(linkIds = listOf(inShared.linkId))
 
                 Then("거절하지 않고 그 링크들만 지울 대상이다") {
-                    targets.linkIds shouldContainExactly listOf(inShared.link.linkId)
+                    targets.linkIds shouldContainExactly listOf(inShared.linkId)
                     targets.folderIds.shouldBeEmpty()
                 }
             }
@@ -382,11 +405,7 @@ class BookmarkImportTest :
         Given("이미 되돌린 적 있는 기록과 지울 대상") {
             val firstReversedAt = RandomFixture.randomPastInstant()
             val bookmarkImport = ImportFixture.createBookmarkImportOf(ownerId = RandomFixture.randomId(), reversedAt = firstReversedAt)
-            val targets =
-                ImportReversalTargets(
-                    folders = emptyList(),
-                    links = listOf(ImportFixture.createImportLinkOf(importId = bookmarkImport.id!!, linkId = RandomFixture.randomId())),
-                )
+            val targets = ImportReversalTargets(folderIds = emptyList(), linkIds = listOf(RandomFixture.randomId()))
 
             When("다시 되돌리면") {
                 val reversed = bookmarkImport.reverse(targets = targets, now = Clock.System.now())

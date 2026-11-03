@@ -52,13 +52,14 @@ class BookmarkImport(
     fun reversalTargets(
         linkIds: List<Long>,
         folderIds: List<Long>,
-        folders: List<ImportFolderState>,
-        links: List<ImportLinkState>,
+        folders: List<ImportFolder>,
+        links: List<ImportLink>,
+        facts: ImportReversalFacts,
     ): ImportReversalTargets {
         (linkIds.isNotEmpty() || folderIds.isNotEmpty()).requireTrue(ErrorCode.IMPORT_REVERSAL_ITEMS_EMPTY)
 
-        val newFolderByFolderId = folders.filter { it.folder.kind == ImportFolderKind.NEW }.associateBy { it.folder.folderId }
-        val linkByLinkId = links.associateBy { it.link.linkId }
+        val newFolderByFolderId = folders.filter { it.kind == ImportFolderKind.NEW }.associateBy { it.folderId }
+        val linkByLinkId = links.associateBy { it.linkId }
         val selectedFolders =
             folderIds.distinct().map {
                 newFolderByFolderId[it]
@@ -69,13 +70,14 @@ class BookmarkImport(
                 linkByLinkId[it]
                     ?: throw BusinessException(ErrorCode.IMPORT_REVERSAL_ITEM_INVALID)
             }
-        selectedFolders
-            .none { it.state == ReversalFolderState.SHARED }
+        val folderStates = selectedFolders.map { it to it.reversalState(facts) }
+        folderStates
+            .none { (_, state) -> state == ReversalFolderState.SHARED }
             .requireTrue(ErrorCode.IMPORT_REVERSAL_FOLDER_SHARED)
 
         return ImportReversalTargets(
-            folders = selectedFolders.filter { it.folder.isRemovable(it.state) }.map { it.folder },
-            links = selectedLinks.filter { it.link.isRemovable(it.state) }.map { it.link },
+            folderIds = folderStates.filter { (folder, state) -> folder.isRemovable(state) }.map { (folder, _) -> folder.folderId },
+            linkIds = selectedLinks.filter { it.isRemovable(it.reversalState(facts)) }.map { it.linkId },
         )
     }
 

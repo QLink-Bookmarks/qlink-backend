@@ -18,19 +18,4 @@ class ImportPlan(
 
     val failedCount: Int
         get() = failures.size
-
-    fun toImportFolders(
-        importId: Long,
-        newFolderIdByName: Map<String, Long>,
-    ): List<ImportFolder> =
-        folders.map { folder ->
-            ImportFolder.create(
-                importId = importId,
-                folderId = folder.savedFolderId(newFolderIdByName),
-                kind = folder.kind,
-                name = folder.name,
-            )
-        }
-
-    fun toImportFailures(importId: Long): List<ImportFailure> = failures.map { it.toImportFailure(importId) }
 }

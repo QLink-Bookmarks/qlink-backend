@@ -20,21 +20,13 @@ class ImportLink(
     val isThumbnailPending: Boolean
         get() = thumbnailStatus == ThumbnailStatus.PENDING
 
-    fun reversalState(
-        isDeleted: Boolean,
-        isEdited: Boolean,
-    ): ReversalLinkState =
+    fun reversalState(facts: ImportReversalFacts): ReversalLinkState =
         when {
             reversedAt != null -> ReversalLinkState.REVERSED
-            isDeleted -> ReversalLinkState.DELETED
-            isEdited -> ReversalLinkState.EDITED
+            linkId in facts.deletedLinkIds -> ReversalLinkState.DELETED
+            linkId in facts.editedLinkIds -> ReversalLinkState.EDITED
             else -> ReversalLinkState.IMPORTED
         }
-
-    fun withState(
-        isDeleted: Boolean,
-        isEdited: Boolean,
-    ): ImportLinkState = ImportLinkState(link = this, isDeleted = isDeleted, isEdited = isEdited)
 
     fun isRemovable(state: ReversalLinkState): Boolean = state in REMOVABLE_STATES
 

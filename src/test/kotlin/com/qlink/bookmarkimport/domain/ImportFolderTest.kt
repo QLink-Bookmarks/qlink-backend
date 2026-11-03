@@ -29,7 +29,8 @@ class ImportFolderTest :
             }
 
             When("되돌리기로 지웠으면") {
-                val state = row.reverse(Clock.System.now()).reversalState(isDeleted = true, isShared = false)
+                val reversed = row.reverse(Clock.System.now())
+                val state = reversed.reversalState(ImportFixture.createReversalFactsOf(deletedFolderIds = setOf(row.folderId)))
 
                 Then("REVERSED") {
                     state shouldBe ReversalFolderState.REVERSED
@@ -37,7 +38,7 @@ class ImportFolderTest :
             }
 
             When("지워졌으면") {
-                val state = row.reversalState(isDeleted = true, isShared = false)
+                val state = row.reversalState(ImportFixture.createReversalFactsOf(deletedFolderIds = setOf(row.folderId)))
 
                 Then("DELETED") {
                     state shouldBe ReversalFolderState.DELETED
@@ -45,7 +46,7 @@ class ImportFolderTest :
             }
 
             When("공유 중이면") {
-                val state = row.reversalState(isDeleted = false, isShared = true)
+                val state = row.reversalState(ImportFixture.createReversalFactsOf(sharedFolderIds = setOf(row.folderId)))
 
                 Then("SHARED") {
                     state shouldBe ReversalFolderState.SHARED
@@ -53,27 +54,10 @@ class ImportFolderTest :
             }
 
             When("그 밖이면") {
-                val state = row.reversalState(isDeleted = false, isShared = false)
+                val state = row.reversalState(ImportFixture.createReversalFactsOf())
 
                 Then("ACTIVE") {
                     state shouldBe ReversalFolderState.ACTIVE
-                }
-            }
-
-            When("되돌린 행에 지금 상태를 붙이면") {
-                val state = row.reverse(Clock.System.now()).withState(isDeleted = false, isShared = false)
-
-                Then("행에서 정한 REVERSED가 붙는다") {
-                    state.state shouldBe ReversalFolderState.REVERSED
-                }
-            }
-
-            When("지금 공유 중인 행에 상태를 붙이면") {
-                val state = row.withState(isDeleted = false, isShared = true)
-
-                Then("그 행과 SHARED가 함께 담긴다") {
-                    state.folder shouldBe row
-                    state.state shouldBe ReversalFolderState.SHARED
                 }
             }
 

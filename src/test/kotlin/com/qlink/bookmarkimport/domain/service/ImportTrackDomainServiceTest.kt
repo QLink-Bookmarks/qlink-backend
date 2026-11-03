@@ -16,6 +16,7 @@ import com.qlink.support.fixture.LinkFixture
 import com.qlink.support.fixture.RandomFixture
 import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.core.spec.style.BehaviorSpec
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.collections.shouldHaveSize
@@ -173,6 +174,7 @@ class ImportTrackDomainServiceTest :
             When("지금 폴더가 공유 중이고 가져온 링크를 고쳤으면") {
                 val sharedFolder = FolderFixture.createSharedFolderOf(ownerId = ownerId)
                 val sharedRow = ImportFixture.createImportFolderOf(importId = importId, folderId = sharedFolder.id!!)
+                val deletedRow = ImportFixture.createImportFolderOf(importId = importId, folderId = RandomFixture.randomId())
                 val importedLink = LinkFixture.createImportedLinkOf(ownerId = ownerId, folderId = sharedFolder.id)
                 val row =
                     ImportFixture.createImportLinkOf(
@@ -249,13 +251,14 @@ class ImportTrackDomainServiceTest :
             val sharedFolder = FolderFixture.createSharedFolderOf(ownerId = ownerId)
             val activeRow = ImportFixture.createImportFolderOf(importId = importId, folderId = activeFolder.id!!)
             val sharedRow = ImportFixture.createImportFolderOf(importId = importId, folderId = sharedFolder.id!!)
+            val deletedRow = ImportFixture.createImportFolderOf(importId = importId, folderId = RandomFixture.randomId())
 
             fun reverse(folderIds: List<Long>): ImportReversal =
                 ImportTrackDomainService.reverse(
                     bookmarkImport = bookmarkImport,
                     linkIds = emptyList(),
                     folderIds = folderIds,
-                    folders = listOf(activeRow, sharedRow),
+                    folders = listOf(activeRow, sharedRow, deletedRow),
                     links = emptyList(),
                     currentLinks = emptyList(),
                     currentFolders = listOf(activeFolder, sharedFolder),
@@ -265,7 +268,7 @@ class ImportTrackDomainServiceTest :
             When("지금 공유 중인 NEW 폴더를 고르면") {
                 val action = { reverse(folderIds = listOf(sharedFolder.id!!)) }
 
-                Then("SHARED 상태가 넘겨져 거절된다") {
+                Then("그 폴더 id가 sharedFolderIds로 넘겨져 되돌리기가 거절된다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.IMPORT_REVERSAL_FOLDER_SHARED.message) {
                         action()
                     }
@@ -279,6 +282,16 @@ class ImportTrackDomainServiceTest :
                     reversal.folderIds shouldContainExactly listOf(activeFolder.id)
                     reversal.importFolders.map { it.id } shouldContainExactly listOf(activeRow.id)
                     reversal.importFolders.single().reversedAt shouldBe now
+                }
+            }
+
+            When("지금은 없는 NEW 폴더를 고르면") {
+                val reversal = reverse(folderIds = listOf(deletedRow.folderId))
+
+                Then("DELETED라 거절하지 않고 지울 대상에서 빼며, 기록은 그대로다") {
+                    reversal.folderIds.shouldBeEmpty()
+                    reversal.importFolders.shouldBeEmpty()
+                    reversal.bookmarkImport.reversedAt shouldBe bookmarkImport.reversedAt
                 }
             }
         }

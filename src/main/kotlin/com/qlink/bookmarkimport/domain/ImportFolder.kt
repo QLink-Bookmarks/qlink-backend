@@ -13,21 +13,13 @@ class ImportFolder(
 ) {
     fun displayName(currentName: String?): String = currentName ?: name
 
-    fun reversalState(
-        isDeleted: Boolean,
-        isShared: Boolean,
-    ): ReversalFolderState =
+    fun reversalState(facts: ImportReversalFacts): ReversalFolderState =
         when {
             reversedAt != null -> ReversalFolderState.REVERSED
-            isDeleted -> ReversalFolderState.DELETED
-            isShared -> ReversalFolderState.SHARED
+            folderId in facts.deletedFolderIds -> ReversalFolderState.DELETED
+            folderId in facts.sharedFolderIds -> ReversalFolderState.SHARED
             else -> ReversalFolderState.ACTIVE
         }
-
-    fun withState(
-        isDeleted: Boolean,
-        isShared: Boolean,
-    ): ImportFolderState = ImportFolderState(folder = this, isDeleted = isDeleted, isShared = isShared)
 
     fun isRemovable(state: ReversalFolderState): Boolean = kind == ImportFolderKind.NEW && state == ReversalFolderState.ACTIVE
 

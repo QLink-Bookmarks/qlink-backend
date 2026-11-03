@@ -11,10 +11,15 @@ class ImportSourceLink(
 ) {
     fun failureReason(): ImportFailureReason? =
         when {
-            url.length > ImportSource.LINK_URL_MAX_LENGTH -> ImportFailureReason.URL_INVALID
-            title.isNullOrBlank() || title.length > ImportSource.LINK_TITLE_MAX_LENGTH -> ImportFailureReason.TITLE_INVALID
+            url.length > URL_MAX_LENGTH -> ImportFailureReason.URL_INVALID
+            title.isNullOrBlank() || title.length > TITLE_MAX_LENGTH -> ImportFailureReason.TITLE_INVALID
             else -> null
         }
 
     fun createdAtOr(now: Instant): Instant = createdAt?.coerceAtMost(now) ?: now
+
+    companion object {
+        const val URL_MAX_LENGTH = 2048
+        const val TITLE_MAX_LENGTH = 300
+    }
 }

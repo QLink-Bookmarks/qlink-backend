@@ -8,6 +8,7 @@ conventions that are not obvious from reading the code.
 - Prefer Kotlin style logics.
 - Readability, Simpleness, and Maintenance are the priorities.
 - For any change in `domain/**` or `service/**`, follow `references/domain-review.md`.
+- Dependencies follow the allowed list in D1–D9 of `references/domain-review.md`; anything not listed is not allowed.
 - One top-level type per file, except DTO files. Pure-mechanism extensions on Kotlin or JDK types go in `common`
   util files. See F1–F3 in `references/domain-review.md`.
 
