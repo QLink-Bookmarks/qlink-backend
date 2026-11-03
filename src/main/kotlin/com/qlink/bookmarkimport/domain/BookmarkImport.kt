@@ -49,13 +49,12 @@ class BookmarkImport(
             else -> ImportStatus.UNDONE
         }
 
-    fun reverse(
+    fun reversalTargets(
         linkIds: List<Long>,
         folderIds: List<Long>,
         folders: List<ImportFolderState>,
         links: List<ImportLinkState>,
-        now: Instant,
-    ): ImportReversal {
+    ): ImportReversalTargets {
         (linkIds.isNotEmpty() || folderIds.isNotEmpty()).requireTrue(ErrorCode.IMPORT_REVERSAL_ITEMS_EMPTY)
 
         val newFolderByFolderId = folders.filter { it.folder.kind == ImportFolderKind.NEW }.associateBy { it.folder.folderId }
@@ -73,18 +72,17 @@ class BookmarkImport(
         selectedFolders
             .none { it.state == ReversalFolderState.SHARED }
             .requireTrue(ErrorCode.IMPORT_REVERSAL_FOLDER_SHARED)
-        val removableFolders = selectedFolders.filter { it.folder.isRemovable(it.state) }.map { it.folder }
-        val removableLinks = selectedLinks.filter { it.link.isRemovable(it.state) }.map { it.link }
-        val reversesAny = removableFolders.isNotEmpty() || removableLinks.isNotEmpty()
 
-        return ImportReversal(
-            bookmarkImport = if (reversesAny) reversed(reversedAt ?: now) else this,
-            linkIds = removableLinks.map { it.linkId },
-            folderIds = removableFolders.map { it.folderId },
-            importLinks = removableLinks.map { it.reverse(now) },
-            importFolders = removableFolders.map { it.reverse(now) },
+        return ImportReversalTargets(
+            folders = selectedFolders.filter { it.folder.isRemovable(it.state) }.map { it.folder },
+            links = selectedLinks.filter { it.link.isRemovable(it.state) }.map { it.link },
         )
     }
+
+    fun reverse(
+        targets: ImportReversalTargets,
+        now: Instant,
+    ): BookmarkImport = if (targets.isEmpty) this else reversed(reversedAt ?: now)
 
     private fun reversed(at: Instant): BookmarkImport =
         BookmarkImport(
@@ -134,54 +132,4 @@ class BookmarkImport(
             )
         }
     }
-}
-
-class ImportReversalPreview(
-    val folders: List<ReversalPreviewFolder>,
-)
-
-class ReversalPreviewFolder(
-    val kind: ImportFolderKind,
-    val state: ReversalFolderState,
-    val folderId: Long?,
-    val name: String?,
-    val emoji: String?,
-    val links: List<ReversalPreviewLink>,
-)
-
-class ReversalPreviewLink(
-    val linkId: Long,
-    val title: String,
-    val url: String,
-    val state: ReversalLinkState,
-)
-
-class ImportReversal(
-    val bookmarkImport: BookmarkImport,
-    val linkIds: List<Long>,
-    val folderIds: List<Long>,
-    val importLinks: List<ImportLink>,
-    val importFolders: List<ImportFolder>,
-)
-
-class ImportFolderState private constructor(
-    val folder: ImportFolder,
-    val state: ReversalFolderState,
-) {
-    constructor(
-        folder: ImportFolder,
-        isDeleted: Boolean,
-        isShared: Boolean,
-    ) : this(folder = folder, state = folder.reversalState(isDeleted = isDeleted, isShared = isShared))
-}
-
-class ImportLinkState private constructor(
-    val link: ImportLink,
-    val state: ReversalLinkState,
-) {
-    constructor(
-        link: ImportLink,
-        isDeleted: Boolean,
-        isEdited: Boolean,
-    ) : this(link = link, state = link.reversalState(isDeleted = isDeleted, isEdited = isEdited))
 }

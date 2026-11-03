@@ -34,12 +34,22 @@ A service never reads a domain's fields to make a decision P1 or P2 assigns to t
 - **M1** A new domain exists only when it has all three: its own identity, its own lifecycle (created and deleted on its own), and its own table. Missing any one, it is not a domain.
 - **M2** A value without identity:
   - A closed set of values → an enum in the owning domain's package, parsed by a `from`-style function.
-  - A VO only when the same validation or behavior is needed by two or more domains, or two or more fields are valid only together.
+  - A VO only when the same validation or behavior is needed by two or more domains, or two or more fields are valid only together. This decides how a domain's own fields are modeled. A type that F2 step 2 classifies is a VO regardless.
   - Otherwise a primitive, validated by a private function inside the domain.
-- **M3** A domain refers to another domain by id. It never holds another domain object as a field, never takes one as an argument and never imports another domain's package. Among domain-layer code, only a domain service (P2) imports more than one domain.
+- **M3** A domain refers to another domain by id. It never holds another domain object as a field, never takes one as an argument and never imports another domain's package. Among domain-layer code, only a domain service (P2) imports more than one domain. A domain or VO never uses `dto` types, its own domain's included. Domain services and application services assemble DTOs from domain results.
 - **M4** A domain is immutable; a state change returns a new instance. Domain time values are `kotlin.time.Instant`. A domain never reads the clock, not even as a default argument; the service passes the time in.
 - **M5** Each domain has its own package. A domain with no use case of its own has only `domain` and `repository` packages.
-- **M6** A domain service is named for what it does, such as `ImportPlanner` or `ImportTracker`, never with the `Service` suffix. That suffix is reserved for S1 application services.
+- **M6** A domain service is an `object` named `<Noun>DomainService`, such as `ImportPlanDomainService` or `ImportTrackDomainService`, in `<domain>/domain/service`. A class only a domain service uses lives next to it as an `internal` class in its own file and is never named `DomainService`. Application services keep S1 naming, `<Verb><Noun>Service`, in `<domain>/service`.
+
+## File
+
+- **F1** One top-level type per file, and the file is named after it. Nested types (companion, sealed subtypes declared inside the parent) belong to their outer type. The only exception is a DTO file in `<domain>/dto`, `<Domain>Requests.kt`, `<Domain>Responses.kt`, `<Domain>Queries.kt` or `<Domain>Results.kt`, which holds every DTO of that kind for the domain.
+- **F2** Classify each type in `domain`, `domain/service` and `dto` in order. The first match decides. Infrastructure types (clients, workers and signals, repository query expressions, configuration) are outside F2; F1 still applies to them.
+  1. It has its own table row → a domain, or a sub-domain row stored by the parent's repository (M1), in `domain`.
+  2. It has a method, a computed property, an `init` check or a factory that enforces a rule → a domain or VO in `domain`, in its own file, even when M2's VO conditions do not hold; or, when only a domain service uses it, an `internal` helper next to it (M6).
+  3. It is a closed set of values → an enum in `domain`, in its own file (M2).
+  4. Otherwise it only carries fields between steps or layers → a DTO in `dto`: `Requests` and `Responses` for the API (serialized), `Queries` for repository projections and cursors, `Results` for values returned by domain services (never by domains, M3).
+- **F3** A helper is pure mechanism when it uses no domain constant and no `ErrorCode`. A pure-mechanism extension or helper on a Kotlin or JDK type (`String`, `Long`, `Instant`, `URI`, `ByteArray`, collections of them) is never a private function in a `domain`, `domain/service`, `service` or `repository` file. It goes in a `common` util file of its kind (C1, C3). The util holds the mechanism; the domain keeps the policy and passes it in (C2), as `url.toNormalizedUrlOrNull(ignoredQueryKeys = TRACKING_QUERY_KEYS, ignoredQueryKeyPrefixes = TRACKING_QUERY_KEY_PREFIXES)` does. A private function that applies the domain's own constants or `ErrorCode`, such as M2 validators or `comparableUrlOf`, stays in the domain. Extensions on the project's own types stay private in the file that uses them. Extensions on library types (Exposed, Ktor) stay where they are used. A class that is not an extension and serves one domain stays in that domain's package, in its own file (F1).
 
 ## Common
 
@@ -50,7 +60,8 @@ Review targets, by kind:
 | Package | Holds |
 |---|---|
 | `common/error` | `PrimitiveExtensions.kt` validation extensions that take an `ErrorCode`; `ErrorCode`, `BusinessException` |
-| `common/text` | string transforms that never fail |
+| `common/text` | string transforms that never fail, including URL normalization |
+| `common/collection`, `common/number` | collection helpers and numeric conversions |
 | `common/search`, `common/scroll` | query expressions, cursor codecs, scroll request and response |
 | `common/retry`, `common/crypto` | retry and encryption mechanisms |
 | `common/transaction`, `common/response`, `common/docs`, `common/cookie` | transaction runner, API response and error handling, OpenAPI examples, auth cookies |
@@ -58,13 +69,13 @@ Review targets, by kind:
 - **C1** Apply in order whenever a rule needs a helper or extension:
   1. An existing `common` function already does it, such as `requireTrue`, `requireFalse` or `requireNotOver` → reuse it. Never add a near-duplicate.
   2. An existing `common` function almost does it → change it only when every current caller keeps its behavior (C4). Otherwise add a new function.
-  3. Only one domain needs it → a private function or extension inside that domain's file.
-  4. Two or more domains need it, and it knows nothing about any of them → add it to `common`, in the package of its kind.
+  3. Only one domain needs it, and it works on that domain's own types or applies that domain's constants or `ErrorCode` → a private function or extension inside the file that uses it. When it is pure mechanism on a Kotlin or JDK type, go to step 4 (F3).
+  4. Two or more domains need it, or it is pure mechanism on a Kotlin or JDK type (F3), and it knows nothing about any domain → add it to `common`, in the package of its kind.
 - **C2** Mechanism goes in `common`; policy stays in the domain. A `common` function never names a domain type, never picks an `ErrorCode`, and never fixes a business value. The domain passes its limits and its `ErrorCode` in, as `name.requireNotOver(MAX_FOLDER_NAME_LENGTH, ErrorCode.FOLDER_NAME_OVER_MAX)` does. When two or more domains share the same concept with the same constants, it is a VO (M2), not a `common` function.
 - **C3** A new validation extension goes in `common/error/PrimitiveExtensions.kt` as `require<Condition>(…, errorCode: ErrorCode)`, with the `ErrorCode` last. Any other new helper goes in the existing package of its kind. A new `common` package is added only when no existing kind fits, and is named for the kind, never for a domain.
 - **C4** Changing an existing `common` function lists every caller in section 3. When any caller would behave differently, add a new function instead of changing it.
 - **C5** A change to `common/transaction`, `common/response` or `ApiExceptionHandler` affects every API, so it is never bundled into a `Feature` or `Bug`. It becomes its own `Refactor` Issue.
-- **C6** `common` is outside the Jacoco scope and is never tested directly. Its behavior is proven through the domain and service cases that use it, so Test Criteria lists those cases on the using domain.
+- **C6** `common` and DTOs (`<domain>/dto`) are outside the Jacoco scope (`**/domain/**`, `**/service/**`) and are never tested directly. Their behavior is proven through the domain and service cases that use them, so Test Criteria lists those cases on the using domain.
 
 ## Service
 
@@ -102,6 +113,12 @@ Known now:
 - `CreateFolderInvitationService` reads `folder.sharedAt` to decide whether the folder is shared (P1).
 - `Link.changeFavorite` reads the clock as a default argument (M4).
 - `Notification` imports `todo.domain.Todo`, and `User` and `UserProvider` import `auth.domain.Role` (M3).
+- Files with more than one top-level type (F1):
+  - domain: `user/domain/User.kt` (`UserTheme`, `UserAccent`)
+  - service: `ai/service/UpdateLinkAiSummaryService.kt`, `notification/service/SendNotificationService.kt`, `auth/service/AuthTokenService.kt`, `auth/service/RandomUserNameGenerator.kt`, `auth/service/RefreshAuthTokenService.kt` (top-level `RefreshResult`)
+  - client: `ai/client/AiClient.kt`, `ai/client/GeminiAiClient.kt`, `ai/client/OpenAiClient.kt`, `auth/client/AuthResourceClient.kt`, `auth/client/GoogleAuthResourceClient.kt`, `auth/client/KakaoAuthResourceClient.kt`, `auth/client/NaverAuthResourceClient.kt`, `auth/client/OidcIdTokenVerifier.kt`, `push/client/ExpoPushClient.kt`, `push/client/FirebaseInitializer.kt`, `push/client/PushNotificationSender.kt`, `link/client/LinkPreviewSyncClient.kt`, `link/client/LambdaLinkPreviewSyncClient.kt`
+  - config and common: `config/HttpPluginConfig.kt`, `config/MonitoringConfig.kt`, `common/search/SearchCursor.kt`, `common/response/ApiResponse.kt`
+- Pure-mechanism private extensions on Kotlin or JDK types (F3): `image/domain/ImageType.kt` `ByteArray.startsWith` and `ByteArray.isWebp`, `auth/service/RandomUserNameGenerator.kt` `List<T>.random`.
 
 ## Ambiguity
 

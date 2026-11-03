@@ -14,7 +14,7 @@ Draft the list, review it with the user in chat, then write the confirmed versio
 
 Each case maps one-to-one to a Kotest `BehaviorSpec` scenario, so section 4 reads as the skeleton of the test files.
 
-- Group cases under one heading per test target, which is one spec file: `### Domain — <Class>` or `### Service — <Service>`. A domain service (`domain/service`) is a domain target: `### Domain — <Object>`.
+- Group cases under one heading per test target, which is one spec file: `### Domain — <Class>` or `### Service — <Service>`. A domain service (`domain/service`) is a domain target: `### Domain — <Object>`, such as `### Domain — ImportPlanDomainService`. DTOs and `common` utils are never targets (C6).
 - Targets come from section 3: each case is tested where its rule is placed in `규칙 배치`, and each `ErrorCode` where its row in the `ErrorCode` table says it is thrown.
 - Under the heading, a `Given` line is the shared context. Each checkbox beneath it is one `When` + `Then` pair, tagged with the method under test.
 - Line form: `- [ ] \`<method>\` When <action> → Then <result>`

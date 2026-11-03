@@ -257,13 +257,12 @@ class BookmarkImportTest :
             fun reverse(
                 linkIds: List<Long> = emptyList(),
                 folderIds: List<Long> = emptyList(),
-            ): ImportReversal =
-                bookmarkImport.reverse(
+            ): ImportReversalTargets =
+                bookmarkImport.reversalTargets(
                     linkIds = linkIds,
                     folderIds = folderIds,
                     folders = listOf(active, shared, existing, deletedFolder, reversedFolder),
                     links = listOf(imported, edited, inShared, deletedLink, reversedLink),
-                    now = now,
                 )
 
             When("linkIds·folderIds가 모두 비었으면") {
@@ -321,63 +320,79 @@ class BookmarkImportTest :
             }
 
             When("IMPORTED·EDITED 링크와 ACTIVE NEW 폴더를 고르면") {
-                val reversal =
+                val targets =
                     reverse(
                         linkIds = listOf(imported.link.linkId, edited.link.linkId),
                         folderIds = listOf(active.folder.folderId),
                     )
 
-                Then("지울 링크·폴더에 담기고, 항목 행은 reversedAt이 채워지며 기록 reversedAt이 채워진다") {
-                    reversal.linkIds shouldContainExactly listOf(imported.link.linkId, edited.link.linkId)
-                    reversal.folderIds shouldContainExactly listOf(active.folder.folderId)
-                    reversal.importLinks.map { it.id } shouldContainExactly listOf(imported.link.id, edited.link.id)
-                    reversal.importLinks.forEach { it.reversedAt shouldBe now }
-                    reversal.importFolders.map { it.id } shouldContainExactly listOf(active.folder.id)
-                    reversal.importFolders.single().reversedAt shouldBe now
-                    reversal.bookmarkImport.reversedAt shouldBe now
+                Then("지울 링크·폴더에 담기고, 그 대상으로 되돌린 기록은 reversedAt이 채워진다") {
+                    targets.linkIds shouldContainExactly listOf(imported.link.linkId, edited.link.linkId)
+                    targets.folderIds shouldContainExactly listOf(active.folder.folderId)
+                    targets.links.map { it.id } shouldContainExactly listOf(imported.link.id, edited.link.id)
+                    targets.folders.map { it.id } shouldContainExactly listOf(active.folder.id)
+                    bookmarkImport.reverse(targets = targets, now = now).reversedAt shouldBe now
                 }
             }
 
             When("링크만 고르면") {
-                val reversal = reverse(linkIds = listOf(imported.link.linkId))
+                val targets = reverse(linkIds = listOf(imported.link.linkId))
 
                 Then("링크만 지울 대상이다") {
-                    reversal.linkIds shouldContainExactly listOf(imported.link.linkId)
-                    reversal.folderIds.shouldBeEmpty()
-                    reversal.importFolders.shouldBeEmpty()
+                    targets.linkIds shouldContainExactly listOf(imported.link.linkId)
+                    targets.folderIds.shouldBeEmpty()
+                    targets.folders.shouldBeEmpty()
                 }
             }
 
             When("폴더만 고르면") {
-                val reversal = reverse(folderIds = listOf(active.folder.folderId))
+                val targets = reverse(folderIds = listOf(active.folder.folderId))
 
                 Then("폴더만 지울 대상이다") {
-                    reversal.folderIds shouldContainExactly listOf(active.folder.folderId)
-                    reversal.linkIds.shouldBeEmpty()
-                    reversal.importLinks.shouldBeEmpty()
+                    targets.folderIds shouldContainExactly listOf(active.folder.folderId)
+                    targets.linkIds.shouldBeEmpty()
+                    targets.links.shouldBeEmpty()
                 }
             }
 
             When("DELETED·REVERSED 항목을 고르면") {
-                val reversal =
+                val targets =
                     reverse(
                         linkIds = listOf(deletedLink.link.linkId, reversedLink.link.linkId),
                         folderIds = listOf(deletedFolder.folder.folderId, reversedFolder.folder.folderId),
                     )
 
-                Then("거절하지 않고 지울 대상에서 뺀다") {
-                    reversal.linkIds.shouldBeEmpty()
-                    reversal.folderIds.shouldBeEmpty()
-                    reversal.bookmarkImport.reversedAt shouldBe bookmarkImport.reversedAt
+                Then("거절하지 않고 지울 대상에서 빼며, 그 대상으로 되돌린 기록은 그대로다") {
+                    targets.linkIds.shouldBeEmpty()
+                    targets.folderIds.shouldBeEmpty()
+                    bookmarkImport.reverse(targets = targets, now = now).reversedAt shouldBe bookmarkImport.reversedAt
                 }
             }
 
             When("SHARED NEW 폴더는 고르지 않고 그 안의 가져온 링크만 고르면") {
-                val reversal = reverse(linkIds = listOf(inShared.link.linkId))
+                val targets = reverse(linkIds = listOf(inShared.link.linkId))
 
                 Then("거절하지 않고 그 링크들만 지울 대상이다") {
-                    reversal.linkIds shouldContainExactly listOf(inShared.link.linkId)
-                    reversal.folderIds.shouldBeEmpty()
+                    targets.linkIds shouldContainExactly listOf(inShared.link.linkId)
+                    targets.folderIds.shouldBeEmpty()
+                }
+            }
+        }
+
+        Given("이미 되돌린 적 있는 기록과 지울 대상") {
+            val firstReversedAt = RandomFixture.randomPastInstant()
+            val bookmarkImport = ImportFixture.createBookmarkImportOf(ownerId = RandomFixture.randomId(), reversedAt = firstReversedAt)
+            val targets =
+                ImportReversalTargets(
+                    folders = emptyList(),
+                    links = listOf(ImportFixture.createImportLinkOf(importId = bookmarkImport.id!!, linkId = RandomFixture.randomId())),
+                )
+
+            When("다시 되돌리면") {
+                val reversed = bookmarkImport.reverse(targets = targets, now = Clock.System.now())
+
+                Then("처음 되돌린 시각이 남는다") {
+                    reversed.reversedAt shouldBe firstReversedAt
                 }
             }
         }

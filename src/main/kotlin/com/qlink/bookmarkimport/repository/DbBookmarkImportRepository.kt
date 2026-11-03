@@ -22,15 +22,14 @@ import com.qlink.bookmarkimport.repository.table.toBookmarkImportDomain
 import com.qlink.bookmarkimport.repository.table.toImportFailureDomain
 import com.qlink.bookmarkimport.repository.table.toImportFolderDomain
 import com.qlink.bookmarkimport.repository.table.toImportLinkDomain
+import com.qlink.common.number.foldToInt
 import com.qlink.folder.repository.table.Folders
 import com.qlink.link.repository.table.Links
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.ExpressionWithColumnType
-import org.jetbrains.exposed.v1.core.IColumnType
 import org.jetbrains.exposed.v1.core.IntegerColumnType
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.Op
-import org.jetbrains.exposed.v1.core.QueryBuilder
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.count
@@ -40,7 +39,6 @@ import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.core.less
 import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.javatime.CurrentTimestamp
-import org.jetbrains.exposed.v1.javatime.JavaInstantColumnType
 import org.jetbrains.exposed.v1.jdbc.Query
 import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.batchInsert
@@ -69,7 +67,7 @@ class DbBookmarkImportRepository : BookmarkImportRepository {
             }
             exec(
                 "SELECT pg_advisory_xact_lock(?, ?)",
-                listOf(IntegerColumnType() to IMPORT_OWNER_LOCK_CLASS, IntegerColumnType() to ownerId.toLockKey()),
+                listOf(IntegerColumnType() to IMPORT_OWNER_LOCK_CLASS, IntegerColumnType() to ownerId.foldToInt()),
             )
         }
     }
@@ -314,16 +312,4 @@ class DbBookmarkImportRepository : BookmarkImportRepository {
         key: Column<Long>,
         count: ExpressionWithColumnType<Long>,
     ): Map<Long, Int> = groupBy(key).associate { it[key] to it[count].toInt() }
-}
-
-private fun Long.toLockKey(): Int = (this xor (this ushr Int.SIZE_BITS)).toInt()
-
-private class DbNowMinus(
-    private val duration: Duration,
-) : ExpressionWithColumnType<java.time.Instant?>() {
-    override val columnType: IColumnType<java.time.Instant> = JavaInstantColumnType()
-
-    override fun toQueryBuilder(queryBuilder: QueryBuilder) {
-        queryBuilder.append("(now() - interval '${duration.inWholeSeconds} seconds')")
-    }
 }

@@ -17,16 +17,8 @@ class ImportPlanTest :
             val plan = ImportFixture.createPlanOf(folders = listOf(existing, new), links = links, failures = listOf(failure))
             val newFolderIdByName = mapOf(new.name to RandomFixture.randomId())
 
-            When("링크의 폴더 id를 구하면") {
-                val folderIds = links.map { plan.folderIdOf(it, newFolderIdByName) }
-
-                Then("기존 폴더 id, 저장된 새 폴더 id, 미분류 null이다") {
-                    folderIds shouldContainExactly listOf(existing.folderId, newFolderIdByName.getValue(new.name), null)
-                }
-            }
-
             When("가져오기 폴더 행으로 바꾸면") {
-                val rows = plan.toImportFolders(importId, newFolderIdByName)
+                val rows = plan.toImportFolders(importId = importId, newFolderIdByName = newFolderIdByName)
 
                 Then("대상 폴더마다 종류와 저장된 폴더 id가 담긴다") {
                     rows.map { it.folderId } shouldContainExactly listOf(existing.folderId, newFolderIdByName.getValue(new.name))

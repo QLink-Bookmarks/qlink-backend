@@ -8,28 +8,29 @@ import com.qlink.bookmarkimport.domain.ImportPlan
 import com.qlink.bookmarkimport.domain.ImportPlanFailure
 import com.qlink.bookmarkimport.domain.ImportPlanFolder
 import com.qlink.bookmarkimport.domain.ImportPlanLink
-import com.qlink.bookmarkimport.domain.ImportPreview
-import com.qlink.bookmarkimport.domain.ImportPreviewFolder
 import com.qlink.bookmarkimport.domain.ImportSource
 import com.qlink.bookmarkimport.domain.ImportSourceFolder
 import com.qlink.bookmarkimport.domain.ImportSourceLink
+import com.qlink.bookmarkimport.dto.ImportPreview
+import com.qlink.bookmarkimport.dto.ImportPreviewFolder
+import com.qlink.bookmarkimport.dto.ImportPreviewLink
 import com.qlink.common.error.BusinessException
 import com.qlink.folder.domain.Folder
 import com.qlink.link.domain.Link
 import kotlin.time.Instant
 
-object ImportPlanner {
+object ImportPlanDomainService {
     fun preview(
         source: ImportSource,
         myFolders: List<Folder>,
         myUrls: List<String>,
     ): ImportPreview {
         val owned = OwnedFolders(myFolders)
-        val numberedNames = NumberedNames(myFolders.map { it.name } + source.folders.map { it.name })
+        val numberedNames = NumberedFolderNames(myFolders.map { it.name } + source.folders.map { it.name })
 
         return ImportPreview(
             folders = source.folders.map { previewFolder(it, owned, numberedNames) },
-            links = source.previewLinks(myUrls),
+            links = source.previewLinkStatuses(myUrls).map { (key, status) -> ImportPreviewLink(key = key, status = status) },
         )
     }
 
@@ -79,7 +80,7 @@ object ImportPlanner {
         return plan.links.map { link ->
             Link.createImported(
                 ownerId = plan.ownerId,
-                folderId = plan.folderIdOf(link = link, newFolderIdByName = newFolderIdByName),
+                folderId = link.savedFolderId(newFolderIdByName),
                 url = link.url,
                 title = link.title,
                 createdAt = link.createdAt,
@@ -114,7 +115,7 @@ object ImportPlanner {
     private fun previewFolder(
         folder: ImportSourceFolder,
         owned: OwnedFolders,
-        numberedNames: NumberedNames,
+        numberedNames: NumberedFolderNames,
     ): ImportPreviewFolder {
         val name = folder.name.trim()
 
@@ -143,7 +144,7 @@ object ImportPlanner {
         now: Instant,
     ): Map<String, ImportPlanFolder> {
         val owned = OwnedFolders(myFolders)
-        val numberedNames = NumberedNames(myFolders.map { it.name } + sourceFolders.map { it.name })
+        val numberedNames = NumberedFolderNames(myFolders.map { it.name } + sourceFolders.map { it.name })
         val targetByKey = usedFolders.associate { it.key to owned.targetOf(it, numberedNames) }
         val planFolderByTarget =
             usedFolders
@@ -165,73 +166,4 @@ object ImportPlanner {
         }
 
     private fun List<Folder>.idByName(): Map<String, Long> = associate { it.name to it.id!! }
-}
-
-private sealed interface FolderTarget {
-    fun toPlanFolder(createdAt: Instant): ImportPlanFolder
-}
-
-private data class ExistingFolderTarget(
-    val folderId: Long,
-    val name: String,
-) : FolderTarget {
-    override fun toPlanFolder(createdAt: Instant): ImportPlanFolder = ImportPlanFolder.existing(folderId = folderId, name = name)
-}
-
-private data class NewFolderTarget(
-    val name: String,
-) : FolderTarget {
-    override fun toPlanFolder(createdAt: Instant): ImportPlanFolder = ImportPlanFolder.new(name = name, createdAt = createdAt)
-}
-
-private class OwnedFolders(
-    folders: List<Folder>,
-) {
-    private val unsharedById = folders.filterNot { it.isShared }.associateBy { it.id }
-    private val unsharedByName = folders.filterNot { it.isShared }.firstByComparableName()
-    private val sharedNames = folders.filter { it.isShared }.mapTo(HashSet()) { ImportSourceFolder.comparableNameOf(it.name) }
-
-    fun unsharedNamed(name: String): Folder? = unsharedByName[ImportSourceFolder.comparableNameOf(name)]
-
-    fun hasSharedNamed(name: String): Boolean = ImportSourceFolder.comparableNameOf(name) in sharedNames
-
-    fun targetOf(
-        source: ImportSourceFolder,
-        numberedNames: NumberedNames,
-    ): FolderTarget {
-        val name = source.comparableName
-
-        return (source.folderId?.let(unsharedById::get) ?: unsharedNamed(name))
-            ?.let { ExistingFolderTarget(folderId = it.id!!, name = it.name) }
-            ?: NewFolderTarget(name = if (hasSharedNamed(name)) numberedNames.of(name) else name)
-    }
-
-    private fun List<Folder>.firstByComparableName(): Map<String, Folder> =
-        groupBy { ImportSourceFolder.comparableNameOf(it.name) }.mapValues { (_, folders) -> folders.first() }
-}
-
-private class NumberedNames(
-    takenNames: List<String>,
-) {
-    private val taken = takenNames.mapTo(HashSet()) { ImportSourceFolder.comparableNameOf(it) }
-    private val assigned = HashMap<String, String>()
-
-    fun of(name: String): String = assigned.getOrPut(ImportSourceFolder.comparableNameOf(name)) { next(name) }
-
-    fun next(name: String): String =
-        generateSequence(2) { it + 1 }
-            .map { numbered(name.trim(), it) }
-            .first { taken.add(ImportSourceFolder.comparableNameOf(it)) }
-
-    private fun numbered(
-        name: String,
-        number: Int,
-    ): String {
-        val suffix = " $number"
-
-        return name
-            .take(ImportSource.FOLDER_NAME_MAX_LENGTH - suffix.length)
-            .let { head -> if (head.lastOrNull()?.isHighSurrogate() == true) head.dropLast(1) else head }
-            .plus(suffix)
-    }
 }

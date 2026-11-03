@@ -4,11 +4,12 @@ import com.qlink.bookmarkimport.domain.ImportFailureReason
 import com.qlink.bookmarkimport.domain.ImportFolderKind
 import com.qlink.bookmarkimport.domain.ImportFolderMatchType
 import com.qlink.bookmarkimport.domain.ImportPlan
-import com.qlink.bookmarkimport.domain.ImportPreview
+import com.qlink.bookmarkimport.domain.ImportPreviewLinkStatus
 import com.qlink.bookmarkimport.domain.ImportSource
 import com.qlink.bookmarkimport.domain.ImportSourceFolder
 import com.qlink.bookmarkimport.domain.ImportSourceLink
 import com.qlink.bookmarkimport.domain.ThumbnailStatus
+import com.qlink.bookmarkimport.dto.ImportPreview
 import com.qlink.folder.domain.Folder
 import com.qlink.link.domain.SourceType
 import com.qlink.support.fixture.FolderFixture
@@ -25,7 +26,7 @@ import java.text.Normalizer
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 
-class ImportPlannerTest :
+class ImportPlanDomainServiceTest :
     BehaviorSpec({
         fun uniqueName(): String = "폴더 ${RandomFixture.randomId()}"
 
@@ -35,7 +36,7 @@ class ImportPlannerTest :
             fun previewOf(
                 folders: List<ImportSourceFolder>,
                 myFolders: List<Folder>,
-            ): ImportPreview = ImportPlanner.preview(ImportFixture.createSource(folders = folders), myFolders, emptyList())
+            ): ImportPreview = ImportPlanDomainService.preview(ImportFixture.createSource(folders = folders), myFolders, emptyList())
 
             When("이름이 내 공유 아닌 폴더와 같으면") {
                 val mine = FolderFixture.createFolderWith(ownerId = ownerId, name = uniqueName())
@@ -137,6 +138,17 @@ class ImportPlannerTest :
                 }
             }
 
+            When("100자 이름의 SHARED_CONFLICT 번호 자리가 이모지 중간에 걸리면") {
+                val name = RandomFixture.randomFixedSentence(ImportSource.FOLDER_NAME_MAX_LENGTH - 3) + "😀" + "b"
+                val shared = FolderFixture.createSharedFolderOf(ownerId = ownerId, name = name)
+                val preview = previewOf(listOf(ImportFixture.createSourceFolder(name = name)), listOf(shared))
+
+                Then("이모지를 통째로 빼고 번호를 붙인다") {
+                    name shouldHaveLength ImportSource.FOLDER_NAME_MAX_LENGTH
+                    preview.folders.single().suggestedName shouldBe "${name.take(ImportSource.FOLDER_NAME_MAX_LENGTH - 3)} 2"
+                }
+            }
+
             When("일치하는 폴더가 없으면") {
                 val name = uniqueName()
                 val preview =
@@ -154,6 +166,32 @@ class ImportPlannerTest :
             }
         }
 
+        Given("내 링크 URL 목록과 미리보기 링크 항목") {
+            val saved = ImportFixture.randomUniqueUrl()
+            val newUrl = ImportFixture.randomUniqueUrl()
+            val links =
+                listOf(
+                    ImportFixture.createSourceLink(url = newUrl),
+                    ImportFixture.createSourceLink(url = saved),
+                    ImportFixture.createSourceLink(url = "$newUrl/"),
+                )
+
+            When("미리보기를 만들면") {
+                val preview =
+                    ImportPlanDomainService.preview(
+                        source = ImportFixture.createSource(links = links),
+                        myFolders = emptyList(),
+                        myUrls = listOf(saved),
+                    )
+
+                Then("링크 항목이 요청 순서대로 key와 상태를 담는다") {
+                    preview.links.map { it.key } shouldContainExactly links.map { it.key }
+                    preview.links.map { it.status } shouldContainExactly
+                        listOf(ImportPreviewLinkStatus.NEW, ImportPreviewLinkStatus.SAVED, ImportPreviewLinkStatus.IN_FILE_DUPLICATE)
+                }
+            }
+        }
+
         Given("내 폴더 목록과 시작 폴더 항목") {
             val ownerId = RandomFixture.randomId()
             val now = Clock.System.now()
@@ -162,7 +200,7 @@ class ImportPlannerTest :
                 folder: ImportSourceFolder,
                 myFolders: List<Folder>,
             ): ImportPlan =
-                ImportPlanner.plan(
+                ImportPlanDomainService.plan(
                     source =
                         ImportFixture.createSource(
                             folders = listOf(folder),
@@ -256,7 +294,7 @@ class ImportPlannerTest :
 
             When("어떤 링크도 가리키지 않는 폴더 항목이면") {
                 val plan =
-                    ImportPlanner.plan(
+                    ImportPlanDomainService.plan(
                         source =
                             ImportFixture.createSource(
                                 folders = listOf(ImportFixture.createSourceFolder()),
@@ -283,7 +321,7 @@ class ImportPlannerTest :
                         ImportFixture.createSourceFolder(name = " $name", createdAt = earlier),
                     )
                 val plan =
-                    ImportPlanner.plan(
+                    ImportPlanDomainService.plan(
                         source =
                             ImportFixture.createSource(
                                 folders = folders,
@@ -312,7 +350,7 @@ class ImportPlannerTest :
                         ImportFixture.createSourceLink(folderKey = folder.key, url = savedUrl),
                     )
                 val plan =
-                    ImportPlanner.plan(
+                    ImportPlanDomainService.plan(
                         source = ImportFixture.createSource(folders = listOf(folder), links = links),
                         ownerId = ownerId,
                         myFolders = emptyList(),
@@ -345,7 +383,7 @@ class ImportPlannerTest :
                 myUrls: List<String> = emptyList(),
                 folders: List<ImportSourceFolder> = emptyList(),
             ): ImportPlan =
-                ImportPlanner.plan(
+                ImportPlanDomainService.plan(
                     source = ImportFixture.createSource(folders = folders, links = links),
                     ownerId = ownerId,
                     myFolders = emptyList(),
@@ -456,7 +494,7 @@ class ImportPlannerTest :
                     ImportFixture.createSourceLink(),
                 )
             val plan =
-                ImportPlanner.plan(
+                ImportPlanDomainService.plan(
                     source = ImportFixture.createSource(folders = listOf(existingSource, newSource), links = links),
                     ownerId = ownerId,
                     myFolders = listOf(existing),
@@ -466,7 +504,7 @@ class ImportPlannerTest :
             val savedNewFolder = FolderFixture.createFolderWith(ownerId = ownerId, name = plan.newFolders.single().name)
 
             When("새 폴더를 만들면") {
-                val folders = ImportPlanner.newFolders(plan)
+                val folders = ImportPlanDomainService.newFolders(plan)
 
                 Then("소유자·이름·createdAt이 계획대로인 가져온 폴더다") {
                     val folder = folders.single()
@@ -479,7 +517,7 @@ class ImportPlannerTest :
             }
 
             When("저장된 새 폴더로 링크를 만들면") {
-                val created = ImportPlanner.links(plan, listOf(savedNewFolder))
+                val created = ImportPlanDomainService.links(plan, listOf(savedNewFolder))
 
                 Then("기존 폴더·저장된 새 폴더·미분류에 sourceType=IMPORT 링크로 만들어진다") {
                     created.map { it.folderId } shouldContainExactly listOf(existing.id, savedNewFolder.id, null)
@@ -491,7 +529,7 @@ class ImportPlannerTest :
             }
 
             When("저장된 새 폴더로 행을 만들면") {
-                val rows = ImportPlanner.importFolders(plan, importId, listOf(savedNewFolder))
+                val rows = ImportPlanDomainService.importFolders(plan, importId, listOf(savedNewFolder))
 
                 Then("대상 폴더마다 종류와 저장된 폴더 id가 담긴다") {
                     rows.map { it.folderId } shouldContainExactly listOf(existing.id, savedNewFolder.id)
@@ -503,14 +541,14 @@ class ImportPlannerTest :
 
             When("저장된 링크로 행을 만들면") {
                 val savedLinks =
-                    ImportPlanner.links(plan, listOf(savedNewFolder)).map {
+                    ImportPlanDomainService.links(plan, listOf(savedNewFolder)).map {
                         LinkFixture.createRandomLinkOf(ownerId = ownerId, folderId = it.folderId, url = it.url, title = it.title)
                     }
                 val savedRows =
-                    ImportPlanner.importFolders(plan, importId, listOf(savedNewFolder)).map {
+                    ImportPlanDomainService.importFolders(plan, importId, listOf(savedNewFolder)).map {
                         ImportFixture.createImportFolderOf(importId = importId, folderId = it.folderId, kind = it.kind, name = it.name)
                     }
-                val rows = ImportPlanner.importLinks(importId, savedLinks, savedRows)
+                val rows = ImportPlanDomainService.importLinks(importId, savedLinks, savedRows)
 
                 Then("링크 id와 들어간 가져오기 폴더 행 id가 담기고 썸네일 작업은 PENDING이다") {
                     rows.map { it.linkId } shouldContainExactly savedLinks.map { it.id }

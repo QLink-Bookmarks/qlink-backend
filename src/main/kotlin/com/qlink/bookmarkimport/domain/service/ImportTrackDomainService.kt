@@ -6,17 +6,17 @@ import com.qlink.bookmarkimport.domain.ImportFolderKind
 import com.qlink.bookmarkimport.domain.ImportFolderState
 import com.qlink.bookmarkimport.domain.ImportLink
 import com.qlink.bookmarkimport.domain.ImportLinkState
-import com.qlink.bookmarkimport.domain.ImportReversal
-import com.qlink.bookmarkimport.domain.ImportReversalPreview
 import com.qlink.bookmarkimport.domain.ReversalFolderState
 import com.qlink.bookmarkimport.domain.ReversalLinkState
-import com.qlink.bookmarkimport.domain.ReversalPreviewFolder
-import com.qlink.bookmarkimport.domain.ReversalPreviewLink
+import com.qlink.bookmarkimport.dto.ImportReversal
+import com.qlink.bookmarkimport.dto.ImportReversalPreview
+import com.qlink.bookmarkimport.dto.ReversalPreviewFolder
+import com.qlink.bookmarkimport.dto.ReversalPreviewLink
 import com.qlink.folder.domain.Folder
 import com.qlink.link.domain.Link
 import kotlin.time.Instant
 
-object ImportTracker {
+object ImportTrackDomainService {
     fun folderName(
         folder: ImportFolder,
         current: Folder?,
@@ -110,12 +110,20 @@ object ImportTracker {
         val currentFolderById = currentFolders.associateBy { it.id }
         val currentLinkById = currentLinks.associateBy { it.id }
 
-        return bookmarkImport.reverse(
-            linkIds = linkIds,
-            folderIds = folderIds,
-            folders = folders.map { it.stateWith(currentFolderById[it.folderId]) },
-            links = links.map { it.stateWith(currentLinkById[it.linkId]) },
-            now = now,
+        val targets =
+            bookmarkImport.reversalTargets(
+                linkIds = linkIds,
+                folderIds = folderIds,
+                folders = folders.map { it.stateWith(currentFolderById[it.folderId]) },
+                links = links.map { it.stateWith(currentLinkById[it.linkId]) },
+            )
+
+        return ImportReversal(
+            bookmarkImport = bookmarkImport.reverse(targets = targets, now = now),
+            linkIds = targets.linkIds,
+            folderIds = targets.folderIds,
+            importLinks = targets.links.map { it.reverse(now) },
+            importFolders = targets.folders.map { it.reverse(now) },
         )
     }
 

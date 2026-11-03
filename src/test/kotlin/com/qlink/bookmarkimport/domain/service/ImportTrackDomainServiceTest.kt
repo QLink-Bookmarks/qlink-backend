@@ -3,11 +3,11 @@
 package com.qlink.bookmarkimport.domain.service
 
 import com.qlink.bookmarkimport.domain.ImportFolderKind
-import com.qlink.bookmarkimport.domain.ImportReversal
 import com.qlink.bookmarkimport.domain.ReversalFolderState
 import com.qlink.bookmarkimport.domain.ReversalLinkState
-import com.qlink.bookmarkimport.domain.ReversalPreviewFolder
 import com.qlink.bookmarkimport.domain.ThumbnailStatus
+import com.qlink.bookmarkimport.dto.ImportReversal
+import com.qlink.bookmarkimport.dto.ReversalPreviewFolder
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.support.fixture.FolderFixture
@@ -25,7 +25,7 @@ import io.kotest.matchers.shouldNotBe
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 
-class ImportTrackerTest :
+class ImportTrackDomainServiceTest :
     BehaviorSpec({
         Given("가져오기 항목 행과 지금의 링크·폴더") {
             val ownerId = RandomFixture.randomId()
@@ -100,7 +100,7 @@ class ImportTrackerTest :
                     addedLater,
                 )
             val preview =
-                ImportTracker.reversalPreview(
+                ImportTrackDomainService.reversalPreview(
                     folders = listOf(firstRow, secondRow),
                     links = rows,
                     currentLinks = currentLinks,
@@ -192,7 +192,7 @@ class ImportTrackerTest :
                         memo = RandomFixture.randomSentenceWithMax(100),
                     )
                 val group =
-                    ImportTracker
+                    ImportTrackDomainService
                         .reversalPreview(
                             folders = listOf(sharedRow),
                             links = listOf(row),
@@ -220,7 +220,7 @@ class ImportTrackerTest :
 
             When("지워진 링크와 지금 있는 링크를 고르면") {
                 val reversal =
-                    ImportTracker.reverse(
+                    ImportTrackDomainService.reverse(
                         bookmarkImport = bookmarkImport,
                         linkIds = listOf(existingRow.linkId, deletedRow.linkId),
                         folderIds = emptyList(),
@@ -231,9 +231,10 @@ class ImportTrackerTest :
                         now = now,
                     )
 
-                Then("지금 있는 링크만 지울 대상이다") {
+                Then("지금 있는 링크만 지울 대상이고, 항목 행과 기록에 reversedAt이 채워진다") {
                     reversal.linkIds shouldContainExactly listOf(existing.id)
                     reversal.importLinks.map { it.id } shouldContainExactly listOf(existingRow.id)
+                    reversal.importLinks.single().reversedAt shouldBe now
                     reversal.bookmarkImport.reversedAt shouldBe now
                 }
             }
@@ -250,7 +251,7 @@ class ImportTrackerTest :
             val sharedRow = ImportFixture.createImportFolderOf(importId = importId, folderId = sharedFolder.id!!)
 
             fun reverse(folderIds: List<Long>): ImportReversal =
-                ImportTracker.reverse(
+                ImportTrackDomainService.reverse(
                     bookmarkImport = bookmarkImport,
                     linkIds = emptyList(),
                     folderIds = folderIds,
@@ -274,9 +275,10 @@ class ImportTrackerTest :
             When("지금 공유 아닌 NEW 폴더를 고르면") {
                 val reversal = reverse(folderIds = listOf(activeFolder.id!!))
 
-                Then("지울 폴더에 담긴다") {
+                Then("지울 폴더에 담기고, 그 행에 reversedAt이 채워진다") {
                     reversal.folderIds shouldContainExactly listOf(activeFolder.id)
                     reversal.importFolders.map { it.id } shouldContainExactly listOf(activeRow.id)
+                    reversal.importFolders.single().reversedAt shouldBe now
                 }
             }
         }
@@ -287,7 +289,7 @@ class ImportTrackerTest :
             val row = ImportFixture.createImportFolderOf(importId = RandomFixture.randomId(), folderId = current.id!!)
 
             When("폴더가 지금 있으면") {
-                val name = ImportTracker.folderName(row, current)
+                val name = ImportTrackDomainService.folderName(row, current)
 
                 Then("지금 이름") {
                     name shouldBe current.name
@@ -295,7 +297,7 @@ class ImportTrackerTest :
             }
 
             When("폴더가 지워졌으면") {
-                val name = ImportTracker.folderName(row, null)
+                val name = ImportTrackDomainService.folderName(row, null)
 
                 Then("가져올 때 이름") {
                     name shouldBe row.name
@@ -308,7 +310,7 @@ class ImportTrackerTest :
             val row = ImportFixture.createImportLinkOf(importId = RandomFixture.randomId(), linkId = RandomFixture.randomId())
 
             When("링크가 지워졌으면") {
-                val prepared = ImportTracker.prepareThumbnail(row, null)
+                val prepared = ImportTrackDomainService.prepareThumbnail(row, null)
 
                 Then("STOPPED") {
                     prepared.thumbnailStatus shouldBe ThumbnailStatus.STOPPED
@@ -317,7 +319,7 @@ class ImportTrackerTest :
 
             When("링크에 파비콘만 있으면") {
                 val current = LinkFixture.createRandomLinkOf(ownerId = ownerId, thumbnailUrl = null, faviconUrl = RandomFixture.randomUrl())
-                val prepared = ImportTracker.prepareThumbnail(row, current)
+                val prepared = ImportTrackDomainService.prepareThumbnail(row, current)
 
                 Then("DONE") {
                     prepared.thumbnailStatus shouldBe ThumbnailStatus.DONE

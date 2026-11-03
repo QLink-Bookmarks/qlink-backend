@@ -204,10 +204,10 @@ class ImportSourceTest :
                 val preview =
                     ImportFixture
                         .createSource(links = listOf(ImportFixture.createSourceLink(url = "https://$host/new")))
-                        .previewLinks(listOf("https://$host/saved"))
+                        .previewLinkStatuses(listOf("https://$host/saved"))
 
                 Then("NEW") {
-                    preview.single().status shouldBe ImportPreviewLinkStatus.NEW
+                    preview.values.single() shouldBe ImportPreviewLinkStatus.NEW
                 }
             }
 
@@ -218,10 +218,10 @@ class ImportSourceTest :
                 val preview =
                     ImportFixture
                         .createSource(links = listOf(ImportFixture.createSourceLink(url = requested)))
-                        .previewLinks(listOf(saved))
+                        .previewLinkStatuses(listOf(saved))
 
                 Then("SAVED") {
-                    preview.single().status shouldBe ImportPreviewLinkStatus.SAVED
+                    preview.values.single() shouldBe ImportPreviewLinkStatus.SAVED
                 }
             }
 
@@ -229,10 +229,10 @@ class ImportSourceTest :
                 val preview =
                     ImportFixture
                         .createSource(links = listOf(ImportFixture.createSourceLink(url = "https://$host/path?a=2")))
-                        .previewLinks(listOf("https://$host/path?a=1"))
+                        .previewLinkStatuses(listOf("https://$host/path?a=1"))
 
                 Then("NEW") {
-                    preview.single().status shouldBe ImportPreviewLinkStatus.NEW
+                    preview.values.single() shouldBe ImportPreviewLinkStatus.NEW
                 }
             }
 
@@ -242,11 +242,11 @@ class ImportSourceTest :
                         ImportFixture.createSourceLink(url = "https://$host/same"),
                         ImportFixture.createSourceLink(url = "HTTPS://${host.uppercase()}:443/same/#top"),
                     )
-                val preview = ImportFixture.createSource(links = links).previewLinks(emptyList())
+                val preview = ImportFixture.createSource(links = links).previewLinkStatuses(emptyList())
 
                 Then("뒤 링크만 IN_FILE_DUPLICATE") {
-                    preview.map { it.key } shouldContainExactly links.map { it.key }
-                    preview.map { it.status } shouldContainExactly
+                    preview.keys.toList() shouldContainExactly links.map { it.key }
+                    preview.values shouldContainExactly
                         listOf(ImportPreviewLinkStatus.NEW, ImportPreviewLinkStatus.IN_FILE_DUPLICATE)
                 }
             }
@@ -254,10 +254,10 @@ class ImportSourceTest :
             When("정규화할 수 없는 같은 URL이 내 링크와 요청에 있으면") {
                 val broken = "https://exa mple ${RandomFixture.randomId()}"
                 val links = List(2) { ImportFixture.createSourceLink(url = broken) }
-                val preview = ImportFixture.createSource(links = links).previewLinks(listOf(broken))
+                val preview = ImportFixture.createSource(links = links).previewLinkStatuses(listOf(broken))
 
                 Then("중복으로 보지 않고 모두 NEW") {
-                    preview.map { it.status } shouldContainExactly
+                    preview.values shouldContainExactly
                         listOf(ImportPreviewLinkStatus.NEW, ImportPreviewLinkStatus.NEW)
                 }
             }
@@ -299,96 +299,6 @@ class ImportSourceTest :
 
                 Then("뒤 링크는 남는다") {
                     links.map { it.key } shouldContainExactly listOf(valid.key)
-                }
-            }
-        }
-
-        Given("원본 링크 항목") {
-            val now = Clock.System.now()
-
-            When("URL이 정확히 2,048자면") {
-                val prefix = "https://${ImportFixture.randomKey()}.com/"
-                val url = prefix + "a".repeat(ImportSource.LINK_URL_MAX_LENGTH - prefix.length)
-                val reason = ImportFixture.createSourceLink(url = url).failureReason()
-
-                Then("실패 아님") {
-                    url shouldHaveLength ImportSource.LINK_URL_MAX_LENGTH
-                    reason shouldBe null
-                }
-            }
-
-            When("URL이 2,049자면") {
-                val prefix = "https://${ImportFixture.randomKey()}.com/"
-                val url = prefix + "a".repeat(ImportSource.LINK_URL_MAX_LENGTH + 1 - prefix.length)
-                val reason = ImportFixture.createSourceLink(url = url).failureReason()
-
-                Then("URL_INVALID") {
-                    reason shouldBe ImportFailureReason.URL_INVALID
-                }
-            }
-
-            When("제목이 공백뿐이면") {
-                val reason = ImportFixture.createSourceLink(title = "  ").failureReason()
-
-                Then("TITLE_INVALID") {
-                    reason shouldBe ImportFailureReason.TITLE_INVALID
-                }
-            }
-
-            When("제목이 정확히 300자면") {
-                val title = RandomFixture.randomFixedSentence(ImportSource.LINK_TITLE_MAX_LENGTH)
-                val reason = ImportFixture.createSourceLink(title = title).failureReason()
-
-                Then("실패 아님") {
-                    reason shouldBe null
-                }
-            }
-
-            When("제목이 301자면") {
-                val reason =
-                    ImportFixture
-                        .createSourceLink(title = RandomFixture.randomFixedSentence(ImportSource.LINK_TITLE_MAX_LENGTH + 1))
-                        .failureReason()
-
-                Then("TITLE_INVALID") {
-                    reason shouldBe ImportFailureReason.TITLE_INVALID
-                }
-            }
-
-            When("createdAt이 과거면") {
-                val createdAt = RandomFixture.randomPastInstant()
-                val resolved = ImportFixture.createSourceLink(createdAt = createdAt).createdAtOr(now)
-
-                Then("그 값") {
-                    resolved shouldBe createdAt
-                }
-            }
-
-            When("createdAt이 null이면") {
-                val resolved = ImportFixture.createSourceLink(createdAt = null).createdAtOr(now)
-
-                Then("저장 시각") {
-                    resolved shouldBe now
-                }
-            }
-
-            When("createdAt이 저장 시각보다 미래면") {
-                val resolved = ImportFixture.createSourceLink(createdAt = now + 1.days).createdAtOr(now)
-
-                Then("저장 시각") {
-                    resolved shouldBe now
-                }
-            }
-        }
-
-        Given("원본 폴더 항목") {
-            val now = Clock.System.now()
-
-            When("createdAt이 저장 시각보다 미래면") {
-                val resolved = ImportFixture.createSourceFolder(createdAt = now + 1.days).createdAtOr(now)
-
-                Then("저장 시각") {
-                    resolved shouldBe now
                 }
             }
         }

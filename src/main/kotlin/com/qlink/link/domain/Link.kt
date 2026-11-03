@@ -5,6 +5,7 @@ import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireFalse
 import com.qlink.common.error.requireNotOver
 import com.qlink.common.error.requireTrue
+import com.qlink.common.text.hasSchemeIn
 import java.net.URI
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -214,15 +215,13 @@ class Link(
             }
 
         uri.host.isNullOrBlank().requireFalse(ErrorCode.LINK_URL_WRONG_HOST)
-        uri.isWebScheme().requireTrue(ErrorCode.LINK_URL_NOT_HTTP)
+        uri.hasSchemeIn(WEB_PROTOCOL).requireTrue(ErrorCode.LINK_URL_NOT_HTTP)
     }
 
     private fun validateTitle(title: String) {
         title.isNotBlank().requireTrue(ErrorCode.LINK_TITLE_BLANK)
         title.requireNotOver(MAX_TITLE_LENGTH, ErrorCode.LINK_TITLE_OVER_MAX)
     }
-
-    private fun URI.isWebScheme(): Boolean = scheme?.lowercase() in WEB_PROTOCOL
 
     companion object {
         fun createFromRequest(

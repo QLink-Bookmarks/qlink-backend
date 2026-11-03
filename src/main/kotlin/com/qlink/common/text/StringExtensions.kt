@@ -1,5 +1,7 @@
 package com.qlink.common.text
 
+import java.text.Normalizer
+
 private const val ELLIPSIS = "…"
 
 /**
@@ -12,3 +14,8 @@ fun String.truncate(maxLength: Int): String =
     } else {
         take((maxLength - ELLIPSIS.length).coerceAtLeast(0)) + ELLIPSIS
     }
+
+fun String.takeKeepingSurrogatePairs(maxLength: Int): String =
+    take(maxLength).let { head -> if (head.lastOrNull()?.isHighSurrogate() == true) head.dropLast(1) else head }
+
+fun String.toNfc(): String = Normalizer.normalize(this, Normalizer.Form.NFC)
