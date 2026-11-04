@@ -50,10 +50,12 @@ class BookmarkImportTest :
             }
 
             When("만든 링크 0, 실패 0(전부 건너뜀)이면") {
-                val created = create(linkCount = 0, failedCount = 0)
+                val action = { create(linkCount = 0, failedCount = 0) }
 
-                Then("COMPLETED") {
-                    created.status shouldBe ImportStatus.COMPLETED
+                Then("예외가 발생한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.IMPORT_NOTHING_TO_IMPORT.message) {
+                        action()
+                    }
                 }
             }
 

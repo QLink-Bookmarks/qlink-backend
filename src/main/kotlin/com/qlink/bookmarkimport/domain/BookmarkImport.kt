@@ -130,6 +130,7 @@ class BookmarkImport(
         ): BookmarkImport {
             fileName.requireNotBlank(ErrorCode.IMPORT_FILE_NAME_BLANK)
             fileName.requireNotOver(FILE_NAME_MAX_LENGTH, ErrorCode.IMPORT_FILE_NAME_OVER_MAX)
+            (linkCount > 0 || failedCount > 0).requireTrue(ErrorCode.IMPORT_NOTHING_TO_IMPORT)
 
             return BookmarkImport(
                 ownerId = ownerId,
