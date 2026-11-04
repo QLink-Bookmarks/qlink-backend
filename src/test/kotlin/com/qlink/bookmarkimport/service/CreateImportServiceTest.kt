@@ -295,6 +295,37 @@ class CreateImportServiceTest :
                 }
             }
 
+            When("모든 링크가 이미 저장된 내 링크와 같은 가져오기를 같은 clientRequestId로 두 번 보내면") {
+                lateinit var request: CreateImportRequest
+
+                beforeTest {
+                    val folder = ImportRequestFixture.createFolderRequest()
+                    request =
+                        ImportRequestFixture.createImportRequest(
+                            folders = listOf(folder),
+                            links = listOf(ImportRequestFixture.createLinkRequest(url = savedLink.url, folderKey = folder.key)),
+                        )
+                }
+
+                val create =
+                    suspend {
+                        createImportService.createImport(user.id!!, request)
+                    }
+
+                Then("두 번 모두 예외가 발생하고 기록·폴더·링크가 늘지 않는다") {
+                    repeat(2) {
+                        shouldThrowWithMessage<BusinessException>(ErrorCode.IMPORT_NOTHING_TO_IMPORT.message) {
+                            create()
+                        }
+                    }
+
+                    bookmarkImportRepository.findByOwnerIdAndClientRequestId(user.id!!, request.clientRequestId) shouldBe null
+                    bookmarkImportRepository.search(ownerId = user.id!!, cursor = null, size = 10).shouldBeEmpty()
+                    folderRepository.findAllByOwnerId(user.id!!).map { it.id } shouldContainExactly listOf(existingFolder.id)
+                    linkRepository.findAllUrlsByOwnerId(user.id!!) shouldContainExactly listOf(savedLink.url)
+                }
+            }
+
             When("일부 링크가 검증에 실패하면") {
                 val validLink = ImportRequestFixture.createLinkRequest()
                 val blankTitleLink = ImportRequestFixture.createLinkRequest(title = " ")
@@ -483,18 +514,28 @@ class CreateImportServiceTest :
                 val importConcurrently =
                     suspend {
                         withCommittedUser { owner ->
-                            coroutineScope {
-                                requests.map { async { createImportService.createImport(owner.id!!, it) } }.awaitAll()
-                            }
-                            tx.readOnly {
-                                folderRepository.findAllByOwnerId(owner.id!!).count { it.name == folderName } to
-                                    linkRepository.findAllUrlsByOwnerId(owner.id).count { it == url }
-                            }
+                            val results =
+                                coroutineScope {
+                                    requests.map { async { runCatching { createImportService.createImport(owner.id!!, it) } } }.awaitAll()
+                                }
+                            results to
+                                tx.readOnly {
+                                    Triple(
+                                        bookmarkImportRepository.search(ownerId = owner.id!!, cursor = null, size = 10).size,
+                                        folderRepository.findAllByOwnerId(owner.id).count { it.name == folderName },
+                                        linkRepository.findAllUrlsByOwnerId(owner.id).count { it == url },
+                                    )
+                                }
                         }
                     }
 
-                Then("그 이름의 폴더는 하나, 그 URL의 링크는 하나만 저장된다") {
-                    importConcurrently() shouldBe (1 to 1)
+                Then("하나만 저장되고 다른 하나는 새로 가져올 링크가 없어 거절되며, 기록·그 이름의 폴더·그 URL의 링크는 하나씩이다") {
+                    val (results, counts) = importConcurrently()
+
+                    results.count { it.isSuccess } shouldBe 1
+                    results.mapNotNull { it.exceptionOrNull()?.message } shouldContainExactly
+                        listOf(ErrorCode.IMPORT_NOTHING_TO_IMPORT.message)
+                    counts shouldBe Triple(1, 1, 1)
                 }
             }
 

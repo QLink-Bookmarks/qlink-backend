@@ -57,7 +57,8 @@ internal fun createImportDocs(): RouteConfig.() -> Unit =
         description =
             "폴더·링크를 요청 안에서 바로 저장하고 가져오기 요약을 돌려줘요. " +
             "같은 clientRequestId로 다시 보내면 새로 저장하지 않고 처음 기록의 요약을 돌려줘요. " +
-            "검증에 실패한 링크는 실패로 기록하고, 이미 저장된 링크와 요청 안의 중복은 건너뛰어요."
+            "검증에 실패한 링크는 실패로 기록하고, 이미 저장된 링크와 요청 안의 중복은 건너뛰어요. " +
+            "모든 링크를 건너뛰어 만든 링크도 실패도 없으면 기록을 남기지 않고 거절해요."
         request { body<CreateImportRequest>() }
         response {
             code(HttpStatusCode.Created) {
@@ -86,6 +87,12 @@ internal fun createImportDocs(): RouteConfig.() -> Unit =
                 description = "가져오기에 필요한 리소스 조회 실패"
                 body<ApiResponse<ErrorDetail>> {
                     examples(ErrorCode.IMPORT_OWNER_NOT_FOUND)
+                }
+            }
+            code(HttpStatusCode.UnprocessableEntity) {
+                description = "모든 링크를 건너뛰어 새로 가져올 링크가 없음"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.IMPORT_NOTHING_TO_IMPORT)
                 }
             }
         }

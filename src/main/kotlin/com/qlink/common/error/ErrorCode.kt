@@ -169,4 +169,5 @@ enum class ErrorCode(
     IMPORT_NOT_FOUND("IMPORT_404_0002", 404, "가져오기 기록을 찾을 수 없어요"),
     IMPORT_PREVIEW_OWNER_NOT_FOUND("IMPORT_404_0003", 404, "로그인 사용자를 찾을 수 없어요"),
     IMPORT_REVERSAL_FOLDER_SHARED("IMPORT_422_0002", 422, "공유 중인 폴더는 되돌릴 수 없어요"),
+    IMPORT_NOTHING_TO_IMPORT("IMPORT_422_0003", 422, "새로 가져올 링크가 없어요"),
 }
