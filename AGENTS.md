@@ -92,6 +92,8 @@ get<LinkResources.ById> { resource ->
 
 ## Documentation
 
+- In user-facing text and API documentation, call the todo feature `액션`, never `할 일`, `할일` or `투두`.
+  Keep code identifiers, tables, error codes and JSON fields (`Todo`, `todos`, `TODO_…`) unchanged.
 - Write smiley4 OpenAPI documentation in `*Docs.kt` under `route` package of each domain package.
 - Include all examples of errors which can happen in the api call, using `SimpleBodyConfig.examples`
   extension in `ErrorExamples.kt`.
