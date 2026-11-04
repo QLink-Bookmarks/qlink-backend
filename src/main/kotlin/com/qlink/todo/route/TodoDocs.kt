@@ -19,7 +19,7 @@ import io.ktor.http.HttpStatusCode
 
 internal fun getTodosDocs(): RouteConfig.() -> Unit =
     {
-        summary = "할 일 목록 조회 API"
+        summary = "액션 목록 조회 API"
         request {
             queryParameter<String>("order") { description = "정렬 기준, 기본값: latest" }
             queryParameter<String?>("cursor") { description = "페이지네이션 커서" }
@@ -29,11 +29,11 @@ internal fun getTodosDocs(): RouteConfig.() -> Unit =
         }
         response {
             code(HttpStatusCode.OK) {
-                description = "할 일 목록 조회 성공"
+                description = "액션 목록 조회 성공"
                 body<ApiResponse<ScrollResponse<GetTodosContentResponse>>>()
             }
             code(HttpStatusCode.BadRequest) {
-                description = "할 일 목록 조회 요청이 올바르지 않음"
+                description = "액션 목록 조회 요청이 올바르지 않음"
                 body<ApiResponse<ErrorDetail>> {
                     examples(
                         ErrorCode.COMMON_INVALID_SORT_ORDER,
@@ -46,7 +46,7 @@ internal fun getTodosDocs(): RouteConfig.() -> Unit =
             }
             authErrorResponse()
             code(HttpStatusCode.NotFound) {
-                description = "할 일 목록 조회에 필요한 리소스 조회 실패"
+                description = "액션 목록 조회에 필요한 리소스 조회 실패"
                 body<ApiResponse<ErrorDetail>> {
                     examples(ErrorCode.TODO_OWNER_NOT_FOUND)
                 }
@@ -56,15 +56,15 @@ internal fun getTodosDocs(): RouteConfig.() -> Unit =
 
 internal fun createTodoDocs(): RouteConfig.() -> Unit =
     {
-        summary = "할 일 생성 API"
+        summary = "액션 생성 API"
         request { body<CreateTodoRequest>() }
         response {
             code(HttpStatusCode.Created) {
-                description = "할 일 생성 성공"
+                description = "액션 생성 성공"
                 body<ApiResponse<CreateTodoResponse>>()
             }
             code(HttpStatusCode.BadRequest) {
-                description = "할 일 생성 요청 유효성 검증 실패"
+                description = "액션 생성 요청 유효성 검증 실패"
                 body<ApiResponse<ErrorDetail>> {
                     examples(
                         ErrorCode.TODO_TITLE_BLANK,
@@ -78,13 +78,13 @@ internal fun createTodoDocs(): RouteConfig.() -> Unit =
             }
             authErrorResponse()
             code(HttpStatusCode.Forbidden) {
-                description = "할 일 생성 권한 검증 실패"
+                description = "액션 생성 권한 검증 실패"
                 body<ApiResponse<ErrorDetail>> {
                     examples(ErrorCode.LINK_DIFFERENT_OWNER)
                 }
             }
             code(HttpStatusCode.NotFound) {
-                description = "할 일 생성에 필요한 리소스 조회 실패"
+                description = "액션 생성에 필요한 리소스 조회 실패"
                 body<ApiResponse<ErrorDetail>> {
                     examples(
                         ErrorCode.TODO_OWNER_NOT_FOUND,
@@ -97,25 +97,25 @@ internal fun createTodoDocs(): RouteConfig.() -> Unit =
 
 internal fun completeTodoDocs(): RouteConfig.() -> Unit =
     {
-        summary = "할 일 완료 상태 변경 API"
+        summary = "액션 완료 상태 변경 API"
         request {
-            pathParameter<Long>("id") { description = "할 일 ID" }
+            pathParameter<Long>("id") { description = "액션 ID" }
             body<CompleteTodoRequest>()
         }
         response {
             code(HttpStatusCode.OK) {
-                description = "할 일 완료 상태 변경 성공"
+                description = "액션 완료 상태 변경 성공"
                 body<ApiResponse<CompleteTodoResponse>>()
             }
             authErrorResponse()
             code(HttpStatusCode.Forbidden) {
-                description = "할 일 완료 상태 변경 권한 검증 실패"
+                description = "액션 완료 상태 변경 권한 검증 실패"
                 body<ApiResponse<ErrorDetail>> {
                     examples(ErrorCode.TODO_DIFFERENT_OWNER)
                 }
             }
             code(HttpStatusCode.NotFound) {
-                description = "할 일 완료 상태 변경에 필요한 리소스 조회 실패"
+                description = "액션 완료 상태 변경에 필요한 리소스 조회 실패"
                 body<ApiResponse<ErrorDetail>> {
                     examples(
                         ErrorCode.TODO_OWNER_NOT_FOUND,
@@ -128,18 +128,18 @@ internal fun completeTodoDocs(): RouteConfig.() -> Unit =
 
 internal fun updateTodoDocs(): RouteConfig.() -> Unit =
     {
-        summary = "할 일 수정 API"
+        summary = "액션 수정 API"
         request {
-            pathParameter<Long>("id") { description = "할 일 ID" }
+            pathParameter<Long>("id") { description = "액션 ID" }
             body<UpdateTodoRequest>()
         }
         response {
             code(HttpStatusCode.OK) {
-                description = "할 일 수정 성공"
+                description = "액션 수정 성공"
                 body<ApiResponse<UpdateTodoResponse>>()
             }
             code(HttpStatusCode.BadRequest) {
-                description = "할 일 수정 요청 유효성 검증 실패"
+                description = "액션 수정 요청 유효성 검증 실패"
                 body<ApiResponse<ErrorDetail>> {
                     examples(
                         ErrorCode.TODO_TITLE_BLANK,
@@ -153,7 +153,7 @@ internal fun updateTodoDocs(): RouteConfig.() -> Unit =
             }
             authErrorResponse()
             code(HttpStatusCode.Forbidden) {
-                description = "할 일 수정 권한 검증 실패"
+                description = "액션 수정 권한 검증 실패"
                 body<ApiResponse<ErrorDetail>> {
                     examples(
                         ErrorCode.TODO_DIFFERENT_OWNER,
@@ -162,7 +162,7 @@ internal fun updateTodoDocs(): RouteConfig.() -> Unit =
                 }
             }
             code(HttpStatusCode.NotFound) {
-                description = "할 일 수정에 필요한 리소스 조회 실패"
+                description = "액션 수정에 필요한 리소스 조회 실패"
                 body<ApiResponse<ErrorDetail>> {
                     examples(
                         ErrorCode.TODO_OWNER_NOT_FOUND,
@@ -176,24 +176,24 @@ internal fun updateTodoDocs(): RouteConfig.() -> Unit =
 
 internal fun deleteTodoDocs(): RouteConfig.() -> Unit =
     {
-        summary = "할 일 삭제 API"
+        summary = "액션 삭제 API"
         request {
-            pathParameter<Long>("id") { description = "할 일 ID" }
+            pathParameter<Long>("id") { description = "액션 ID" }
         }
         response {
             code(HttpStatusCode.OK) {
-                description = "할 일 삭제 성공"
+                description = "액션 삭제 성공"
                 body<EmptySuccessResponse>()
             }
             authErrorResponse()
             code(HttpStatusCode.Forbidden) {
-                description = "할 일 삭제 권한 검증 실패"
+                description = "액션 삭제 권한 검증 실패"
                 body<ApiResponse<ErrorDetail>> {
                     examples(ErrorCode.TODO_DIFFERENT_OWNER)
                 }
             }
             code(HttpStatusCode.NotFound) {
-                description = "할 일 삭제 대상 리소스 조회 실패"
+                description = "액션 삭제 대상 리소스 조회 실패"
                 body<ApiResponse<ErrorDetail>> {
                     examples(ErrorCode.TODO_OWNER_NOT_FOUND)
                 }

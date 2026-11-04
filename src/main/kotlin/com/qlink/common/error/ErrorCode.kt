@@ -83,21 +83,21 @@ enum class ErrorCode(
     AI_EMPTY_RESPONSE("AI_502_0001", 502, "AI 응답이 비어 있어요"),
 
     // Todo
-    TODO_TITLE_BLANK("TODO_400_0001", 400, "할 일 제목이 입력되지 않았어요"),
-    TODO_TITLE_OVER_MAX("TODO_400_0002", 400, "할 일 제목은 최대 50자에요"),
-    TODO_DIFFERENT_LINK("TODO_400_0003", 400, "링크가 다른 할 일이에요"),
-    TODO_DUPLICATE_ID("TODO_400_0004", 400, "할 일 ID가 중복되었어요"),
+    TODO_TITLE_BLANK("TODO_400_0001", 400, "액션 제목이 입력되지 않았어요"),
+    TODO_TITLE_OVER_MAX("TODO_400_0002", 400, "액션 제목은 최대 50자에요"),
+    TODO_DIFFERENT_LINK("TODO_400_0003", 400, "링크가 다른 액션이에요"),
+    TODO_DUPLICATE_ID("TODO_400_0004", 400, "액션 ID가 중복되었어요"),
     TODO_REPEAT_FIELDS_INCOMPLETE("TODO_400_0005", 400, "반복 설정이 완전하지 않아요"),
     TODO_REPEAT_DAYS_EMPTY("TODO_400_0006", 400, "반복 요일이 입력되지 않았어요"),
     TODO_REPEAT_TIME_INVALID("TODO_400_0007", 400, "반복 시간이 올바르지 않아요"),
     TODO_REPEAT_TIMEZONE_INVALID("TODO_400_0008", 400, "반복 시간대가 올바르지 않아요"),
     TODO_REMINDER_AT_INVALID("TODO_400_0009", 400, "알림 시간은 현재 시간보다 이후여야 해요"),
 
-    TODO_DIFFERENT_OWNER("TODO_403_0001", 403, "할 일에 대한 권한이 없어요"),
+    TODO_DIFFERENT_OWNER("TODO_403_0001", 403, "액션에 대한 권한이 없어요"),
 
     TODO_OWNER_NOT_FOUND("TODO_404_0001", 404, "로그인 사용자를 찾을 수 없어요"),
     TODO_LINK_NOT_FOUND("TODO_404_0002", 404, "링크를 찾을 수 없어요"),
-    TODO_NOT_FOUND("TODO_404_0003", 404, "할 일을 찾을 수 없어요"),
+    TODO_NOT_FOUND("TODO_404_0003", 404, "액션을 찾을 수 없어요"),
 
     // Notification
     NOTIFICATION_TITLE_BLANK("NOTI_400_0001", 400, "알림 제목이 입력되지 않았어요"),

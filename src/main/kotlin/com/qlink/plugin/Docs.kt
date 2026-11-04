@@ -34,7 +34,7 @@ private val apiTags =
         "links" to "링크 API",
         "users" to "유저 API",
         "folders" to "폴더 API",
-        "todos" to "투두 API",
+        "todos" to "액션 API",
         "notifications" to "알림 API",
         "posts" to "게시글 API",
         "auth" to "인증 API",
