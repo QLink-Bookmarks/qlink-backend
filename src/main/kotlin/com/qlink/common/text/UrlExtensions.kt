@@ -6,6 +6,11 @@ private val DEFAULT_PORTS = mapOf("http" to 80, "https" to 443)
 
 fun URI.hasSchemeIn(schemes: Set<String>): Boolean = scheme?.lowercase() in schemes
 
+fun String.hostOrNull(): String? =
+    runCatching { URI(trim()).host }
+        .getOrNull()
+        ?.lowercase()
+
 fun String.toNormalizedUrlOrNull(
     ignoredQueryKeys: Set<String>,
     ignoredQueryKeyPrefixes: Set<String>,

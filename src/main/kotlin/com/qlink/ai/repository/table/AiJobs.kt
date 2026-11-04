@@ -24,6 +24,7 @@ object AiJobs : Table("ai_jobs") {
     val response = text("response").nullable()
     val status = enumerationByName<AiJobStatus>("status", 1).default(AiJobStatus.P)
     val requestedAt = timestamp("requested_at").defaultExpression(CurrentTimestamp)
+    val startedAt = timestamp("started_at").nullable()
     val completedAt = timestamp("completed_at").nullable()
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
     val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp)
@@ -51,6 +52,7 @@ fun ResultRow.toAiJobDomain(): AiJob =
         response = this[AiJobs.response],
         status = this[AiJobs.status],
         requestedAt = this[AiJobs.requestedAt].toKotlinInstant(),
+        startedAt = this[AiJobs.startedAt]?.toKotlinInstant(),
         completedAt = this[AiJobs.completedAt]?.toKotlinInstant(),
         createdAt = this[AiJobs.createdAt].toKotlinInstant(),
         updatedAt = this[AiJobs.updatedAt].toKotlinInstant(),
@@ -66,6 +68,7 @@ fun UpdateBuilder<*>.fromDomain(aiJob: AiJob) {
     this[AiJobs.response] = aiJob.response
     this[AiJobs.status] = aiJob.status
     aiJob.requestedAt?.let { this[AiJobs.requestedAt] = it.toJavaInstant() }
+    this[AiJobs.startedAt] = aiJob.startedAt?.toJavaInstant()
     this[AiJobs.completedAt] = aiJob.completedAt?.toJavaInstant()
 }
 

@@ -19,6 +19,7 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.config.ApplicationConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.json.Json
 import org.koin.dsl.module
@@ -142,6 +143,8 @@ fun aiModule(
             apiKeyCipher = get(),
             channel = get(),
             urlResolver = get(),
+            config = get(),
+            meterRegistry = get<PrometheusMeterRegistry>(),
             log = log,
         )
     }

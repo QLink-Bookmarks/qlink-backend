@@ -8,6 +8,8 @@ import com.qlink.image.domain.ImageFile
 import com.qlink.image.domain.ImagePurpose
 import com.qlink.image.dto.UploadImageResponse
 import com.qlink.image.storage.ImageStorage
+import com.qlink.link.client.LinkPreviewCaller
+import com.qlink.link.client.LinkPreviewExtraction
 import com.qlink.link.client.LinkPreviewMode
 import com.qlink.link.client.LinkPreviewSyncClient
 import com.qlink.user.repository.UserRepository
@@ -63,7 +65,11 @@ class UploadImageService(
         (bytes == null).requireTrue(ErrorCode.IMAGE_FILE_NOT_ALLOWED)
         val pageUrl = url?.takeIf(::isAbsoluteHttpUrl) ?: throw BusinessException(ErrorCode.IMAGE_URL_INVALID)
 
-        return uploadFailingAs { previewClient.extract(url = pageUrl, mode = LinkPreviewMode.FAVICON_ONLY) }
+        val extraction =
+            previewClient.extract(url = pageUrl, mode = LinkPreviewMode.FAVICON_ONLY, caller = LinkPreviewCaller.FAVICON_UPLOAD)
+
+        return (extraction as? LinkPreviewExtraction.Success)
+            ?.result
             ?.faviconKey
             ?.let(urlResolver::faviconUrl)
             ?: throw BusinessException(ErrorCode.IMAGE_UPLOAD_FAILED)

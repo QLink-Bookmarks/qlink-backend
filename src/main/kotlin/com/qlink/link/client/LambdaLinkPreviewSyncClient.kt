@@ -2,18 +2,22 @@ package com.qlink.link.client
 
 import aws.sdk.kotlin.services.lambda.LambdaClient
 import aws.sdk.kotlin.services.lambda.model.InvokeRequest
+import aws.sdk.kotlin.services.lambda.model.TooManyRequestsException
 import com.qlink.config.LinkPreviewConfig
+import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.Timer
 import kotlinx.coroutines.CancellationException
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.slf4j.LoggerFactory
 import java.util.Base64
 import java.util.UUID
 import kotlin.time.TimeSource
+import kotlin.time.toJavaDuration
 
 class LambdaLinkPreviewSyncClient(
     private val lambdaClient: LambdaClient,
     private val config: LinkPreviewConfig,
+    private val meterRegistry: MeterRegistry,
 ) : LinkPreviewSyncClient {
     private val log = LoggerFactory.getLogger(LambdaLinkPreviewSyncClient::class.java)
     private val json = Json { ignoreUnknownKeys = true }
@@ -21,89 +25,88 @@ class LambdaLinkPreviewSyncClient(
     override suspend fun extract(
         url: String,
         mode: LinkPreviewMode,
+        caller: LinkPreviewCaller,
         faviconBytes: ByteArray?,
-    ): LinkPreviewResult? {
+    ): LinkPreviewExtraction {
         val traceId = UUID.randomUUID().toString()
         val started = TimeSource.Monotonic.markNow()
 
-        return try {
-            require(faviconBytes == null || mode == LinkPreviewMode.FAVICON_ONLY)
-            require(faviconBytes == null || faviconBytes.size <= MAX_INLINE_FAVICON_BYTES)
-            val payload =
-                json.encodeToString(
-                    LambdaRequest(
-                        url = url,
-                        mode = mode.name,
-                        traceId = traceId,
-                        favicon = faviconBytes?.let { LambdaFavicon(base64 = Base64.getEncoder().encodeToString(it)) },
-                    ),
-                )
-            require(payload.toByteArray().size <= MAX_INVOKE_PAYLOAD_BYTES)
-            val request =
+        val extraction =
+            try {
+                invoke(url = url, mode = mode, traceId = traceId, faviconBytes = faviconBytes)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: TooManyRequestsException) {
+                log.warn("[LINK_PREVIEW_LAMBDA] traceId={} caller={} throttled cause={}", traceId, caller, error::class.simpleName)
+                LinkPreviewExtraction.Throttled
+            } catch (error: Exception) {
+                log.warn("[LINK_PREVIEW_LAMBDA] traceId={} caller={} failed cause={}", traceId, caller, error::class.simpleName)
+                LinkPreviewExtraction.Failed
+            }
+        val duration = started.elapsedNow()
+
+        Timer
+            .builder(DURATION_METRIC)
+            .tag("caller", caller.tag)
+            .tag("outcome", extraction.outcomeTag())
+            .register(meterRegistry)
+            .record(duration.toJavaDuration())
+        log.info(
+            "[LINK_PREVIEW_LAMBDA] traceId={} caller={} mode={} outcome={} durationMs={}",
+            traceId,
+            caller,
+            mode,
+            extraction.outcomeTag(),
+            duration.inWholeMilliseconds,
+        )
+        return extraction
+    }
+
+    private suspend fun invoke(
+        url: String,
+        mode: LinkPreviewMode,
+        traceId: String,
+        faviconBytes: ByteArray?,
+    ): LinkPreviewExtraction {
+        require(faviconBytes == null || mode == LinkPreviewMode.FAVICON_ONLY)
+        require(faviconBytes == null || faviconBytes.size <= MAX_INLINE_FAVICON_BYTES)
+        val payload =
+            json.encodeToString(
+                LinkPreviewLambdaRequest(
+                    url = url,
+                    mode = mode.name,
+                    traceId = traceId,
+                    favicon = faviconBytes?.let { LinkPreviewLambdaFavicon(base64 = Base64.getEncoder().encodeToString(it)) },
+                ),
+            )
+        require(payload.toByteArray().size <= MAX_INVOKE_PAYLOAD_BYTES)
+
+        val response =
+            lambdaClient.invoke(
                 InvokeRequest {
                     functionName = config.functionName
                     this.payload = payload.encodeToByteArray()
-                }
-            val response = lambdaClient.invoke(request)
-            val body = response.payload?.decodeToString()
-            val result =
-                if (response.functionError == null && response.statusCode == 200 && body != null) {
-                    json.decodeFromString<LambdaResponse>(body).toResult()
-                } else {
-                    null
-                }
+                },
+            )
+        val body = response.payload?.decodeToString()
 
-            log.info(
-                "[LINK_PREVIEW_LAMBDA] traceId={} mode={} outcome={} durationMs={}",
-                traceId,
-                mode,
-                if (result == null) "FAILED" else "OK",
-                started.elapsedNow().inWholeMilliseconds,
-            )
-            result
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            log.warn(
-                "[LINK_PREVIEW_LAMBDA] traceId={} mode={} outcome=FAILED durationMs={} cause={}",
-                traceId,
-                mode,
-                started.elapsedNow().inWholeMilliseconds,
-                error::class.simpleName,
-            )
-            null
+        return if (response.functionError == null && response.statusCode == 200 && body != null) {
+            LinkPreviewExtraction.Success(json.decodeFromString<LinkPreviewLambdaResponse>(body).toResult())
+        } else {
+            LinkPreviewExtraction.Failed
         }
     }
-}
 
-private const val MAX_INLINE_FAVICON_BYTES = 4 * 1024 * 1024
-private const val MAX_INVOKE_PAYLOAD_BYTES = 5_800_000
+    private fun LinkPreviewExtraction.outcomeTag(): String =
+        when (this) {
+            is LinkPreviewExtraction.Success -> "success"
+            LinkPreviewExtraction.Failed -> "failed"
+            LinkPreviewExtraction.Throttled -> "throttled"
+        }
 
-@Serializable
-private data class LambdaRequest(
-    val url: String,
-    val mode: String,
-    val traceId: String,
-    val favicon: LambdaFavicon? = null,
-)
-
-@Serializable
-private data class LambdaFavicon(
-    val base64: String,
-)
-
-@Serializable
-private data class LambdaResponse(
-    val title: String? = null,
-    val thumbnailKey: String? = null,
-    val faviconKey: String? = null,
-    val isVideo: Boolean = false,
-) {
-    fun toResult(): LinkPreviewResult =
-        LinkPreviewResult(
-            title = title,
-            thumbnailKey = thumbnailKey,
-            faviconKey = faviconKey,
-            isVideo = isVideo,
-        )
+    private companion object {
+        const val DURATION_METRIC = "link_preview_lambda_duration"
+        const val MAX_INLINE_FAVICON_BYTES = 4 * 1024 * 1024
+        const val MAX_INVOKE_PAYLOAD_BYTES = 5_800_000
+    }
 }

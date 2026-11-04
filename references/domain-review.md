@@ -58,7 +58,7 @@ A type depends on another when it names, holds, takes, returns or calls it. Only
 
 - **D1** Route → application service, always, the request and response DTOs it maps, and the call's authentication principal (`JwtPrincipal`, plugin helpers such as `jwtPrincipalOrGuest`) to read the user. A route calls nothing else.
 - **D2** Application service → repository; → domain (its behavior); → domain service, only when a decision spans domains (P2); → DTO; → client (P4); → worker, only when a case needs it, such as a wake signal. It may also use its own helper classes (S4) and a shared-step service (S5). It may build, pass and read VOs and enums, but calls their behavior only when no other way exists.
-- **D3** Worker → usually nothing; it runs alone. When it has a structure, the worker is only the trigger: worker → application service, which then goes → repository and domain (D2).
+- **D3** Worker → usually nothing; it runs alone. When it has a structure, the worker is only the trigger: worker → application service, and the DTOs and enums those services return; the service then goes → repository and domain (D2).
 - **D4** Repository → its tables (persistence) and its own domain's domains, VOs and enums; → DTOs, always, such as `Queries`.
 - **D5** Domain service → domains, VOs, enums and its own `internal` helpers (M6). It builds DTOs (M3).
 - **D6** Domain → its own VOs and enums. An aggregate root → its own child rows (sub-domain rows stored by the root's repository, M1), as `BookmarkImport` → `ImportFolder`, `ImportLink`, `ImportFailure`.
@@ -130,10 +130,11 @@ Known now:
 - `Notification` imports `todo.domain.Todo`, and `User` and `UserProvider` import `auth.domain.Role` (M3).
 - `ai/domain/DailyUsage.isOverLimit(model: AvailableModel)` takes another domain as an argument (M3, D6).
 - `image/domain/ImagePurpose.newObjectKey(environment, type: ImageType)` makes an enum depend on another enum (D7). `ImageType` is closer to a value type than a domain; recorded as is.
+- `image/service/PreviewImageUrlResolver`, a helper in the image service package, is used by other domains' services and workers (`CreateLinkPreviewService`, `FillImportThumbnailService`, `AiSummaryWorker`), which D2 does not list (S4 helpers serve their own service package); left as is.
 - Files with more than one top-level type (F1):
   - domain: `user/domain/User.kt` (`UserTheme`, `UserAccent`)
   - service: `ai/service/UpdateLinkAiSummaryService.kt`, `notification/service/SendNotificationService.kt`, `auth/service/AuthTokenService.kt`, `auth/service/RandomUserNameGenerator.kt`, `auth/service/RefreshAuthTokenService.kt` (top-level `RefreshResult`)
-  - client: `ai/client/AiClient.kt`, `ai/client/GeminiAiClient.kt`, `ai/client/OpenAiClient.kt`, `auth/client/AuthResourceClient.kt`, `auth/client/GoogleAuthResourceClient.kt`, `auth/client/KakaoAuthResourceClient.kt`, `auth/client/NaverAuthResourceClient.kt`, `auth/client/OidcIdTokenVerifier.kt`, `push/client/ExpoPushClient.kt`, `push/client/FirebaseInitializer.kt`, `push/client/PushNotificationSender.kt`, `link/client/LinkPreviewSyncClient.kt`, `link/client/LambdaLinkPreviewSyncClient.kt`
+  - client: `ai/client/AiClient.kt`, `ai/client/GeminiAiClient.kt`, `ai/client/OpenAiClient.kt`, `auth/client/AuthResourceClient.kt`, `auth/client/GoogleAuthResourceClient.kt`, `auth/client/KakaoAuthResourceClient.kt`, `auth/client/NaverAuthResourceClient.kt`, `auth/client/OidcIdTokenVerifier.kt`, `push/client/ExpoPushClient.kt`, `push/client/FirebaseInitializer.kt`, `push/client/PushNotificationSender.kt`
   - config and common: `config/HttpPluginConfig.kt`, `config/MonitoringConfig.kt`, `common/search/SearchCursor.kt`, `common/response/ApiResponse.kt`
 - Pure-mechanism private extensions on Kotlin or JDK types (F3): `image/domain/ImageType.kt` `ByteArray.startsWith` and `ByteArray.isWebp`, `auth/service/RandomUserNameGenerator.kt` `List<T>.random`.
 

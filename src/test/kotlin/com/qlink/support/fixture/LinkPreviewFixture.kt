@@ -1,31 +1,41 @@
 package com.qlink.support.fixture
 
+import com.qlink.link.client.LinkPreviewCaller
+import com.qlink.link.client.LinkPreviewExtraction
 import com.qlink.link.client.LinkPreviewMode
 import com.qlink.link.client.LinkPreviewResult
 import com.qlink.link.client.LinkPreviewSyncClient
 import java.security.MessageDigest
 
 class FakeLinkPreviewSyncClient : LinkPreviewSyncClient {
-    var result: LinkPreviewResult? = null
-    var failure: Exception? = null
+    var extraction: LinkPreviewExtraction = LinkPreviewExtraction.Failed
+    var onExtract: suspend (String) -> Unit = {}
     val calls = mutableListOf<Pair<String, LinkPreviewMode>>()
+    val callers = mutableListOf<LinkPreviewCaller>()
     val faviconBytes = mutableListOf<ByteArray?>()
 
     override suspend fun extract(
         url: String,
         mode: LinkPreviewMode,
+        caller: LinkPreviewCaller,
         faviconBytes: ByteArray?,
-    ): LinkPreviewResult? {
+    ): LinkPreviewExtraction {
         calls += url to mode
+        callers += caller
         this.faviconBytes += faviconBytes
-        failure?.let { throw it }
-        return result
+        onExtract(url)
+        return extraction
+    }
+
+    fun respond(result: LinkPreviewResult) {
+        extraction = LinkPreviewExtraction.Success(result)
     }
 
     fun reset() {
-        result = null
-        failure = null
+        extraction = LinkPreviewExtraction.Failed
+        onExtract = {}
         calls.clear()
+        callers.clear()
         faviconBytes.clear()
     }
 }

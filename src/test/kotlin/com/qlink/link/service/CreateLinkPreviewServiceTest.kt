@@ -2,6 +2,8 @@ package com.qlink.link.service
 
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
+import com.qlink.link.client.LinkPreviewCaller
+import com.qlink.link.client.LinkPreviewExtraction
 import com.qlink.link.client.LinkPreviewMode
 import com.qlink.link.client.LinkPreviewResult
 import com.qlink.support.BaseServiceTest
@@ -30,20 +32,23 @@ class CreateLinkPreviewServiceTest :
                 url = RandomFixture.randomUrl()
             }
 
-            When("대표 이미지 키가 반환되면") {
+            When("Lambda가 성공하면") {
                 val key = LinkPreviewFixture.key(kind = "preview")
+                val title = RandomFixture.randomSentenceWithMax(300)
                 val create =
                     suspend {
-                        client.result = LinkPreviewResult(title = RandomFixture.randomSentenceWithMax(300), thumbnailKey = key)
+                        client.respond(LinkPreviewResult(title = title, thumbnailKey = key))
                         service.createPreview(user.id!!, url)
                     }
 
-                Then("현재 환경의 CDN URL만 반환하고 사용자는 유지된다") {
+                Then("지금처럼 제목과 현재 환경의 CDN URL이 담기고 사용자는 유지된다") {
                     val response = create()
                     response.url shouldBe url
+                    response.title shouldBe title.trim().take(300)
                     response.thumbnailUrl shouldBe "https://images.archivelink.app/$key"
                     response.faviconUrl shouldBe null
                     client.calls.single() shouldBe (url to LinkPreviewMode.PREVIEW)
+                    client.callers.single() shouldBe LinkPreviewCaller.LINK_PREVIEW
                     userRepository.findById(user.id!!)?.id shouldBe user.id
                 }
             }
@@ -52,7 +57,7 @@ class CreateLinkPreviewServiceTest :
                 val key = LinkPreviewFixture.key(kind = "favicon")
                 val create =
                     suspend {
-                        client.result = LinkPreviewResult(faviconKey = key)
+                        client.respond(LinkPreviewResult(faviconKey = key))
                         service.createPreview(user.id!!, url)
                     }
 
@@ -67,7 +72,7 @@ class CreateLinkPreviewServiceTest :
             When("이미지가 없으면") {
                 val create =
                     suspend {
-                        client.result = LinkPreviewResult()
+                        client.respond(LinkPreviewResult())
                         service.createPreview(user.id!!, url)
                     }
 
@@ -83,12 +88,31 @@ class CreateLinkPreviewServiceTest :
             When("Lambda 호출에 실패하면") {
                 val create =
                     suspend {
-                        client.failure = IllegalStateException("fixture failure")
+                        client.extraction = LinkPreviewExtraction.Failed
                         service.createPreview(user.id!!, url)
                     }
 
                 Then("빈 프리뷰를 반환한다") {
                     val response = create()
+                    response.url shouldBe url
+                    response.title shouldBe null
+                    response.thumbnailUrl shouldBe null
+                    response.faviconUrl shouldBe null
+                    response.isVideo shouldBe false
+                    userRepository.findById(user.id!!)?.id shouldBe user.id
+                }
+            }
+
+            When("Lambda가 스로틀링을 알리면") {
+                val create =
+                    suspend {
+                        client.extraction = LinkPreviewExtraction.Throttled
+                        service.createPreview(user.id!!, url)
+                    }
+
+                Then("호출 실패와 같이 URL만 담긴 미리보기를 돌려준다") {
+                    val response = create()
+                    response.url shouldBe url
                     response.title shouldBe null
                     response.thumbnailUrl shouldBe null
                     response.faviconUrl shouldBe null
@@ -100,7 +124,7 @@ class CreateLinkPreviewServiceTest :
             When("다른 환경의 키가 반환되면") {
                 val create =
                     suspend {
-                        client.result = LinkPreviewResult(thumbnailKey = LinkPreviewFixture.key(kind = "preview", environment = "prod"))
+                        client.respond(LinkPreviewResult(thumbnailKey = LinkPreviewFixture.key(kind = "preview", environment = "prod")))
                         service.createPreview(user.id!!, url)
                     }
 
@@ -114,7 +138,7 @@ class CreateLinkPreviewServiceTest :
             When("허용 형식 밖의 키가 반환되면") {
                 val create =
                     suspend {
-                        client.result = LinkPreviewResult(thumbnailKey = "dev-preview-not-a-hash.png", faviconKey = "../private.png")
+                        client.respond(LinkPreviewResult(thumbnailKey = "dev-preview-not-a-hash.png", faviconKey = "../private.png"))
                         service.createPreview(user.id!!, url)
                     }
 

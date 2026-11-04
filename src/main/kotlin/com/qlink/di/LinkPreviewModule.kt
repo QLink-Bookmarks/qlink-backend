@@ -4,15 +4,24 @@ import aws.sdk.kotlin.runtime.auth.credentials.StaticCredentialsProvider
 import aws.sdk.kotlin.services.lambda.LambdaClient
 import aws.smithy.kotlin.runtime.auth.awscredentials.Credentials
 import aws.smithy.kotlin.runtime.net.url.Url
+import com.qlink.bookmarkimport.service.CountImportThumbnailTargetsService
+import com.qlink.bookmarkimport.service.FillImportThumbnailService
+import com.qlink.bookmarkimport.service.GetImportThumbnailTargetsService
+import com.qlink.bookmarkimport.worker.ImportThumbnailWorker
 import com.qlink.config.LinkPreviewConfig
+import com.qlink.config.WorkerConfig
 import com.qlink.link.client.LambdaLinkPreviewSyncClient
 import com.qlink.link.client.LinkPreviewSyncClient
 import io.ktor.server.config.ApplicationConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import org.koin.dsl.module
+import org.slf4j.LoggerFactory
 
 fun linkPreviewModule(config: ApplicationConfig) =
     module {
         single { LinkPreviewConfig.from(config) }
+
+        single { WorkerConfig.from(config) }
 
         single {
             val previewConfig = get<LinkPreviewConfig>()
@@ -29,6 +38,43 @@ fun linkPreviewModule(config: ApplicationConfig) =
             LambdaLinkPreviewSyncClient(
                 lambdaClient = get(),
                 config = get(),
+                meterRegistry = get<PrometheusMeterRegistry>(),
+            )
+        }
+
+        single {
+            FillImportThumbnailService(
+                tx = get(),
+                bookmarkImportRepository = get(),
+                linkRepository = get(),
+                previewClient = get(),
+                urlResolver = get(),
+            )
+        }
+
+        single {
+            GetImportThumbnailTargetsService(
+                tx = get(),
+                bookmarkImportRepository = get(),
+            )
+        }
+
+        single {
+            CountImportThumbnailTargetsService(
+                tx = get(),
+                bookmarkImportRepository = get(),
+            )
+        }
+
+        single {
+            ImportThumbnailWorker(
+                signal = get(),
+                getTargetsService = get(),
+                countTargetsService = get(),
+                fillService = get(),
+                config = get(),
+                meterRegistry = get<PrometheusMeterRegistry>(),
+                log = LoggerFactory.getLogger(ImportThumbnailWorker::class.java),
             )
         }
     }
