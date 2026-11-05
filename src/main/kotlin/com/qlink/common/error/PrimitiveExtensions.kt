@@ -15,6 +15,8 @@ fun Boolean.requireFalse(errorCode: ErrorCode) {
     }
 }
 
+fun <T : Any> T?.requirePresent(errorCode: ErrorCode): T = this ?: throw BusinessException(errorCode)
+
 fun String.requireNotBlank(errorCode: ErrorCode) {
     if (this.isBlank()) {
         throw BusinessException(errorCode)

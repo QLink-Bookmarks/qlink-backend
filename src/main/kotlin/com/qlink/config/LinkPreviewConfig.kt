@@ -1,5 +1,7 @@
 package com.qlink.config
 
+import com.qlink.common.error.ErrorCode
+import com.qlink.common.error.requireTrue
 import io.ktor.server.config.ApplicationConfig
 
 data class LinkPreviewConfig(
@@ -8,7 +10,7 @@ data class LinkPreviewConfig(
     val endpoint: String?,
 ) {
     init {
-        require(functionName.isNotBlank())
+        functionName.isNotBlank().requireTrue(ErrorCode.CONFIG_LINK_PREVIEW_FUNCTION_REQUIRED)
     }
 
     companion object {
