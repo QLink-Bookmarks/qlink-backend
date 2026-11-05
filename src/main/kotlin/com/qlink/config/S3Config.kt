@@ -19,11 +19,8 @@ data class S3Config(
 ) {
     init {
         (environment == "dev" || environment == "prod").requireTrue(ErrorCode.CONFIG_S3_ENVIRONMENT_INVALID)
-        (
-            publicBaseUrl.startsWith(
-                "https://",
-            ) || publicBaseUrl.startsWith("http://localhost")
-        ).requireTrue(ErrorCode.CONFIG_S3_PUBLIC_BASE_URL_INVALID)
+        (publicBaseUrl.startsWith("https://") || publicBaseUrl.startsWith("http://localhost"))
+            .requireTrue(ErrorCode.CONFIG_S3_PUBLIC_BASE_URL_INVALID)
     }
 
     companion object {

@@ -43,8 +43,10 @@ class ImagePurposeTest :
                     ImagePurpose.FAVICON.newObjectKey(environment = "dev", type = ImageType.entries.random())
                 }
 
-                Then("ErrorCode.IMAGE_UPLOAD_PURPOSE_UNSUPPORTED로 거부한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.IMAGE_UPLOAD_PURPOSE_UNSUPPORTED.message) { create() }
+                Then("파일 업로드를 지원하지 않는 목적 예외를 반환한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.IMAGE_UPLOAD_PURPOSE_UNSUPPORTED.message) {
+                        create()
+                    }
                 }
             }
 

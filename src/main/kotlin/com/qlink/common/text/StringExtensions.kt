@@ -22,9 +22,6 @@ fun String.takeKeepingSurrogatePairs(maxLength: Int): String =
 
 fun String.toNfc(): String = Normalizer.normalize(this, Normalizer.Form.NFC)
 
-/**
- * 줄바꿈·탭·연속 공백을 공백 한 칸으로 바꾸고 앞뒤 공백을 지운다.
- */
 fun String.collapseWhitespace(): String = replace(WHITESPACE_RUN, " ").trim()
 
 fun String.sha256Hex(): String =

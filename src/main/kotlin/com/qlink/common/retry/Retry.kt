@@ -14,16 +14,15 @@ suspend fun <T> retryWithExponentialBackoff(
     val attempts = maxAttempts.coerceAtLeast(1)
     var nextDelayMs = initialDelayMs.coerceAtLeast(0)
 
-    var attemptIndex = 0
-    while (true) {
+    repeat(attempts - 1) {
         val result = block()
-        val isLastAttempt = attemptIndex == attempts - 1
-        if (!shouldRetry(result) || isLastAttempt) {
+        if (!shouldRetry(result)) {
             return result
         }
 
         delayProvider(nextDelayMs)
         nextDelayMs *= 2
-        attemptIndex++
     }
+
+    return block()
 }
