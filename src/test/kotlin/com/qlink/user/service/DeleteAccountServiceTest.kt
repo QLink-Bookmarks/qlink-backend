@@ -2,15 +2,18 @@ package com.qlink.user.service
 
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
+import com.qlink.folder.domain.Folder
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.foldermember.domain.FolderMember
 import com.qlink.foldermember.domain.MemberRole
 import com.qlink.foldermember.repository.FolderMemberRepository
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.FolderFixture
+import com.qlink.support.fixture.FolderMemberFixture
 import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
+import com.qlink.user.domain.User
 import com.qlink.user.repository.UserRepository
 import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.assertions.throwables.shouldThrowWithMessage
@@ -123,6 +126,34 @@ class DeleteAccountServiceTest :
                     shouldThrowWithMessage<BusinessException>(ErrorCode.USER_NOT_FOUND.message) {
                         withdraw()
                     }
+                }
+            }
+        }
+
+        Given("공유 폴더 소유권을 위임한 이전 owner의 탈퇴 회귀 검사") {
+            lateinit var original: User
+            lateinit var next: User
+            lateinit var transferred: Folder
+            beforeTest {
+                original = userRepository.insert(UserFixture.createRandomValidUser())
+                next = userRepository.insert(UserFixture.createRandomValidUser())
+                transferred = folderRepository.insert(FolderFixture.createSharedFolderOf(original.id!!))
+                folderMemberRepository.insertIfAbsent(FolderMemberFixture.createMember(folderId = transferred.id!!, userId = next.id!!))
+                folderRepository.update(transferred.delegateTo(next.id!!))
+                folderMemberRepository.updateRole(
+                    folderId = transferred.id!!,
+                    userId = next.id!!,
+                    role = MemberRole.OWNER,
+                )
+            }
+            When("이전 owner가 회원 탈퇴하면 (회귀)") {
+                val withdraw = suspend { service.deleteAccount(original.id!!) }
+                Then("새 소유자 폴더와 멤버는 유지된다") {
+                    shouldNotThrow<BusinessException> { withdraw() }
+                    userRepository.findById(original.id!!).shouldBeNull()
+                    folderRepository.findById(transferred.id!!)?.ownerId shouldBe next.id
+                    folderMemberRepository.findByFolderIdAndUserId(folderId = transferred.id!!, userId = next.id!!)?.role shouldBe
+                        MemberRole.OWNER
                 }
             }
         }
