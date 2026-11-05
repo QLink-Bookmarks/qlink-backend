@@ -18,4 +18,5 @@ data class AiSummaryCompletion(
 
 data class AiSummaryCompletionResult(
     val schedulingFailed: Boolean = false,
+    val folderKeptAfterMove: Boolean = false,
 )

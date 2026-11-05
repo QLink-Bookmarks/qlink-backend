@@ -159,7 +159,8 @@ class CompleteAiSummaryServiceTest :
             When("시작 folderId와 현재 folderId가 같고 후보가 유효하면") {
                 val complete = suspend { service.complete(completion) }
                 Then("작업과 링크 AI 결과, 후보 배정, 액션, 예약과 사용량을 저장한다") {
-                    shouldNotThrow<BusinessException> { complete() }
+                    val result = complete()
+                    result.folderKeptAfterMove shouldBe false
                     assertCompletedIn(candidate.id)
                 }
             }
@@ -212,7 +213,8 @@ class CompleteAiSummaryServiceTest :
                 }
                 val complete = suspend { service.complete(completion) }
                 Then("최신 target과 id, owner를 보존하고 AI 결과를 저장한다") {
-                    shouldNotThrow<BusinessException> { complete() }
+                    val result = complete()
+                    result.folderKeptAfterMove shouldBe true
                     assertCompletedIn(target.id)
                 }
             }
@@ -224,7 +226,8 @@ class CompleteAiSummaryServiceTest :
                 }
                 val complete = suspend { service.complete(completion) }
                 Then("미분류 배정을 보존한다") {
-                    shouldNotThrow<BusinessException> { complete() }
+                    val result = complete()
+                    result.folderKeptAfterMove shouldBe true
                     assertCompletedIn(null)
                 }
             }
