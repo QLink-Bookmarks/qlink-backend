@@ -24,6 +24,7 @@ data class SearchFoldersQuery(
     val shareCounts: Int,
     val linkCounts: Int,
     val score: Double,
+    val myLinkCounts: Int = 0,
 )
 
 data class FolderMemberQuery(

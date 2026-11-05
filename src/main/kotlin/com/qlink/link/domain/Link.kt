@@ -31,6 +31,7 @@ class Link(
     val favoriteAt: Instant? = null,
     val createdAt: Instant? = null,
     val updatedAt: Instant? = null,
+    val folderAssignmentRevision: Long = 0,
 ) {
     val tags: List<String> = tags.distinct()
 
@@ -43,6 +44,10 @@ class Link(
 
         // TODO: summary, memo, tag도 검증 필요할지?
     }
+
+    fun isOwnedBy(userId: Long): Boolean = ownerId == userId
+
+    fun hasFolderAssignmentChangedSince(revision: Long): Boolean = folderAssignmentRevision != revision
 
     fun validateOwner(ownerId: Long) {
         if (this.ownerId != ownerId) {
@@ -100,6 +105,7 @@ class Link(
             favoriteAt = favoriteAt,
             createdAt = createdAt,
             updatedAt = updatedAt,
+            folderAssignmentRevision = folderAssignmentRevision,
         )
     }
 
@@ -150,6 +156,7 @@ class Link(
                     favoriteAt = resolveFavoriteAt(isFavorite, now),
                     createdAt = createdAt,
                     updatedAt = updatedAt,
+                    folderAssignmentRevision = folderAssignmentRevision,
                 )
             }
         }
@@ -190,6 +197,7 @@ class Link(
                     favoriteAt = favoriteAt,
                     createdAt = createdAt,
                     updatedAt = updatedAt,
+                    folderAssignmentRevision = folderAssignmentRevision,
                 )
             }
         }

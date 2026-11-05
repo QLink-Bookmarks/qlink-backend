@@ -24,6 +24,7 @@ import org.jetbrains.exposed.v1.core.inList
 import org.jetbrains.exposed.v1.core.isNotNull
 import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.core.less
+import org.jetbrains.exposed.v1.core.vendors.ForUpdateOption
 import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insertReturning
@@ -47,6 +48,22 @@ class DbTodoRepository : TodoRepository {
             .where { Todos.id eq todoId }
             .singleOrNull()
             ?.toTodoDomain()
+
+    override suspend fun findByIdForShare(todoId: Long): Todo? =
+        Todos
+            .selectAll()
+            .where { Todos.id eq todoId }
+            .forUpdate(ForUpdateOption.PostgreSQL.ForShare)
+            .singleOrNull()
+            ?.toTodoDomain()
+
+    override suspend fun findAllByLinkIdsForUpdate(linkIds: List<Long>): List<Todo> =
+        Todos
+            .selectAll()
+            .where { Todos.linkId inList linkIds.distinct().sorted() }
+            .orderBy(Todos.id to SortOrder.ASC)
+            .forUpdate()
+            .map { it.toTodoDomain() }
 
     override suspend fun findAllByIds(todoIds: List<Long>): List<Todo> {
         if (todoIds.isEmpty()) {

@@ -18,9 +18,10 @@ object FolderFixture {
         emoji: String? = RandomFixture.randomEmoji(),
         sharedAt: Instant? = null,
         createdAt: Instant? = null,
+        id: Long = RandomFixture.randomId(),
     ): Folder =
         Folder(
-            id = RandomFixture.randomId(),
+            id = id,
             ownerId = ownerId,
             name = name,
             emoji = emoji,

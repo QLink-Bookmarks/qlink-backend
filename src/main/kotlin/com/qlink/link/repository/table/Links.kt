@@ -22,6 +22,7 @@ object Links : Table("links") {
     val ownerId = reference("owner_id", Users.id, onDelete = ReferenceOption.CASCADE)
     val folderId =
         reference("folder_id", Folders.id, onDelete = ReferenceOption.SET_NULL).nullable()
+    val folderAssignmentRevision = long("folder_assignment_revision").default(0)
     val url = text("url")
     val title = varchar("title", 300)
     val summary = text("summary").nullable()
@@ -57,6 +58,7 @@ fun ResultRow.toLinkDomain(): Link =
         id = this[Links.id],
         ownerId = this[Links.ownerId],
         folderId = this[Links.folderId],
+        folderAssignmentRevision = this[Links.folderAssignmentRevision],
         url = this[Links.url],
         title = this[Links.title],
         summary = this[Links.summary],

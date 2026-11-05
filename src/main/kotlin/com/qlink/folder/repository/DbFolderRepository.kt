@@ -17,8 +17,11 @@ import com.qlink.folder.repository.table.toFolderDomain
 import com.qlink.foldermember.repository.table.FolderMembers
 import com.qlink.link.repository.table.Links
 import com.qlink.user.repository.table.Users
+import org.jetbrains.exposed.v1.core.Function
 import org.jetbrains.exposed.v1.core.JoinType
+import org.jetbrains.exposed.v1.core.LongColumnType
 import org.jetbrains.exposed.v1.core.Op
+import org.jetbrains.exposed.v1.core.QueryBuilder
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.alias
@@ -55,6 +58,14 @@ class DbFolderRepository : FolderRepository {
             .selectAll()
             .where { Folders.id inList ids }
             .orderBy(Folders.id to SortOrder.ASC)
+            .map { it.toFolderDomain() }
+
+    override suspend fun findAllByIdsForUpdate(ids: List<Long>): List<Folder> =
+        Folders
+            .selectAll()
+            .where { Folders.id inList ids.distinct().sorted() }
+            .orderBy(Folders.id to SortOrder.ASC)
+            .forUpdate()
             .map { it.toFolderDomain() }
 
     override suspend fun findAllByOwnerId(ownerId: Long): List<Folder> =
@@ -163,23 +174,39 @@ class DbFolderRepository : FolderRepository {
         }
 
         val folderIds = folders.map { it.id }
-        val memberCounts =
+        val memberIdsByFolder =
             FolderMembers
-                .select(FolderMembers.folderId)
+                .select(FolderMembers.folderId, FolderMembers.userId)
                 .where { FolderMembers.folderId inList folderIds }
-                .groupingBy { it[FolderMembers.folderId] }
-                .eachCount()
-        val linkCounts =
+                .groupBy({ it[FolderMembers.folderId] }, { it[FolderMembers.userId] })
+        val linkCount =
+            object : Function<Long>(LongColumnType()) {
+                override fun toQueryBuilder(queryBuilder: QueryBuilder) {
+                    queryBuilder.append("COUNT(*)")
+                }
+            }
+        val myLinkCount =
+            object : Function<Long>(LongColumnType()) {
+                override fun toQueryBuilder(queryBuilder: QueryBuilder) {
+                    queryBuilder
+                        .append("COUNT(*) FILTER (WHERE ")
+                        .append(Links.ownerId eq ownerId)
+                        .append(")")
+                }
+            }
+        val linkCountsByFolder =
             Links
-                .select(Links.folderId)
+                .select(Links.folderId, linkCount, myLinkCount)
                 .where { Links.folderId inList folderIds }
-                .groupingBy { it[Links.folderId]!! }
-                .eachCount()
+                .groupBy(Links.folderId)
+                .associateBy { it[Links.folderId]!! }
 
-        return folders.map {
-            it.copy(
-                shareCounts = (memberCounts[it.id] ?: 0) + 1,
-                linkCounts = linkCounts[it.id] ?: 0,
+        return folders.map { folder ->
+            val counts = linkCountsByFolder[folder.id]
+            folder.copy(
+                shareCounts = if (folder.sharedAt == null) 1 else (memberIdsByFolder[folder.id].orEmpty() + folder.ownerId).distinct().size,
+                linkCounts = counts?.get(linkCount)?.toInt() ?: 0,
+                myLinkCounts = counts?.get(myLinkCount)?.toInt() ?: 0,
             )
         }
     }

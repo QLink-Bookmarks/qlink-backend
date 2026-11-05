@@ -11,6 +11,8 @@ interface FolderRepository {
 
     suspend fun findAllByIds(ids: List<Long>): List<Folder>
 
+    suspend fun findAllByIdsForUpdate(ids: List<Long>): List<Folder>
+
     suspend fun findAllByOwnerId(ownerId: Long): List<Folder>
 
     suspend fun findCreatedAtById(id: Long): Instant?

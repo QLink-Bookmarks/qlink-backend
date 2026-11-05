@@ -38,6 +38,7 @@ import org.jetbrains.exposed.v1.core.like
 import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.core.plus
 import org.jetbrains.exposed.v1.core.times
+import org.jetbrains.exposed.v1.core.vendors.ForUpdateOption
 import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
@@ -68,6 +69,50 @@ class DbLinkRepository : LinkRepository {
             .where { Links.id eq linkId }
             .singleOrNull()
             ?.toLinkDomain()
+
+    override suspend fun findByIdForUpdate(linkId: Long): Link? =
+        Links
+            .selectAll()
+            .where { Links.id eq linkId }
+            .forUpdate()
+            .singleOrNull()
+            ?.toLinkDomain()
+
+    override suspend fun findByIdForShare(linkId: Long): Link? =
+        Links
+            .selectAll()
+            .where { Links.id eq linkId }
+            .forUpdate(ForUpdateOption.PostgreSQL.ForShare)
+            .singleOrNull()
+            ?.toLinkDomain()
+
+    override suspend fun findAllByFolderIdForUpdate(folderId: Long): List<Link> =
+        Links
+            .selectAll()
+            .where { Links.folderId eq folderId }
+            .orderBy(Links.id to SortOrder.ASC)
+            .forUpdate()
+            .map { it.toLinkDomain() }
+
+    override suspend fun findAllByIdsForUpdate(linkIds: List<Long>): List<Link> =
+        Links
+            .selectAll()
+            .where { Links.id inList linkIds.distinct().sorted() }
+            .orderBy(Links.id to SortOrder.ASC)
+            .forUpdate()
+            .map { it.toLinkDomain() }
+
+    override suspend fun assignFolderByIds(
+        linkIds: List<Long>,
+        folderId: Long?,
+        now: Instant,
+    ) {
+        if (linkIds.isEmpty()) return
+        Links.update(where = { Links.id inList linkIds }) {
+            it[Links.folderId] = folderId
+            it[Links.updatedAt] = now.toJavaInstant()
+        }
+    }
 
     override suspend fun findAllByIds(linkIds: List<Long>): List<Link> =
         Links

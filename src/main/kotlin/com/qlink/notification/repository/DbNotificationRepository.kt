@@ -163,6 +163,26 @@ class DbNotificationRepository : NotificationRepository {
             }.single()
             .toNotificationDomain()
 
+    override suspend fun deletePendingByContextIds(
+        context: NotificationContext,
+        ids: List<Long>,
+    ): List<Long> {
+        if (ids.isEmpty()) return emptyList()
+        val notificationIds =
+            Notifications
+                .select(Notifications.id)
+                .where {
+                    (Notifications.context eq context) and (Notifications.contextId inList ids) and
+                        Notifications.firedAt.isNull() and Notifications.failedAt.isNull()
+                }.orderBy(Notifications.id to SortOrder.ASC)
+                .forUpdate()
+                .map { it[Notifications.id] }
+        if (notificationIds.isNotEmpty()) {
+            Notifications.deleteWhere { Notifications.id inList notificationIds }
+        }
+        return notificationIds
+    }
+
     override suspend fun deletePendingByContext(
         context: NotificationContext,
         contextId: Long,

@@ -1,5 +1,6 @@
 package com.qlink.folder.service
 
+import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireFalse
 import com.qlink.common.transaction.TransactionRunner
@@ -26,6 +27,7 @@ class DeleteFolderService(
             folder.validateOwner(loginId)
 
             when (FolderDeleteOption.from(onDelete)) {
+                FolderDeleteOption.MOVE -> throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
                 FolderDeleteOption.NULL -> linkRepository.detachFolder(folderId)
                 FolderDeleteOption.CASCADE -> linkRepository.deleteAllByFolderId(folderId)
             }

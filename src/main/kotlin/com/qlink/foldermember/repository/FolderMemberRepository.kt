@@ -10,6 +10,11 @@ interface FolderMemberRepository {
         userId: Long,
     ): FolderMember?
 
+    suspend fun findByFolderIdAndUserIdForUpdate(
+        folderId: Long,
+        userId: Long,
+    ): FolderMember?
+
     suspend fun existsByFolderIdAndUserId(
         folderId: Long,
         userId: Long,
@@ -27,7 +32,7 @@ interface FolderMemberRepository {
         folderId: Long,
         userId: Long,
         role: MemberRole,
-    )
+    ): Int
 
     suspend fun deleteByFolderIdAndUserId(
         folderId: Long,

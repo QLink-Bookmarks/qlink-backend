@@ -4,6 +4,7 @@ import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 
 enum class FolderDeleteOption {
+    MOVE,
     CASCADE,
     NULL,
     ;
@@ -11,6 +12,7 @@ enum class FolderDeleteOption {
     companion object {
         fun from(value: String?): FolderDeleteOption =
             when (value?.lowercase() ?: "null") {
+                "move" -> MOVE
                 "cascade" -> CASCADE
                 "null" -> NULL
                 else -> throw BusinessException(ErrorCode.COMMON_BAD_REQUEST)
