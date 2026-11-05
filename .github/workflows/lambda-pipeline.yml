@@ -30,10 +30,10 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-          cache-dependency-path: lambda/link-preview/package-lock.json
+          cache-dependency-path: lambda/link-fetch/package-lock.json
 
       - name: 람다 검증 및 ZIP 생성
-        working-directory: lambda/link-preview
+        working-directory: lambda/link-fetch
         run: |
           npm ci
           npm test

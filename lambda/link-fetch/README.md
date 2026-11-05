@@ -55,14 +55,6 @@ Lambda는 앱·기존 인프라와 분리된 `terraform/lambda/dev` 및 `terrafo
 
 ## 외부 IAM 준비
 
-실행 역할과 정책 연결, 서버의 Lambda 호출 권한은 Terraform에서 관리하지 않는다. 실제 IAM 정책과 적용 내역은 AWS에서 별도로 관리한다.
-
-- 프리뷰 실행 역할 `alinkPreviewLambdaRole`: 환경별 프리뷰 버킷 객체 접근과 CloudWatch Logs 기록 권한.
-- 본문 실행 역할 `alinkContentLambdaRole`: trust `lambda.amazonaws.com`, CloudWatch Logs 기록 권한만(S3 등 다른 권한 없음).
-- 배포 주체: 두 실행 역할에 대한 `iam:PassRole`. 배포 주체 권한이 함수 이름으로 묶여 있으면 `alink-link-content-{env}` 함수와 `/aws/lambda/alink-link-content-{env}` 로그 그룹에 대한 Lambda(생성·코드/설정 변경·버전 발행·별칭)와 Logs 권한도 필요하다.
-- API 서버 태스크 역할: 환경별 `alink-link-preview-{env}:live`와 `alink-link-content-{env}:live` 별칭에 대한 `lambda:InvokeFunction`.
-- 예약 동시성: 프리뷰 30(dev·prod 각각), 본문 dev 5·prod 10으로 합계 75다. 배포 전에 `aws lambda get-account-settings`로 예약하지 않은 동시성이 100 이상 남는지 확인한다.
-
-본문 함수의 첫 배포에는 되돌릴 이전 버전이 없으므로, 문제가 생기면 서버의 `worker.linkContent.enabled=false`로 수집을 멈춘다. 두 번째 배포부터는 `live` 별칭을 이전 버전으로 돌릴 수 있다.
+실행 역할과 정책 연결, 서버의 Lambda 호출 권한은 Terraform에서 관리하지 않는다. 본문 함수에는 로그 기록 권한만 가진 별도의 실행 역할이 필요하다. 배포 주체는 해당 실행 역할을 전달할 수 있어야 하며, API 서버의 태스크 역할에는 각 함수의 `live` 별칭을 호출할 권한이 필요하다. 실제 IAM 정책과 적용 내역은 AWS에서 별도로 관리한다.
 
 프리뷰 함수의 이미지 객체는 원본 URL의 scheme·host만 소문자화해 만든 해시 또는 파비콘의 호스트 해시를 키로 사용한다. S3 `LastModified`가 7일 미만이면 재사용하고, 이후 요청에서 조건부로 갱신한다. `Cache-Control`은 1일이다.

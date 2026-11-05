@@ -5,7 +5,7 @@ module "link_preview_lambda" {
   execution_role_arn           = "arn:aws:iam::650177546654:role/alinkPreviewLambdaRole"
   content_execution_role_arn   = "arn:aws:iam::650177546654:role/alinkContentLambdaRole"
   content_reserved_concurrency = 10
-  package_path                 = "${path.root}/../../../lambda/link-preview/build/link-preview.zip"
+  package_path                 = "${path.root}/../../../lambda/link-fetch/build/link-fetch.zip"
   git_sha                      = var.lambda_git_sha
 }
 

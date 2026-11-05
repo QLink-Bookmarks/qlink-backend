@@ -11,9 +11,9 @@ cp -R index.mjs content.mjs src package.json package-lock.json build/staging/
 )
 rm build/staging/package-lock.json
 find build/staging -type f -exec touch -t 198001010000 {} +
-rm -f build/link-preview.zip
+rm -f build/link-fetch.zip
 (
   cd build/staging
-  find . -type f -print | LC_ALL=C sort | zip -X -q ../link-preview.zip -@
+  find . -type f -print | LC_ALL=C sort | zip -X -q ../link-fetch.zip -@
 )
 rm -rf build/staging

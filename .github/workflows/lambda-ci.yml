@@ -10,7 +10,7 @@ on:
       - "fix/**"
       - "codex/**"
     paths:
-      - "lambda/link-preview/**"
+      - "lambda/link-fetch/**"
       - ".github/workflows/lambda-ci.yml"
 
 permissions:
@@ -22,14 +22,14 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: lambda/link-preview
+        working-directory: lambda/link-fetch
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: npm
-          cache-dependency-path: lambda/link-preview/package-lock.json
+          cache-dependency-path: lambda/link-fetch/package-lock.json
       - run: npm ci
       - run: npm test
       - run: npm audit --omit=dev --audit-level=high
