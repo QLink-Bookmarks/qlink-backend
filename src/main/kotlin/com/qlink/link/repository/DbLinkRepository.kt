@@ -471,10 +471,6 @@ class DbLinkRepository : LinkRepository {
         Links.deleteWhere { id inList linkIds }
     }
 
-    /**
-     * `links.search_text`를 SQL에서 만든다. 테이블 매핑의 `Link.searchText()`와 같은 순서·구분자(공백)다.
-     * UPDATE의 SET 식은 갱신 전 행을 읽으므로, 이번에 쓰는 필드는 새 값(파라미터)으로, 쓰지 않는 필드는 컬럼으로 넘긴다.
-     */
     private fun searchTextOf(
         title: Expression<*>,
         url: Expression<*>,
