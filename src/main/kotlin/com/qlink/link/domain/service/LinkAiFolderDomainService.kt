@@ -8,12 +8,15 @@ object LinkAiFolderDomainService {
     fun resolve(
         link: Link,
         startedFolderId: Long?,
+        candidateFolderId: Long?,
         candidate: Folder?,
         member: FolderMember?,
     ): Long? {
-        if (link.hasFolderChangedSince(startedFolderId) || candidate == null) {
+        if (link.hasFolderChangedSince(startedFolderId)) {
             return link.folderId
         }
+        if (candidateFolderId == null) return null
+        if (candidate == null) return link.folderId
         val memberCanWrite =
             member
                 ?.takeIf { it.folderId == candidate.id && it.userId == link.ownerId }

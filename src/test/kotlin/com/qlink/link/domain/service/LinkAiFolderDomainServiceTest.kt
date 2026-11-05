@@ -19,6 +19,7 @@ class LinkAiFolderDomainServiceTest :
                     LinkAiFolderDomainService.resolve(
                         link = link,
                         startedFolderId = currentId,
+                        candidateFolderId = candidate.id,
                         candidate = candidate,
                         member = null,
                     )
@@ -31,16 +32,40 @@ class LinkAiFolderDomainServiceTest :
                     LinkAiFolderDomainService.resolve(
                         link = link,
                         startedFolderId = currentId,
+                        candidateFolderId = shared.id,
                         candidate = shared,
                         member = member,
                     )
                 Then("candidate를 선택한다") { folderId shouldBe shared.id }
+            }
+            When("시작 folderId가 같고 AI가 미분류를 선택하면") {
+                val folderId =
+                    LinkAiFolderDomainService.resolve(
+                        link = link,
+                        startedFolderId = currentId,
+                        candidateFolderId = null,
+                        candidate = null,
+                        member = null,
+                    )
+                Then("기존 폴더에서 미분류로 변경한다") { folderId shouldBe null }
+            }
+            When("시작 이후 다른 폴더로 옮겨졌고 AI가 미분류를 선택하면") {
+                val folderId =
+                    LinkAiFolderDomainService.resolve(
+                        link = link,
+                        startedFolderId = currentId + 1,
+                        candidateFolderId = null,
+                        candidate = null,
+                        member = null,
+                    )
+                Then("최신 폴더 배정을 보존한다") { folderId shouldBe currentId }
             }
             When("시작 이후 다른 폴더로 옮겨졌으면") {
                 val folderId =
                     LinkAiFolderDomainService.resolve(
                         link = link,
                         startedFolderId = currentId + 1,
+                        candidateFolderId = candidate.id,
                         candidate = candidate,
                         member = null,
                     )
@@ -52,6 +77,7 @@ class LinkAiFolderDomainServiceTest :
                     LinkAiFolderDomainService.resolve(
                         link = detached,
                         startedFolderId = currentId,
+                        candidateFolderId = candidate.id,
                         candidate = candidate,
                         member = null,
                     )
@@ -63,6 +89,7 @@ class LinkAiFolderDomainServiceTest :
                     LinkAiFolderDomainService.resolve(
                         link = detached,
                         startedFolderId = null,
+                        candidateFolderId = candidate.id,
                         candidate = candidate,
                         member = null,
                     )
@@ -74,6 +101,7 @@ class LinkAiFolderDomainServiceTest :
                     LinkAiFolderDomainService.resolve(
                         link = link,
                         startedFolderId = currentId,
+                        candidateFolderId = candidate.id,
                         candidate = candidate,
                         member = null,
                     )
@@ -84,6 +112,7 @@ class LinkAiFolderDomainServiceTest :
                     LinkAiFolderDomainService.resolve(
                         link = link,
                         startedFolderId = currentId,
+                        candidateFolderId = RandomFixture.randomId(),
                         candidate = null,
                         member = null,
                     )
@@ -95,6 +124,7 @@ class LinkAiFolderDomainServiceTest :
                     LinkAiFolderDomainService.resolve(
                         link = link,
                         startedFolderId = currentId,
+                        candidateFolderId = shared.id,
                         candidate = shared,
                         member = null,
                     )
@@ -112,6 +142,7 @@ class LinkAiFolderDomainServiceTest :
                         LinkAiFolderDomainService.resolve(
                             link = link,
                             startedFolderId = currentId,
+                            candidateFolderId = shared.id,
                             candidate = shared,
                             member = member,
                         )
@@ -125,6 +156,7 @@ class LinkAiFolderDomainServiceTest :
                     LinkAiFolderDomainService.resolve(
                         link = link,
                         startedFolderId = currentId,
+                        candidateFolderId = private.id,
                         candidate = private,
                         member = member,
                     )

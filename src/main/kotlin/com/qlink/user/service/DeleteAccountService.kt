@@ -19,10 +19,11 @@ class DeleteAccountService(
         tx.required {
             userRepository.findById(loginId) ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
 
+            val ownedFolderIds = folderRepository.findAllByOwnerId(loginId).map { it.id!! }
             folderRepository
-                .findAllByOwnerId(loginId)
-                .filter { it.sharedAt != null }
-                .forEach { folder -> handOverSharedFolder(folder, loginId) }
+                .findAllByIdsForUpdate(ownedFolderIds)
+                .filter { it.isOwnedBy(loginId) && it.isShared }
+                .forEach { folder -> handOverSharedFolder(folder = folder, loginId = loginId) }
 
             userRepository.deleteById(loginId)
         }

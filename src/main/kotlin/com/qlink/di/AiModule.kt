@@ -3,6 +3,7 @@ package com.qlink.di
 import com.qlink.ai.client.AiClientRouter
 import com.qlink.ai.client.GeminiAiClient
 import com.qlink.ai.client.OpenAiClient
+import com.qlink.ai.service.CompleteAiSummaryService
 import com.qlink.ai.worker.AiSummaryDispatcher
 import com.qlink.ai.worker.AiSummaryWorker
 import com.qlink.auth.client.AppleAuthResourceClient
@@ -24,6 +25,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.json.Json
 import org.koin.dsl.module
 import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 fun aiModule(
     config: ApplicationConfig,
@@ -128,6 +130,21 @@ fun aiModule(
     }
 
     single {
+        CompleteAiSummaryService(
+            tx = get(),
+            aiJobRepository = get(),
+            dailyUsageRepository = get(),
+            folderRepository = get(),
+            folderMemberRepository = get(),
+            linkRepository = get(),
+            todoRepository = get(),
+            scheduleTodoNotificationService = get(),
+            urlResolver = get(),
+            log = LoggerFactory.getLogger(CompleteAiSummaryService::class.java),
+        )
+    }
+
+    single {
         AiSummaryWorker(
             tx = get(),
             aiJobRepository = get(),
@@ -137,8 +154,7 @@ fun aiModule(
             dailyUsageRepository = get(),
             folderRepository = get(),
             linkRepository = get(),
-            todoRepository = get(),
-            scheduleTodoNotificationService = get(),
+            completeAiSummaryService = get(),
             aiClientRouter = get(),
             apiKeyCipher = get(),
             channel = get(),

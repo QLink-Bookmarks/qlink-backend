@@ -6,6 +6,7 @@ import com.qlink.common.scroll.ScrollRequest
 import com.qlink.folder.dto.AcceptFolderInvitationRequest
 import com.qlink.folder.dto.CreateFolderInvitationRequest
 import com.qlink.folder.dto.CreateFolderRequest
+import com.qlink.folder.dto.TransferFolderOwnerRequest
 import com.qlink.folder.dto.UpdateFolderRequest
 import com.qlink.folder.service.AcceptFolderInvitationService
 import com.qlink.folder.service.CreateFolderInvitationService
@@ -14,6 +15,7 @@ import com.qlink.folder.service.DeleteFolderMemberService
 import com.qlink.folder.service.DeleteFolderService
 import com.qlink.folder.service.GetFolderMembersService
 import com.qlink.folder.service.GetFoldersService
+import com.qlink.folder.service.TransferFolderOwnerService
 import com.qlink.folder.service.UpdateFolderService
 import io.github.smiley4.ktoropenapi.resources.delete
 import io.github.smiley4.ktoropenapi.resources.get
@@ -35,6 +37,7 @@ fun Route.folderRoutes() {
     val getFolderMembersService by inject<GetFolderMembersService>()
     val getFoldersService by inject<GetFoldersService>()
     val updateFolderService by inject<UpdateFolderService>()
+    val transferFolderOwnerService by inject<TransferFolderOwnerService>()
 
     authenticate {
         get<FolderResources>(getFoldersDocs()) { resource ->
@@ -108,9 +111,26 @@ fun Route.folderRoutes() {
             call.respondSuccess(HttpStatusCode.OK, response)
         }
 
+        put<FolderResources.ById.Owner>(transferFolderOwnerDocs()) { resource ->
+            val principal = call.principal<JwtPrincipal>()!!
+            val request = call.receive<TransferFolderOwnerRequest>()
+            transferFolderOwnerService.transferOwner(
+                loginId = principal.userId,
+                folderId = resource.parent.id,
+                ownerId = request.ownerId,
+            )
+
+            call.respondSuccess(HttpStatusCode.OK)
+        }
+
         delete<FolderResources.ById>(deleteFolderDocs()) { resource ->
             val principal = call.principal<JwtPrincipal>()!!
-            deleteFolderService.deleteFolder(principal.userId, resource.id, resource.onDelete)
+            deleteFolderService.deleteFolder(
+                loginId = principal.userId,
+                folderId = resource.id,
+                onDelete = resource.onDelete,
+                targetFolderId = resource.targetFolderId,
+            )
 
             call.respondSuccess(HttpStatusCode.OK)
         }

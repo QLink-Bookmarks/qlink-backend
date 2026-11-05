@@ -9,11 +9,14 @@ import com.qlink.ai.domain.AiProvider
 import com.qlink.ai.domain.AvailableModel
 import com.qlink.ai.domain.DailyUsage
 import com.qlink.ai.domain.UserProvider
+import com.qlink.ai.dto.AiSummaryCompletion
+import com.qlink.ai.dto.AiSummarySnapshot
 import com.qlink.ai.repository.AiJobRepository
 import com.qlink.ai.repository.AiProviderRepository
 import com.qlink.ai.repository.AvailableModelRepository
 import com.qlink.ai.repository.DailyUsageRepository
 import com.qlink.ai.repository.UserProviderRepository
+import com.qlink.ai.service.CompleteAiSummaryService
 import com.qlink.ai.service.copyAiStatus
 import com.qlink.auth.domain.Role
 import com.qlink.common.crypto.ApiKeyCipher
@@ -23,9 +26,6 @@ import com.qlink.folder.repository.FolderRepository
 import com.qlink.image.service.PreviewImageUrlResolver
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.repository.LinkRepository
-import com.qlink.notification.service.ScheduleTodoNotificationService
-import com.qlink.todo.domain.Todo
-import com.qlink.todo.repository.TodoRepository
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
 import kotlinx.coroutines.CancellationException
@@ -57,8 +57,7 @@ class AiSummaryWorker(
     private val dailyUsageRepository: DailyUsageRepository,
     private val folderRepository: FolderRepository,
     private val linkRepository: LinkRepository,
-    private val todoRepository: TodoRepository,
-    private val scheduleTodoNotificationService: ScheduleTodoNotificationService,
+    private val completeAiSummaryService: CompleteAiSummaryService,
     private val aiClientRouter: AiClientRouter,
     private val apiKeyCipher: ApiKeyCipher,
     private val channel: Channel<Long>,
@@ -203,6 +202,12 @@ class AiSummaryWorker(
                     candidateModels = availableModelRepository.findAllByProviderId(provider.id!!),
                     selectableFolderIds = folderRepository.findAllByOwnerId(link.ownerId).mapNotNull { it.id }.toSet(),
                     fixedFolderId = job.prompt.extractFixedFolderId(),
+                    snapshot =
+                        AiSummarySnapshot(
+                            jobId = job.id!!,
+                            linkId = link.id!!,
+                            folderId = link.folderId,
+                        ),
                 )
             } ?: return countResult(RESULT_ABORTED)
 
@@ -212,57 +217,26 @@ class AiSummaryWorker(
 
         catchingFailure { summarize(context) }
             .onSuccess { result ->
-                val createdTodos =
-                    tx.required {
-                        val latestJob = aiJobRepository.findById(context.job.id!!) ?: return@required emptyList()
-                        val latestLink = linkRepository.findById(latestJob.linkId) ?: return@required emptyList()
-                        val completedAt = Clock.System.now()
-
-                        log.info("[WORKER] Job has been successful for job=$jobId, link=${latestLink.id}")
-
-                        aiJobRepository.update(
-                            latestJob.complete(
-                                responseModelId = result.model.id!!,
-                                response = result.response.rawResponse,
-                                completedAt = completedAt,
-                            ),
-                        )
-                        upsertDailyUsage(context.userProvider, result.model, result.response.usedTokens)
-                        val responseFolderId =
-                            result.response.folderId?.takeIf { it in context.selectableFolderIds }
-                        linkRepository.update(
-                            latestLink
-                                .update(
-                                    folderId = context.fixedFolderId ?: responseFolderId,
-                                    url = latestLink.url,
-                                    title = result.response.title,
-                                    summary = result.response.summary,
-                                    memo = latestLink.memo,
-                                    tags = result.response.tags,
-                                    thumbnailUrl = latestLink.thumbnailUrl,
-                                    sourceType = latestLink.sourceType,
-                                    previewPublicBaseUrl = urlResolver.publicBaseUrl,
-                                    previewEnvironment = urlResolver.environment,
-                                ).copyAiStatus(status = LinkStatus.A, workModelId = result.model.id),
-                        )
-                        result.response.todos.map {
-                            todoRepository.insert(
-                                Todo(
-                                    linkId = latestLink.id!!,
-                                    ownerId = latestLink.ownerId,
-                                    title = it.title,
-                                    reminderAt = it.reminderAt,
-                                ),
-                            )
-                        }
-                    }
-
-                catchingFailure { createdTodos.forEach { scheduleTodoNotificationService.createForTodo(it) } }
-                    .onSuccess { countResult(RESULT_COMPLETED) }
-                    .onFailure {
-                        log.warn("[WORKER] Todo notification scheduling failed after completion. jobId=$jobId", it)
-                        countResult(RESULT_ERROR)
-                    }
+                catchingFailure {
+                    completeAiSummaryService.complete(
+                        AiSummaryCompletion(
+                            snapshot = context.snapshot,
+                            responseModelId = result.model.id!!,
+                            candidateFolderId =
+                                context.fixedFolderId
+                                    ?: result.response.folderId?.takeIf { it in context.selectableFolderIds },
+                            response = result.response,
+                        ),
+                    )
+                }.onSuccess { completionResult ->
+                    log.info(
+                        "[WORKER] Job has been successful for job=$jobId, link=${context.snapshot.linkId}, folderKeptAfterMove=${completionResult.folderKeptAfterMove}",
+                    )
+                    countResult(if (completionResult.schedulingFailed) RESULT_ERROR else RESULT_COMPLETED)
+                }.onFailure {
+                    log.warn("[WORKER] AI summary completion failed. jobId=$jobId", it)
+                    fail(jobId = jobId, reason = it.failureSummary())
+                }
             }.onFailure {
                 log.warn("AI summary failed. jobId={}", context.job.id, it)
                 fail(jobId = context.job.id!!, reason = it.failureSummary())
@@ -320,29 +294,6 @@ class AiSummaryWorker(
         throw IllegalStateException(lastFailure.failureSummary(), lastFailure)
     }
 
-    private suspend fun upsertDailyUsage(
-        userProvider: UserProvider,
-        model: AvailableModel,
-        tokens: Int,
-    ) {
-        val usage = todayUsage(userProvider.id!!, model.id!!)
-        val updated =
-            usage?.addUsage(tokens)
-                ?: DailyUsage(
-                    userProviderId = userProvider.id,
-                    modelId = model.id,
-                    usageDate = LocalDate.now(ZoneOffset.UTC),
-                    requests = 1,
-                    tokens = tokens,
-                )
-
-        if (usage == null) {
-            dailyUsageRepository.insert(updated)
-        } else {
-            dailyUsageRepository.update(updated)
-        }
-    }
-
     private suspend fun todayUsage(
         userProviderId: Long,
         modelId: Long,
@@ -367,7 +318,7 @@ class AiSummaryWorker(
     ) {
         tx.required {
             val job = aiJobRepository.findById(jobId) ?: return@required
-            val link = linkRepository.findById(job.linkId) ?: return@required
+            val link = linkRepository.findByIdForUpdate(job.linkId) ?: return@required
             val completedAt = Clock.System.now()
 
             aiJobRepository.update(job.fail(completedAt))
@@ -410,6 +361,7 @@ class AiSummaryWorker(
         val candidateModels: List<AvailableModel>,
         val selectableFolderIds: Set<Long>,
         val fixedFolderId: Long?,
+        val snapshot: AiSummarySnapshot,
     )
 
     private data class AiSummaryResult(

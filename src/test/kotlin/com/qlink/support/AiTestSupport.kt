@@ -14,6 +14,7 @@ import com.qlink.ai.domain.UserProvider
 import com.qlink.ai.repository.AiProviderRepository
 import com.qlink.ai.repository.AvailableModelRepository
 import com.qlink.ai.repository.UserProviderRepository
+import com.qlink.ai.service.CompleteAiSummaryService
 import com.qlink.ai.worker.AiSummaryDispatcher
 import com.qlink.ai.worker.AiSummaryWorker
 import com.qlink.auth.domain.Role
@@ -50,6 +51,21 @@ fun aiTestModule() =
         }
 
         single {
+            CompleteAiSummaryService(
+                tx = get(),
+                aiJobRepository = get(),
+                dailyUsageRepository = get(),
+                folderRepository = get(),
+                folderMemberRepository = get(),
+                linkRepository = get(),
+                todoRepository = get(),
+                scheduleTodoNotificationService = get(),
+                urlResolver = get(),
+                log = LoggerFactory.getLogger(CompleteAiSummaryService::class.java),
+            )
+        }
+
+        single {
             AiSummaryWorker(
                 tx = get(),
                 aiJobRepository = get(),
@@ -59,8 +75,7 @@ fun aiTestModule() =
                 dailyUsageRepository = get(),
                 folderRepository = get(),
                 linkRepository = get(),
-                todoRepository = get(),
-                scheduleTodoNotificationService = get(),
+                completeAiSummaryService = get(),
                 aiClientRouter = get(),
                 apiKeyCipher = get(),
                 channel = get(),

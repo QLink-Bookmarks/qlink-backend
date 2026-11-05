@@ -19,6 +19,7 @@ data class GetFoldersContentResponse(
     val isShared: Boolean,
     val shareCounts: Int,
     val linkCounts: Int,
+    val myLinkCounts: Int,
 )
 
 @Serializable
