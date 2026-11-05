@@ -26,7 +26,9 @@ class UpdateFolderService(
         tx.required {
             val user = userRepository.findById(loginId) ?: throw BusinessException(ErrorCode.FOLDER_OWNER_NOT_FOUND)
 
-            val folder = folderRepository.findById(folderId) ?: throw BusinessException(ErrorCode.FOLDER_NOT_FOUND)
+            val folder =
+                folderRepository.findAllByIdsForUpdate(listOf(folderId)).singleOrNull()
+                    ?: throw BusinessException(ErrorCode.FOLDER_NOT_FOUND)
             folder.validateOwner(loginId)
 
             folderRepository

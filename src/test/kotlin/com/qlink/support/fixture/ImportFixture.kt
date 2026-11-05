@@ -18,6 +18,7 @@ import com.qlink.bookmarkimport.domain.ImportSourceFolder
 import com.qlink.bookmarkimport.domain.ImportSourceLink
 import com.qlink.bookmarkimport.domain.ImportStatus
 import com.qlink.bookmarkimport.domain.ThumbnailStatus
+import com.qlink.link.domain.Link
 import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -130,6 +131,21 @@ object ImportFixture {
             thumbnailStatus = thumbnailStatus,
             startedAt = startedAt,
             reversedAt = reversedAt,
+        )
+
+    fun createImportLinkSnapshotOf(
+        importId: Long,
+        link: Link,
+        importFolderId: Long? = null,
+        thumbnailStatus: ThumbnailStatus = ThumbnailStatus.PENDING,
+    ): ImportLink =
+        createImportLinkOf(
+            importId = importId,
+            linkId = link.id!!,
+            importFolderId = importFolderId,
+            url = link.url,
+            title = link.title,
+            thumbnailStatus = thumbnailStatus,
         )
 
     fun createReversalFactsOf(

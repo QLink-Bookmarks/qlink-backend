@@ -17,3 +17,8 @@ data class UpdateFolderRequest(
     val emoji: String? = null,
     val isShared: Boolean? = null,
 )
+
+@Serializable
+data class TransferFolderOwnerRequest(
+    val ownerId: Long,
+)

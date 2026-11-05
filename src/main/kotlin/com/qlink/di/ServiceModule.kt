@@ -26,6 +26,7 @@ import com.qlink.folder.service.DeleteFolderService
 import com.qlink.folder.service.FolderAccessValidator
 import com.qlink.folder.service.GetFolderMembersService
 import com.qlink.folder.service.GetFoldersService
+import com.qlink.folder.service.TransferFolderOwnerService
 import com.qlink.folder.service.UpdateFolderService
 import com.qlink.image.service.UploadImageService
 import com.qlink.link.service.CopyLinkService
@@ -249,6 +250,19 @@ fun serviceModule() =
                 tx = get(),
                 folderRepository = get(),
                 linkRepository = get(),
+                userRepository = get(),
+                folderMemberRepository = get(),
+                todoRepository = get(),
+                notificationRepository = get(),
+                taskScheduler = get(),
+            )
+        }
+
+        single {
+            TransferFolderOwnerService(
+                tx = get(),
+                folderRepository = get(),
+                folderMemberRepository = get(),
                 userRepository = get(),
             )
         }

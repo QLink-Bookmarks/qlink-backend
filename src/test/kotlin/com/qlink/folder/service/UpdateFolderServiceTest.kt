@@ -4,11 +4,13 @@ import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.folder.domain.Folder
 import com.qlink.folder.dto.UpdateFolderRequest
+import com.qlink.folder.dto.UpdateFolderResponse
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.foldermember.domain.MemberRole
 import com.qlink.foldermember.repository.FolderMemberRepository
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.FolderFixture
+import com.qlink.support.fixture.FolderMemberFixture
 import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
@@ -216,10 +218,40 @@ class UpdateFolderServiceTest :
                 }
             }
         }
+
+        Given("소유권이 위임된 공유 폴더의 수정 회귀 검사") {
+            lateinit var owner: User
+            lateinit var target: User
+            lateinit var transferred: Folder
+            beforeTest {
+                owner = userRepository.insert(UserFixture.createRandomValidUser())
+                target = userRepository.insert(UserFixture.createRandomValidUser())
+                transferred = folderRepository.insert(FolderFixture.createSharedFolderOf(owner.id!!))
+                folderMemberRepository.insertIfAbsent(
+                    FolderMemberFixture.createMember(folderId = transferred.id!!, userId = target.id!!),
+                )
+                folderRepository.update(transferred.delegateTo(target.id!!))
+                folderMemberRepository.updateRole(
+                    folderId = transferred.id!!,
+                    userId = target.id!!,
+                    role = MemberRole.OWNER,
+                )
+            }
+            When("새 소유자가 폴더를 수정하면 (회귀)") {
+                val request = UpdateFolderRequest(name = RandomFixture.randomSentenceWithMax(100), emoji = RandomFixture.randomEmoji())
+                val update =
+                    suspend { updateFolderService.updateFolder(loginId = target.id!!, folderId = transferred.id!!, request = request) }
+                Then("현재 소유권을 유지하며 변경 내용이 저장된다") {
+                    update()
+                    folderRepository.findById(transferred.id!!)?.ownerId shouldBe target.id
+                    folderRepository.findById(transferred.id!!)?.name shouldBe request.name
+                }
+            }
+        }
     })
 
 private data class UpdateResult(
     val previous: Folder,
-    val response: com.qlink.folder.dto.UpdateFolderResponse,
+    val response: UpdateFolderResponse,
     val request: UpdateFolderRequest,
 )
