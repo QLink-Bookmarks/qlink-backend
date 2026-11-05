@@ -63,6 +63,86 @@ class ScheduleTodoNotificationServiceTest :
                     )
             }
 
+            When("살아 있는 링크의 snapshot으로 처음 예약을 만들면") {
+                val create = suspend { scheduleTodoNotificationService.createForTodo(upcomingTodo) }
+                Then("해당 액션, 수신자, 예정 시각의 pending을 저장한다") {
+                    shouldNotThrow<BusinessException> { create() }
+                    val actual = notificationsOf(upcomingTodo).single()
+                    actual.contextId shouldBe upcomingTodo.id
+                    actual.userId shouldBe upcomingTodo.ownerId
+                    actual.willFireAt shouldBe upcomingTodo.reminderAt
+                    actual.isPending shouldBe true
+                }
+            }
+
+            When("예정 시각을 교체하면") {
+                lateinit var pending: Notification
+                lateinit var fired: Notification
+                lateinit var failed: Notification
+                lateinit var changedTodo: Todo
+                beforeTest {
+                    pending = notificationRepository.insert(NotificationFixture.createTodoNotificationOf(todo = upcomingTodo))
+                    fired =
+                        notificationRepository.insert(
+                            NotificationFixture.createTodoNotificationOf(
+                                todo = upcomingTodo,
+                                willFireAt = RandomFixture.randomPastInstant(),
+                                firedAt = RandomFixture.randomPastInstant(),
+                            ),
+                        )
+                    failed =
+                        notificationRepository.insert(
+                            NotificationFixture.createTodoNotificationOf(
+                                todo = upcomingTodo,
+                                willFireAt = RandomFixture.randomPastInstant(),
+                                failedAt = RandomFixture.randomPastInstant(),
+                            ),
+                        )
+                    changedTodo =
+                        todoRepository.update(
+                            TodoFixture.createRescheduledTodoOf(
+                                todo = upcomingTodo,
+                                reminderAt = RandomFixture.randomFutureInstantAfterTomorrow(),
+                            ),
+                        )
+                }
+                val replace = suspend { scheduleTodoNotificationService.replaceForTodo(changedTodo) }
+                Then("기존 pending만 지우고 이력과 새로운 시각의 pending을 보존한다") {
+                    shouldNotThrow<BusinessException> { replace() }
+                    notificationRepository.findById(pending.id!!) shouldBe null
+                    notificationsOf(changedTodo).single { it.isPending }.willFireAt shouldBe changedTodo.reminderAt
+                    notificationRepository.findById(fired.id!!)!!.firedAt shouldBe fired.firedAt
+                    notificationRepository.findById(failed.id!!)!!.failedAt shouldBe failed.failedAt
+                }
+            }
+
+            When("링크와 액션을 먼저 삭제하고 예전 snapshot으로 생성하면") {
+                beforeTest { linkRepository.deleteById(link.id!!) }
+                val create = suspend { scheduleTodoNotificationService.createForTodo(upcomingTodo) }
+                Then("pending을 다시 만들지 않는다") {
+                    shouldNotThrow<BusinessException> { create() }
+                    notificationsOf(upcomingTodo) shouldBe emptyList()
+                    linkRepository.findById(link.id!!) shouldBe null
+                    todoRepository.findById(upcomingTodo.id!!) shouldBe null
+                }
+            }
+
+            When("링크와 pending을 먼저 지우고 예전 snapshot으로 교체하면") {
+                lateinit var unrelated: Notification
+                beforeTest {
+                    unrelated = notificationRepository.insert(NotificationFixture.createRandomNotificationOf(user.id!!))
+                    notificationRepository.insert(NotificationFixture.createTodoNotificationOf(todo = upcomingTodo))
+                    notificationRepository.deletePendingByContext(context = NotificationContext.TODO, contextId = upcomingTodo.id!!)
+                    linkRepository.deleteById(link.id!!)
+                }
+                val replace = suspend { scheduleTodoNotificationService.replaceForTodo(upcomingTodo) }
+                Then("pending을 재생성하지 않고 무관한 알림은 보존한다") {
+                    shouldNotThrow<BusinessException> { replace() }
+                    notificationsOf(upcomingTodo) shouldBe emptyList()
+                    notificationRepository.findById(unrelated.id!!)!!.willFireAt shouldBe unrelated.willFireAt
+                }
+            }
+
             When("할 일의 알림이 하나도 없으면") {
                 val replace =
                     suspend {
