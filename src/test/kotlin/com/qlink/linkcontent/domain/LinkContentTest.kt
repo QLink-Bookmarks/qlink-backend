@@ -2,6 +2,8 @@
 
 package com.qlink.linkcontent.domain
 
+import com.qlink.common.error.BusinessException
+import com.qlink.common.error.ErrorCode
 import com.qlink.support.fixture.LinkContentFixture
 import com.qlink.support.fixture.RandomFixture
 import io.kotest.assertions.throwables.shouldThrowWithMessage
@@ -274,6 +276,70 @@ class LinkContentTest :
             }
         }
 
+        Given("fence를 읽을 수 없는 본문 행") {
+            When("행이 아직 저장되지 않았으면") {
+                val content = LinkContentFixture.createPendingContentOf(linkId = RandomFixture.randomId())
+                val readFence = { content.fence }
+
+                Then("ErrorCode.LINK_CONTENT_NOT_SAVED로 거부한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_CONTENT_NOT_SAVED.message) { readFence() }
+                }
+            }
+
+            When("저장됐지만 클레임 토큰이 없으면") {
+                val content = LinkContentFixture.createCollectedContentOf()
+                val readFence = { content.fence }
+
+                Then("ErrorCode.LINK_CONTENT_NOT_CLAIMED로 거부한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_CONTENT_NOT_CLAIMED.message) { readFence() }
+                }
+            }
+        }
+
+        Given("COLLECTED 행의 필수 필드") {
+            When("본문이 없으면") {
+                val create = {
+                    LinkContentFixture.createContentWithExcerpt(status = ContentStatus.COLLECTED, text = null, excerpt = null)
+                }
+
+                Then("ErrorCode.LINK_CONTENT_PAGE_REQUIRED로 거부한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_CONTENT_PAGE_REQUIRED.message) { create() }
+                }
+            }
+
+            When("본문 해시가 없으면") {
+                val text = LinkContentFixture.randomBodyText(100)
+                val create = {
+                    LinkContentFixture.createContentWithExcerpt(
+                        status = ContentStatus.COLLECTED,
+                        text = text,
+                        excerpt = text + ELLIPSIS,
+                        contentHash = null,
+                    )
+                }
+
+                Then("ErrorCode.LINK_CONTENT_HASH_REQUIRED로 거부한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_CONTENT_HASH_REQUIRED.message) { create() }
+                }
+            }
+
+            When("수집 시각이 없으면") {
+                val text = LinkContentFixture.randomBodyText(100)
+                val create = {
+                    LinkContentFixture.createContentWithExcerpt(
+                        status = ContentStatus.COLLECTED,
+                        text = text,
+                        excerpt = text + ELLIPSIS,
+                        collectedAt = null,
+                    )
+                }
+
+                Then("ErrorCode.LINK_CONTENT_COLLECTED_AT_REQUIRED로 거부한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_CONTENT_COLLECTED_AT_REQUIRED.message) { create() }
+                }
+            }
+        }
+
         Given("어떤 상태의 행") {
             val collected = LinkContentFixture.createCollectedContentOf()
             val newUrl = RandomFixture.randomUrl()
@@ -309,7 +375,7 @@ class LinkContentTest :
                 }
 
                 Then("생성이 거부된다") {
-                    shouldThrowWithMessage<IllegalArgumentException>("발췌를 만들 수 있는 본문에는 발췌가 있어야 한다") { create() }
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_CONTENT_EXCERPT_REQUIRED.message) { create() }
                 }
             }
 
@@ -320,7 +386,7 @@ class LinkContentTest :
                 }
 
                 Then("생성이 거부된다") {
-                    shouldThrowWithMessage<IllegalArgumentException>("발췌는 말줄임으로 끝나야 한다") { create() }
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_CONTENT_EXCERPT_SUFFIX_INVALID.message) { create() }
                 }
             }
 
@@ -335,7 +401,7 @@ class LinkContentTest :
                 }
 
                 Then("생성이 거부된다") {
-                    shouldThrowWithMessage<IllegalArgumentException>("발췌가 최대 길이를 넘는다") { create() }
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_CONTENT_EXCERPT_OVER_MAX.message) { create() }
                 }
             }
 
@@ -350,7 +416,7 @@ class LinkContentTest :
                 }
 
                 Then("생성이 거부된다") {
-                    shouldThrowWithMessage<IllegalArgumentException>("발췌가 본문 예산을 넘는다") { create() }
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_CONTENT_EXCERPT_OVER_BUDGET.message) { create() }
                 }
             }
 
@@ -364,7 +430,7 @@ class LinkContentTest :
                 }
 
                 Then("생성이 거부된다") {
-                    shouldThrowWithMessage<IllegalArgumentException>("발췌를 만들 수 없는 본문에는 발췌가 없어야 한다") { create() }
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_CONTENT_EXCERPT_NOT_ALLOWED.message) { create() }
                 }
             }
 
@@ -379,7 +445,7 @@ class LinkContentTest :
                 }
 
                 Then("생성이 거부된다") {
-                    shouldThrowWithMessage<IllegalArgumentException>("수집되지 않은 본문 행에는 본문·발췌가 없어야 한다") { create() }
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_CONTENT_COLLECTED_FIELDS_NOT_ALLOWED.message) { create() }
                 }
             }
 

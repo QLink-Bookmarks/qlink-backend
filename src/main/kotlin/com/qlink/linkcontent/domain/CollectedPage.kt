@@ -1,5 +1,7 @@
 package com.qlink.linkcontent.domain
 
+import com.qlink.common.error.ErrorCode
+import com.qlink.common.error.requireTrue
 import com.qlink.common.text.takeKeepingSurrogatePairs
 import kotlin.time.Instant
 
@@ -22,7 +24,7 @@ class CollectedPage(
     val language: String? = language?.takeKeepingSurrogatePairs(MAX_LANGUAGE_LENGTH)
 
     init {
-        require(this.text.isNotBlank()) { "수집한 본문이 비어 있다" }
+        this.text.isNotBlank().requireTrue(ErrorCode.LINK_CONTENT_TEXT_BLANK)
     }
 
     companion object {

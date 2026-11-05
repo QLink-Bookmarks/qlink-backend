@@ -2,6 +2,7 @@ package com.qlink.image.domain
 
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
+import com.qlink.common.error.requirePresent
 import java.util.UUID
 
 enum class ImagePurpose(
@@ -17,7 +18,7 @@ enum class ImagePurpose(
         environment: String,
         type: ImageType,
     ): String {
-        val kind = checkNotNull(keyKind) { "$name is not stored as a file upload" }
+        val kind = keyKind.requirePresent(ErrorCode.IMAGE_UPLOAD_PURPOSE_UNSUPPORTED)
         val uniqueId = UUID.randomUUID().toString().replace("-", "")
         return "$environment-$kind-$uniqueId.${type.extension}"
     }

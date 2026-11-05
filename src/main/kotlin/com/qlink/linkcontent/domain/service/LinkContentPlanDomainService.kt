@@ -1,5 +1,7 @@
 package com.qlink.linkcontent.domain.service
 
+import com.qlink.common.error.ErrorCode
+import com.qlink.common.error.requirePresent
 import com.qlink.link.domain.Link
 import com.qlink.linkcontent.domain.ContentPriority
 import com.qlink.linkcontent.domain.LinkContent
@@ -14,7 +16,7 @@ object LinkContentPlanDomainService {
         when {
             current == null -> {
                 LinkContent.create(
-                    linkId = checkNotNull(savedLink.id) { "저장된 링크에는 id가 있어야 한다" },
+                    linkId = savedLink.id.requirePresent(ErrorCode.LINK_CONTENT_SAVED_LINK_ID_REQUIRED),
                     sourceUrl = savedLink.url,
                     priority = ContentPriority.INTERACTIVE,
                     now = now,

@@ -8,6 +8,7 @@ import com.qlink.auth.dto.ConnectAuthProviderResponse
 import com.qlink.auth.repository.AuthProviderRepository
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
+import com.qlink.common.error.requirePresent
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.user.repository.UserRepository
 
@@ -61,7 +62,7 @@ class ConnectAuthProviderService(
                     ),
                 )
 
-            ConnectAuthProviderResponse(id = requireNotNull(authProvider.id))
+            ConnectAuthProviderResponse(id = authProvider.id.requirePresent(ErrorCode.AUTH_CONNECT_PROVIDER_ID_REQUIRED))
         }
     }
 }

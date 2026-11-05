@@ -1,5 +1,7 @@
 package com.qlink.push.client
 
+import com.qlink.common.error.ErrorCode
+import com.qlink.common.error.requireTrue
 import com.qlink.common.retry.retryWithExponentialBackoff
 import com.qlink.device.domain.DevicePlatform
 import io.ktor.client.HttpClient
@@ -39,9 +41,7 @@ class ExpoPushClient(
                         setBody(ExpoPushSendRequest.from(request))
                     }
                 }
-            check(response.status.isSuccess()) {
-                "Expo push request failed with status ${response.status.value}."
-            }
+            response.status.isSuccess().requireTrue(ErrorCode.PUSH_EXPO_REQUEST_FAILED)
             response.body<ExpoPushSendResponse>()
         }.fold(
             onSuccess = { it.toPushNotificationSendResult() },
@@ -64,9 +64,7 @@ class ExpoPushClient(
                         setBody(requests.map { ExpoPushSendRequest.from(it) })
                     }
                 }
-            check(response.status.isSuccess()) {
-                "Expo push request failed with status ${response.status.value}."
-            }
+            response.status.isSuccess().requireTrue(ErrorCode.PUSH_EXPO_REQUEST_FAILED)
             response.body<ExpoPushBatchResponse>()
         }.fold(
             onSuccess = { batch -> batch.data.map { it.toPushNotificationSendResult() } },
