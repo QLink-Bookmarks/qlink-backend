@@ -43,7 +43,6 @@ interface LinkRepository {
         loginId: Long,
     ): LinkDetailQuery?
 
-    /** [keyword]가 null이면 검색어 없는 목록이다. */
     suspend fun search(
         ownerId: Long,
         keyword: SearchKeyword?,

@@ -79,6 +79,9 @@ enum class ErrorCode(
     LINK_INLINE_FAVICON_MODE_INVALID("LINK_500_0001", 500, "인라인 파비콘을 처리할 수 없는 프리뷰 모드예요"),
     LINK_INLINE_FAVICON_TOO_LARGE("LINK_500_0002", 500, "인라인 파비콘이 최대 크기를 넘었어요"),
     LINK_PREVIEW_PAYLOAD_TOO_LARGE("LINK_500_0003", 500, "프리뷰 호출 데이터가 최대 크기를 넘었어요"),
+    LINK_SNIPPET_OVER_MAX("LINK_500_0004", 500, "스니펫이 최대 길이를 넘었어요"),
+    LINK_SNIPPET_HIGHLIGHTS_INVALID("LINK_500_0005", 500, "강조 범위가 스니펫을 벗어났어요"),
+    LINK_SNIPPET_BODY_LENGTH_REQUIRED("LINK_500_0006", 500, "스니펫을 만들 본문 길이가 없어요"),
 
     // Link content
     LINK_CONTENT_NOT_SAVED("LINK_CONTENT_500_0001", 500, "저장되지 않은 본문 정보예요"),

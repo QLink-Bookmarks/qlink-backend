@@ -909,7 +909,6 @@ class GetLinksServiceTest :
                 scrollRequest = ScrollRequest(cursor = cursor, size = size),
             )
 
-            /** 검색어로 size 2씩 끝까지 커서를 따라 읽은 페이지별 id. */
             suspend fun allPages(
                 ownerId: Long,
                 order: String,
@@ -1245,10 +1244,8 @@ private fun createCursor(
     value: LinkSearchCursorValue,
 ): String = Base64CursorCodec.encode(LinkSearchCursor(order = order, value = value))
 
-/** 다른 필드·채움 글자에 우연히 들어 있지 않을 검색어. */
 private const val SEARCH_KEYWORD = "뷁햏쀍뷁"
 
-/** 영문 소문자·숫자 채움 글자 사이에 [keyword]를 둔 본문. */
 private fun bodyTextWith(
     keyword: String,
     before: Int,

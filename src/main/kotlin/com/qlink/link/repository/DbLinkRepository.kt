@@ -246,11 +246,6 @@ class DbLinkRepository : LinkRepository {
             }
     }
 
-    /**
-     * 검색어가 없으면 접근 가능한 링크를 요청한 정렬로 읽는다(기존과 같은 순서·커서).
-     * 검색어가 있으면 메타데이터 일치 후보와 본문 일치 후보를 `UNION ALL`로 모아 링크별로 합치고,
-     * 메타 일치 묶음을 먼저 둔 뒤 요청한 정렬을 적용한다. 본문 일치 행에는 스니펫 창을 붙인다.
-     */
     override suspend fun search(
         ownerId: Long,
         keyword: SearchKeyword?,
@@ -474,7 +469,6 @@ class DbLinkRepository : LinkRepository {
         val candidateLinkId = Links.id.alias("link_id")
         val candidateMetaHit = booleanLiteral(true).alias("meta_hit")
         val candidateContentHit = booleanLiteral(false).alias("content_hit")
-        // search_text는 GIN 인덱스를 타는 사전 필터이고, 실제 일치는 필드별로 본다(필드 경계를 가로지른 후보 제외).
         val metadataCandidates =
             accessibleLinks(ownerId)
                 .select(candidateLinkId, candidateMetaHit, candidateContentHit)
@@ -522,7 +516,6 @@ class DbLinkRepository : LinkRepository {
                 contentMatched = contentMatched,
                 contentScore =
                     if (order == LinkSearchOrder.SIMILAR && keyword.includesBody) {
-                        // 본문 불일치 행은 0(LEAST(NULL, 1) = 1 함정 회피).
                         Case()
                             .When(
                                 contentMatched,
@@ -620,10 +613,6 @@ class DbLinkRepository : LinkRepository {
             }
     }
 
-    /**
-     * 본문 일치 링크마다 일치어 앞 문맥 ≤15 코드포인트부터 ≤96 코드포인트 창을 DB에서 자른다. 본문 전체는 읽지 않는다.
-     * 본문 길이도 창과 같은 행·같은 문장에서 읽는다(페이지 쿼리 뒤 본문이 바뀌어도 창과 예산이 어긋나지 않게).
-     */
     private fun findSnippets(
         linkIds: List<Long>,
         keyword: String,
@@ -674,7 +663,6 @@ class DbLinkRepository : LinkRepository {
                 },
             )
 
-    /** 내 링크 + 지금 멤버인 공유 폴더의 링크, 그리고 폴더·즐겨찾기 필터. [accessibleLinks] 조인이 필요하다. */
     private fun accessibleWith(
         ownerId: Long,
         folderId: Long?,
@@ -706,10 +694,6 @@ class DbLinkRepository : LinkRepository {
             },
         )
 
-    /**
-     * 정렬 키 튜플. 검색어가 있으면 메타 일치 여부가 첫 키다.
-     * 커서 값이 없을 때의 기본값은 기존 커서 비교식과 같다.
-     */
     private fun sortKeys(
         order: LinkSearchOrder,
         columns: SearchColumns,
@@ -767,7 +751,6 @@ class DbLinkRepository : LinkRepository {
         return if (hasKeyword) listOf(metadataKey) + orderKeys else orderKeys
     }
 
-    /** 커서 행 뒤의 행: 앞 키가 같으면 다음 키로 넘어가는 사전순 비교(`k1 > c1 OR (k1 = c1 AND (k2 > c2 OR …))`). */
     private fun keysetAfter(
         keys: List<SortKey>,
         cursorValue: LinkSearchCursorValue,
@@ -788,7 +771,6 @@ class DbLinkRepository : LinkRepository {
             }
     }
 
-    /** 검색 결과의 일치·점수 컬럼. 검색어가 없으면 모두 거짓·0이다. */
     private class SearchColumns(
         isMetadataMatched: ExpressionWithColumnType<Boolean>,
         contentMatched: ExpressionWithColumnType<Boolean>,
@@ -967,13 +949,8 @@ private val TAGS_TEXT = arrayToString(Links.tags, " ")
 private val SUMMARY_TEXT = coalesceText(Links.summary)
 private val MEMO_TEXT = coalesceText(Links.memo)
 
-/** 메타데이터 일치를 보는 필드(제목·URL·태그·요약·메모). */
 private val METADATA_FIELDS: List<Expression<*>> = listOf(Links.title, Links.url, TAGS_TEXT, SUMMARY_TEXT, MEMO_TEXT)
 
-/**
- * pg_bigm 유사도를 double precision으로 읽는다. `bigm_similarity`는 real을 돌려주는데, Exposed는 Float을 문자열을 거쳐
- * Double로 바꿔(0.5555556f → 0.5555556) 커서에 담긴 값이 DB 값과 같지 않게 된다. 그러면 커서 경계 행이 다음 페이지에 다시 나온다.
- */
 private fun similarity(
     field: Expression<*>,
     keyword: String,

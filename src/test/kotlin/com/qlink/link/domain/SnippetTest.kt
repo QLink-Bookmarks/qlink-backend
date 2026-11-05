@@ -12,10 +12,8 @@ import io.kotest.matchers.string.shouldStartWith
 private const val ELLIPSIS = "…"
 private const val KEYWORD = "본문검색"
 
-/** 영문 소문자·숫자만으로 된 채움 글자(한글 검색어와 겹치지 않는다). */
 private fun filler(length: Int): String = RandomFixture.randomFixedSentence(length)
 
-/** 숫자만으로 된 채움 글자(영문 검색어와 겹치지 않는다). */
 private fun digits(length: Int): String = (1..length).joinToString("") { RandomFixture.randomInt(0, 9).toString() }
 
 private fun Snippet.visibleText(): String = text.removePrefix(ELLIPSIS).removeSuffix(ELLIPSIS)
@@ -52,7 +50,6 @@ class SnippetTest :
 
         Given("surrogate 쌍이 많아 말줄임을 붙이면 100 UTF-16 유닛을 넘는 창") {
             val emoji = "😀"
-            // 말줄임 1 + 앞 문맥 + 검색어가 홀수 유닛이면 99번째 유닛이 쌍의 끝, 짝수면 쌍의 앞(high surrogate)이다.
             val before = filler(Snippet.CONTEXT_BEFORE - 1)
             val source = before + KEYWORD + emoji.repeat(Snippet.SOURCE_MAX_CODE_POINTS - before.length - KEYWORD.length)
 
@@ -88,7 +85,6 @@ class SnippetTest :
 
         Given("50자 본문의 가운데에 있는 4자 검색어") {
             val body = filler(20) + KEYWORD + filler(26)
-            // DB 창: 일치어 앞 문맥 15자부터 본문 끝까지
             val source = body.substring(20 - Snippet.CONTEXT_BEFORE)
 
             When("스니펫을 만들면") {

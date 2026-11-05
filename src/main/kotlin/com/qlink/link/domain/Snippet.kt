@@ -1,20 +1,20 @@
 package com.qlink.link.domain
 
+import com.qlink.common.error.ErrorCode
+import com.qlink.common.error.requireTrue
 import com.qlink.common.text.takeKeepingSurrogatePairs
 
 private const val ELLIPSIS = "…"
 
-/**
- * 본문 일치 결과에 보여 줄 짧은 창과 그 안의 강조 범위.
- * [text]는 말줄임을 포함해 [MAX_TEXT_LENGTH] UTF-16 유닛 이하이고, 강조 범위는 [text] 기준 `[start, end)`이며 겹치지 않는다.
- */
 class Snippet private constructor(
     val text: String,
     val highlights: List<Highlight>,
 ) {
     init {
-        require(text.length <= MAX_TEXT_LENGTH) { "스니펫은 말줄임 포함 최대 길이를 넘을 수 없다" }
-        require(highlights.all { it.start in 0 until it.end && it.end <= text.length }) { "강조 범위는 스니펫 안에 있어야 한다" }
+        (text.length <= MAX_TEXT_LENGTH).requireTrue(ErrorCode.LINK_SNIPPET_OVER_MAX)
+        highlights
+            .all { it.start in 0 until it.end && it.end <= text.length }
+            .requireTrue(ErrorCode.LINK_SNIPPET_HIGHLIGHTS_INVALID)
     }
 
     data class Highlight(
@@ -23,10 +23,8 @@ class Snippet private constructor(
     )
 
     companion object {
-        /** 일치어 앞에 남기는 문맥 길이(코드포인트). DB가 자르는 창의 시작이다. */
         const val CONTEXT_BEFORE = 15
 
-        /** DB가 잘라 주는 창의 길이(코드포인트). */
         const val SOURCE_MAX_CODE_POINTS = 96
 
         const val MAX_TEXT_LENGTH = 100
@@ -34,12 +32,6 @@ class Snippet private constructor(
         private const val SHORT_BODY_NUMERATOR = 3
         private const val SHORT_BODY_DENOMINATOR = 10
 
-        /**
-         * DB가 자른 창 [source]와 그 앞뒤가 본문에서 잘렸는지([headCut], [tailCut])로 스니펫을 만든다.
-         * 본문이 100자 이상이면 [source]를 그대로(일치어 앞 문맥 ≤ [CONTEXT_BEFORE]), 미만이면 본문의 30%(최소 일치어 길이)만큼
-         * 일치어를 가운데 둔 창을 쓴다. 말줄임을 붙인 뒤 [MAX_TEXT_LENGTH]를 넘으면 surrogate 쌍을 지켜 자르고 말줄임으로 끝낸다.
-         * 강조 범위는 확정한 [text]에서 찾고, 못 찾으면 비어 있다.
-         */
         fun of(
             source: String,
             headCut: Boolean,
@@ -69,7 +61,6 @@ class Snippet private constructor(
             return Snippet(text = text, highlights = highlightsOf(text = text, keyword = keyword))
         }
 
-        /** 일치어 앞에 `(budget - 일치어 길이) / 2`, 나머지를 뒤에 두고 [budget] 유닛만큼 자른다. 창이 [source]보다 짧으면 잘린 쪽에 말줄임을 붙인다. */
         private fun centeredWindow(
             source: String,
             headCut: Boolean,

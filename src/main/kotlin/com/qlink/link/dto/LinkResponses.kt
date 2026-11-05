@@ -42,7 +42,6 @@ data class GetLinkDetailResponse(
     val content: LinkContentResponse?,
 )
 
-/** 링크 본문 발췌. 본문 전체·수집 상태는 내보내지 않는다. */
 @Serializable
 data class LinkContentResponse(
     val excerpt: String?,

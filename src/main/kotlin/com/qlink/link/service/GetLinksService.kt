@@ -3,6 +3,7 @@ package com.qlink.link.service
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireFalse
+import com.qlink.common.error.requirePresent
 import com.qlink.common.scroll.DEFAULT_SCROLL_SIZE
 import com.qlink.common.scroll.ScrollRequest
 import com.qlink.common.scroll.ScrollResponse
@@ -105,7 +106,6 @@ class GetLinksService(
             )
         }
 
-    /** 검색어가 있으면 메타 일치 여부(similar는 본문 점수까지)가 정렬 키라 커서에 있어야 한다. 검색어가 없으면 기존 검사 그대로다. */
     private fun validateCursorValue(
         value: LinkSearchCursorValue,
         expectedOrder: LinkSearchOrder,
@@ -190,7 +190,7 @@ class GetLinksService(
                     headCut = snippetHeadCut,
                     tailCut = snippetTailCut,
                     keyword = keyword.value,
-                    bodyLength = checkNotNull(snippetBodyLength) { "스니펫 창에는 본문 길이가 있어야 한다" },
+                    bodyLength = snippetBodyLength.requirePresent(ErrorCode.LINK_SNIPPET_BODY_LENGTH_REQUIRED),
                 )
             SnippetResponse(
                 text = snippet.text,

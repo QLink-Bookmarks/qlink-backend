@@ -32,7 +32,6 @@ data class SearchLinksQuery(
     val tagsScore: Double,
     val summaryScore: Double,
     val memoScore: Double,
-    /** `COLLECTED`일 때의 발췌. 그 외 null. */
     val contentExcerpt: String?,
     val isMetadataMatched: Boolean,
     val titleMatched: Boolean,
@@ -42,15 +41,12 @@ data class SearchLinksQuery(
     val memoMatched: Boolean,
     val contentMatched: Boolean,
     val contentScore: Double,
-    /** 본문 일치 행에서 DB가 자른 창(일치어 앞 문맥 ≤15 + 나머지, ≤96 코드포인트). 본문 일치가 아니면 null. */
     val snippetSource: String? = null,
     val snippetHeadCut: Boolean = false,
     val snippetTailCut: Boolean = false,
-    /** 스니펫 창을 자른 본문의 길이(UTF-16). 창과 같은 행·같은 문장에서 읽어 스니펫 예산에 쓴다. */
     val snippetBodyLength: Int? = null,
 )
 
-/** 본문 일치 링크의 스니펫 창. [SearchLinksQuery]의 스니펫 필드를 채운다. */
 data class LinkSnippetQuery(
     val linkId: Long,
     val source: String,
@@ -81,11 +77,8 @@ data class LinkDetailQuery(
     val workModel: String?,
     val createdAt: Instant,
     val favoriteAt: Instant?,
-    /** 본문 행이 있는지(SQL `link_contents.id IS NOT NULL`). */
     val hasContent: Boolean,
-    /** `COLLECTED`일 때의 발췌(SQL CASE). 그 외 null. */
     val contentExcerpt: String?,
-    /** 본문 행이 `PENDING`인지(SQL). */
     val isContentPending: Boolean,
 )
 
@@ -104,8 +97,6 @@ data class LinkSearchCursorValue(
     val tagsScore: Double? = null,
     val summaryScore: Double? = null,
     val memoScore: Double? = null,
-    /** 검색어가 있을 때만: 메타데이터 일치 묶음(정렬 첫 키). */
     val isMetadataMatched: Boolean? = null,
-    /** 검색어가 있을 때만: 본문 유사도(similar 정렬 키). */
     val contentScore: Double? = null,
 )
