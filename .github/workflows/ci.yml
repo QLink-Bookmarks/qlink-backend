@@ -35,7 +35,7 @@ jobs:
           node-version: '24'
 
       - name: Linux Lambda ZIP 생성
-        working-directory: lambda/link-preview
+        working-directory: lambda/link-fetch
         run: npm run package
 
       - name: Gradle 캐싱

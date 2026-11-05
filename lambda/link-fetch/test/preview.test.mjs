@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import http from 'node:http';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
-import { fetchSafe, isPublicIp, readOnce, validateTarget } from '../src/network.mjs';
+import { fetchSafe, isPublicIp, parseRetryAfter, readOnce, UpstreamStatusError, validateTarget } from '../src/network.mjs';
 import { parsePage } from '../src/metadata.mjs';
 import { prepareImage } from '../src/image.mjs';
 import { faviconHash, findObject, objectKey, previewHash, putImage } from '../src/cache.mjs';
@@ -466,4 +466,132 @@ test('production favicon bytes use only the production bucket and key prefix', a
   const result = await handler({ url: 'https://example.com/', mode: 'FAVICON_ONLY', favicon: { base64: png.toString('base64') } });
   assert.equal(result.faviconKey, `prod-favicon-${faviconHash('https://example.com/')}.png`);
   assert.equal(s3.writes[0].Bucket, 'alink-previews-prod');
+});
+
+// Network options added for the content function are opt-in: preview calls keep their request and result shape.
+const localFetch = (port, options) => fetchSafe('http://public.example/page', {
+  resolveHost: async () => [{ address: '8.8.8.8', family: 4 }],
+  requestOnce: (target, requestOptions) => readOnce(localTarget(port, target.url.pathname), requestOptions),
+  ...options,
+});
+
+test('preview requests keep their headers and result fields when the content options are absent', async () => {
+  let headers;
+  const routes = { '/page': (request, response) => {
+    headers = request.headers;
+    response.setHeader('content-type', 'text/html');
+    response.setHeader('x-robots-tag', 'noindex');
+    response.end('<html></html>');
+  } };
+  await withServer(routes, async (port) => {
+    const result = await localFetch(port, { maxBytes: 100, truncate: true });
+    assert.deepEqual(Object.keys(result).sort(), ['body', 'contentEncoding', 'contentType', 'finalUrl', 'isBodyTruncated', 'status']);
+    assert.equal(result.isBodyTruncated, false);
+  });
+  assert.equal(headers.accept, 'text/html,image/*;q=0.8,*/*;q=0.1');
+  assert.equal(headers['accept-language'], undefined);
+  assert.equal(headers['user-agent'], 'ALinkPreviewBot/1.0');
+});
+
+test('content request headers are limited to accept and accept-language, and response headers to the allow list', async () => {
+  let headers;
+  const routes = { '/page': (request, response) => {
+    headers = request.headers;
+    response.setHeader('content-type', 'text/html');
+    response.setHeader('x-robots-tag', 'noindex');
+    response.setHeader('set-cookie', 'session=secret');
+    response.end('<html>1234567890</html>');
+  } };
+  await withServer(routes, async (port) => {
+    const result = await localFetch(port, {
+      maxBytes: 10, truncate: true,
+      headers: { accept: 'text/html', 'accept-language': 'ko-KR', cookie: 'a=b', 'user-agent': 'other', 'accept-encoding': 'gzip' },
+      wantHeaders: ['x-robots-tag', 'set-cookie'],
+    });
+    assert.deepEqual(result.headers, { 'x-robots-tag': 'noindex' });
+    assert.equal(result.isBodyTruncated, true);
+    assert.equal(result.body.length, 10);
+  });
+  assert.equal(headers.accept, 'text/html');
+  assert.equal(headers['accept-language'], 'ko-KR');
+  assert.equal(headers.cookie, undefined);
+  assert.equal(headers['user-agent'], 'ALinkPreviewBot/1.0');
+  assert.equal(headers['accept-encoding'], 'identity');
+});
+
+test('a final non-2xx response rejects with its status and Retry-After, and the preview still returns empty', async () => {
+  const routes = { '/page': (_request, response) => {
+    response.statusCode = 429;
+    response.setHeader('retry-after', '90');
+    response.end('rate limited body');
+  } };
+  await withServer(routes, async (port) => {
+    await assert.rejects(localFetch(port, { maxBytes: 100 }), (error) =>
+      error instanceof UpstreamStatusError && error.status === 429 && error.retryAfterSeconds === 90 && error.name === 'Error');
+    const handler = createHandler({
+      environment: 'dev', bucket: 'alink-previews-dev', s3: new FakeS3(), logger: { log: () => {} },
+      fetcher: (url, options) => localFetch(port, options),
+    });
+    const result = await handler({ url: 'http://public.example/page', mode: 'PREVIEW', traceId: 'status' });
+    assert.deepEqual(result, { title: null, thumbnailKey: null, faviconKey: null, isVideo: false });
+  });
+});
+
+test('Retry-After accepts seconds and HTTP dates and ignores anything else', () => {
+  const now = Date.parse('2026-11-05T00:00:00Z');
+  assert.equal(parseRetryAfter('120', now), 120);
+  assert.equal(parseRetryAfter('Thu, 05 Nov 2026 00:02:00 GMT', now), 120);
+  assert.equal(parseRetryAfter('Wed, 04 Nov 2026 00:00:00 GMT', now), 0);
+  assert.equal(parseRetryAfter('soon', now), null);
+  assert.equal(parseRetryAfter(undefined, now), null);
+});
+
+test('a deadline signal stops a slow body, a slow DNS answer and later hops', async () => {
+  const routes = { '/page': (_request, response) => { response.setHeader('content-type', 'text/html'); response.write('<p>'); } };
+  await withServer(routes, async (port) => {
+    await assert.rejects(localFetch(port, { maxBytes: 100, deadlineSignal: AbortSignal.timeout(50) }),
+      (error) => error.reason === 'TIMEOUT');
+  });
+  const neverResolves = () => new Promise(() => {});
+  await assert.rejects(fetchSafe('https://example.com/', { maxBytes: 100, resolveHost: neverResolves, deadlineSignal: AbortSignal.timeout(50) }),
+    (error) => error.reason === 'TIMEOUT');
+  const aborted = AbortSignal.abort();
+  let requested = false;
+  await assert.rejects(fetchSafe('https://example.com/', {
+    maxBytes: 100, deadlineSignal: aborted,
+    resolveHost: async () => [{ address: '8.8.8.8', family: 4 }],
+    requestOnce: async () => { requested = true; return { status: 200 }; },
+  }), (error) => error.reason === 'TIMEOUT');
+  assert.equal(requested, false);
+});
+
+test('denied targets and redirect limits are told apart by reason', async () => {
+  await assert.rejects(validateTarget('http://10.0.0.1/'), (error) => error.reason === 'DENIED');
+  await assert.rejects(fetchSafe('https://example.com/', {
+    maxBytes: 100,
+    resolveHost: async () => [{ address: '8.8.8.8', family: 4 }],
+    requestOnce: async () => ({ status: 302, location: '/again' }),
+  }), (error) => error.reason === 'REDIRECTS');
+});
+
+test('only a denied target is logged as blocked; a DNS failure is logged as failed', async () => {
+  const entries = [];
+  const dnsFailure = Object.assign(new Error('getaddrinfo ENOTFOUND'), { code: 'ENOTFOUND' });
+  await assert.rejects(fetchSafe('https://missing.example/', {
+    maxBytes: 100, onRequest: (entry) => entries.push(entry), resolveHost: async () => { throw dnsFailure; },
+  }));
+  await assert.rejects(fetchSafe('http://10.0.0.1/', { maxBytes: 100, onRequest: (entry) => entries.push(entry) }));
+  assert.deepEqual(entries.map((entry) => entry.status), ['FAILED', 'BLOCKED']);
+});
+
+test('repeated X-Robots-Tag headers come back one per line', async () => {
+  const routes = { '/page': (_request, response) => {
+    response.setHeader('content-type', 'text/html');
+    response.setHeader('x-robots-tag', ['bingbot: nofollow', 'noindex']);
+    response.end('<html></html>');
+  } };
+  await withServer(routes, async (port) => {
+    const result = await localFetch(port, { maxBytes: 100, wantHeaders: ['x-robots-tag'] });
+    assert.equal(result.headers['x-robots-tag'], 'bingbot: nofollow\nnoindex');
+  });
 });

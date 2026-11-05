@@ -214,9 +214,9 @@ class LinkPreviewLambdaIntegrationTest :
         Given("실제 배포 ZIP") {
             When("Linux에서 Lambda를 기동하면") {
                 Then("핸들러와 네이티브 이미지 처리 라이브러리로 실제 favicon을 저장한다") {
-                    val packagePath = Path.of("lambda/link-preview/build/link-preview.zip")
+                    val packagePath = Path.of("lambda/link-fetch/build/link-fetch.zip")
                     check(Files.exists(packagePath)) { "Build the Lambda ZIP with npm run package before running service tests" }
-                    localStack.copyFileToContainer(MountableFile.forHostPath(packagePath), "/tmp/link-preview.zip")
+                    localStack.copyFileToContainer(MountableFile.forHostPath(packagePath), "/tmp/link-fetch.zip")
                     localStack
                         .execInContainer(
                             "awslocal",
@@ -231,7 +231,7 @@ class LinkPreviewLambdaIntegrationTest :
                             "--handler",
                             "index.handler",
                             "--zip-file",
-                            "fileb:///tmp/link-preview.zip",
+                            "fileb:///tmp/link-fetch.zip",
                             "--environment",
                             "Variables={APP_ENV=dev,PREVIEW_BUCKET=alink-previews-dev}",
                         ).exitCode shouldBe 0
