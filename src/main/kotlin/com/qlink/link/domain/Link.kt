@@ -47,6 +47,8 @@ class Link(
 
     fun isOwnedBy(userId: Long): Boolean = ownerId == userId
 
+    fun hasUrl(url: String): Boolean = this.url == url
+
     fun hasFolderAssignmentChangedSince(revision: Long): Boolean = folderAssignmentRevision != revision
 
     fun validateOwner(ownerId: Long) {

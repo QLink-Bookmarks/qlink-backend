@@ -24,6 +24,8 @@ import com.qlink.foldermember.repository.DbFolderMemberRepository
 import com.qlink.foldermember.repository.FolderMemberRepository
 import com.qlink.link.repository.DbLinkRepository
 import com.qlink.link.repository.LinkRepository
+import com.qlink.linkcontent.repository.DbLinkContentRepository
+import com.qlink.linkcontent.repository.LinkContentRepository
 import com.qlink.notification.repository.DbNotificationRepository
 import com.qlink.notification.repository.NotificationRepository
 import com.qlink.post.repository.DbPostRepository
@@ -98,5 +100,9 @@ fun repositoryModule() =
 
         single<BookmarkImportRepository> {
             DbBookmarkImportRepository()
+        }
+
+        single<LinkContentRepository> {
+            DbLinkContentRepository()
         }
     }
