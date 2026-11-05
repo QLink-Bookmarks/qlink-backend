@@ -9,6 +9,7 @@ import com.qlink.notification.domain.NotificationContext
 import com.qlink.notification.repository.NotificationRepository
 import com.qlink.notification.service.SendNotificationService
 import com.qlink.todo.repository.TodoRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -96,20 +97,25 @@ class TaskScheduler(
     }
 
     private suspend fun schedulePendingForUtcDate(date: LocalDate) {
-        val bounds = date.utcBounds()
-        val notifications =
-            tx.required {
-                createMissingTodoNotifications(
-                    startInclusive = bounds.first,
-                    endExclusive = bounds.second,
-                )
-                notificationRepository.findPendingBetween(
-                    startInclusive = bounds.first,
-                    endExclusive = bounds.second,
-                )
-            }
+        runCatching {
+            val bounds = date.utcBounds()
+            val notifications =
+                tx.required {
+                    createMissingTodoNotifications(
+                        startInclusive = bounds.first,
+                        endExclusive = bounds.second,
+                    )
+                    notificationRepository.findPendingBetween(
+                        startInclusive = bounds.first,
+                        endExclusive = bounds.second,
+                    )
+                }
 
-        notifications.forEach { schedule(it.id!!) }
+            notifications.forEach { schedule(it.id!!) }
+        }.onFailure { error ->
+            if (error is CancellationException) throw error
+            log.warn("[TASK_SCHEDULER] Failed to schedule pending notifications. date=$date", error)
+        }
     }
 
     private suspend fun createMissingTodoNotifications(
@@ -120,7 +126,8 @@ class TaskScheduler(
             .findAllWithReminderBetween(
                 startInclusive = startInclusive,
                 endExclusive = endExclusive,
-            ).forEach { todo ->
+            ).sortedBy { it.linkId }
+            .forEach { todo ->
                 val todoId = todo.id ?: return@forEach
                 val alreadyExists =
                     notificationRepository
@@ -130,7 +137,7 @@ class TaskScheduler(
                         ).any { it.isFrom(todo) }
                 if (alreadyExists) return@forEach
 
-                val link = linkRepository.findById(todo.linkId) ?: return@forEach
+                val link = linkRepository.findByIdForShare(todo.linkId) ?: return@forEach
                 Notification
                     .todo(todo = todo, linkTitle = link.title, linkUrl = link.url)
                     ?.let { notificationRepository.insert(it) }

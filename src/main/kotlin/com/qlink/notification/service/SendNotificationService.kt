@@ -33,9 +33,10 @@ class SendNotificationService(
 
         val updatedNotification =
             tx.required {
+                val pending = notificationRepository.findPendingById(notificationId) ?: return@required null
                 val savedNotification =
                     notificationRepository.update(
-                        target.notification.recordSendResult(
+                        pending.recordSendResult(
                             handledAt = Clock.System.now(),
                             successCount = successCount,
                             failureCount = failureCount,
@@ -50,9 +51,9 @@ class SendNotificationService(
             }
 
         return SendNotificationResult(
-            notificationId = updatedNotification.id!!,
-            successCount = updatedNotification.successCount,
-            failureCount = updatedNotification.failureCount,
+            notificationId = notificationId,
+            successCount = updatedNotification?.successCount ?: successCount,
+            failureCount = updatedNotification?.failureCount ?: failureCount,
         )
     }
 
@@ -106,8 +107,7 @@ class SendNotificationService(
         }
 
         val todo =
-            todoRepository.findById(notification.contextId)
-                ?: throw BusinessException(ErrorCode.TODO_NOT_FOUND)
+            todoRepository.findByIdForShare(notification.contextId) ?: return
         if (!todo.hasRepeat) {
             return
         }

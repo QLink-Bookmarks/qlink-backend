@@ -20,6 +20,7 @@ class LinkAiFolderDomainServiceTest :
                     LinkAiFolderDomainService.resolve(
                         link = link,
                         startedFolderAssignmentRevision = revision,
+                        candidateFolderId = candidate.id,
                         candidate = candidate,
                         member = null,
                     )
@@ -32,16 +33,40 @@ class LinkAiFolderDomainServiceTest :
                     LinkAiFolderDomainService.resolve(
                         link = link,
                         startedFolderAssignmentRevision = revision,
+                        candidateFolderId = shared.id,
                         candidate = shared,
                         member = member,
                     )
                 Then("candidate를 선택한다") { folderId shouldBe shared.id }
+            }
+            When("revision이 같고 AI가 미분류를 선택하면") {
+                val folderId =
+                    LinkAiFolderDomainService.resolve(
+                        link = link,
+                        startedFolderAssignmentRevision = revision,
+                        candidateFolderId = null,
+                        candidate = null,
+                        member = null,
+                    )
+                Then("기존 폴더에서 미분류로 변경한다") { folderId shouldBe null }
+            }
+            When("revision이 바뀌고 AI가 미분류를 선택하면") {
+                val folderId =
+                    LinkAiFolderDomainService.resolve(
+                        link = link,
+                        startedFolderAssignmentRevision = revision - 1,
+                        candidateFolderId = null,
+                        candidate = null,
+                        member = null,
+                    )
+                Then("최신 폴더 배정을 보존한다") { folderId shouldBe currentId }
             }
             When("revision이 바뀌었으면") {
                 val folderId =
                     LinkAiFolderDomainService.resolve(
                         link = link,
                         startedFolderAssignmentRevision = revision - 1,
+                        candidateFolderId = candidate.id,
                         candidate = candidate,
                         member = null,
                     )
@@ -53,6 +78,7 @@ class LinkAiFolderDomainServiceTest :
                     LinkAiFolderDomainService.resolve(
                         link = detached,
                         startedFolderAssignmentRevision = revision - 1,
+                        candidateFolderId = candidate.id,
                         candidate = candidate,
                         member = null,
                     )
@@ -63,6 +89,7 @@ class LinkAiFolderDomainServiceTest :
                     LinkAiFolderDomainService.resolve(
                         link = link,
                         startedFolderAssignmentRevision = revision,
+                        candidateFolderId = RandomFixture.randomId(),
                         candidate = null,
                         member = null,
                     )
@@ -74,6 +101,7 @@ class LinkAiFolderDomainServiceTest :
                     LinkAiFolderDomainService.resolve(
                         link = link,
                         startedFolderAssignmentRevision = revision,
+                        candidateFolderId = shared.id,
                         candidate = shared,
                         member = null,
                     )
@@ -91,6 +119,7 @@ class LinkAiFolderDomainServiceTest :
                         LinkAiFolderDomainService.resolve(
                             link = link,
                             startedFolderAssignmentRevision = revision,
+                            candidateFolderId = shared.id,
                             candidate = shared,
                             member = member,
                         )
@@ -104,6 +133,7 @@ class LinkAiFolderDomainServiceTest :
                     LinkAiFolderDomainService.resolve(
                         link = link,
                         startedFolderAssignmentRevision = revision,
+                        candidateFolderId = private.id,
                         candidate = private,
                         member = member,
                     )

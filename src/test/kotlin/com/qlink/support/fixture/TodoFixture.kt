@@ -7,6 +7,7 @@ import com.qlink.todo.dto.UpdateTodoRequest
 import java.time.LocalTime
 import java.time.ZoneId
 import java.util.concurrent.TimeUnit
+import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlin.time.toKotlinInstant
 
@@ -33,6 +34,21 @@ object TodoFixture {
             repeatTime = repeatTime,
             repeatTimezone = repeatTimezone,
             completedAt = completedAt,
+        )
+
+    fun createRescheduledTodoOf(
+        todo: Todo,
+        reminderAt: Instant,
+    ): Todo =
+        todo.update(
+            linkId = todo.linkId,
+            title = todo.title,
+            reminderAt = reminderAt,
+            repeatUntil = todo.repeatUntil,
+            repeatDays = todo.repeatDays,
+            repeatTime = todo.repeatTime?.toString(),
+            repeatTimezone = todo.repeatTimezone?.id,
+            now = Clock.System.now(),
         )
 
     fun createOverdueCompletedTodoOf(
