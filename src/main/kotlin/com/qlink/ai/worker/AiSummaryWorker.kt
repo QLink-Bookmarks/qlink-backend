@@ -21,7 +21,6 @@ import com.qlink.ai.service.FailAiSummaryService
 import com.qlink.auth.domain.Role
 import com.qlink.common.crypto.ApiKeyCipher
 import com.qlink.common.error.ErrorCode
-import com.qlink.common.error.requirePresent
 import com.qlink.common.error.requireTrue
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.config.WorkerConfig
@@ -68,13 +67,8 @@ class AiSummaryWorker(
 ) {
     private val dispatcher = Dispatchers.IO.limitedParallelism(config.aiSummaryParallelism, DISPATCHER_NAME)
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
-    private val inFlight =
-        meterRegistry
-            .gauge(
-                IN_FLIGHT_METRIC,
-                AtomicInteger(0),
-            ).requirePresent(ErrorCode.COMMON_METRIC_REGISTRATION_FAILED)
-    private val pending = meterRegistry.gauge(PENDING_METRIC, AtomicLong(0)).requirePresent(ErrorCode.COMMON_METRIC_REGISTRATION_FAILED)
+    private val inFlight = AtomicInteger(0).also { meterRegistry.gauge(IN_FLIGHT_METRIC, it) }
+    private val pending = AtomicLong(0).also { meterRegistry.gauge(PENDING_METRIC, it) }
 
     fun start() {
         scope.launch(CoroutineName("$DISPATCHER_NAME-consumer")) {

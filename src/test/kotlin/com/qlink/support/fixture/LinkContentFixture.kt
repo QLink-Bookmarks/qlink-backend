@@ -42,7 +42,6 @@ object LinkContentFixture {
             isTruncated = isTruncated,
         )
 
-    /** 새로 만든(미클레임) PENDING 행. id 없음. */
     fun createPendingContentOf(
         linkId: Long,
         sourceUrl: String = RandomFixture.randomUrl(),
@@ -56,7 +55,6 @@ object LinkContentFixture {
             now = nextAttemptAt,
         )
 
-    /** 클레임된 PENDING 행(id·claimToken·startedAt 있음). */
     fun createClaimedContentOf(
         linkId: Long = RandomFixture.randomId(),
         id: Long = RandomFixture.randomId(),
@@ -83,7 +81,6 @@ object LinkContentFixture {
             nextAttemptAt = nextAttemptAt,
         )
 
-    /** COLLECTED 행. [excerpt]를 주지 않으면 [complete]가 만든 발췌를 쓴다. */
     fun createCollectedContentOf(
         linkId: Long = RandomFixture.randomId(),
         id: Long = RandomFixture.randomId(),
@@ -95,7 +92,6 @@ object LinkContentFixture {
         createClaimedContentOf(linkId = linkId, id = id, sourceUrl = sourceUrl, generation = generation)
             .complete(page = createCollectedPage(text = text), now = collectedAt)
 
-    /** 상태·발췌를 직접 정해 init 검사를 시험할 때 쓰는 행. */
     fun createContentWithExcerpt(
         status: ContentStatus,
         text: String?,

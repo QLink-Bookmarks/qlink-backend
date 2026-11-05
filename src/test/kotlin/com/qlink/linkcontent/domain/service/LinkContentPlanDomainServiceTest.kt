@@ -22,7 +22,7 @@ class LinkContentPlanDomainServiceTest :
             When("본문 행을 계획하면") {
                 val plan = { LinkContentPlanDomainService.forUrlChange(current = null, savedLink = link, now = now) }
 
-                Then("ErrorCode.LINK_CONTENT_SAVED_LINK_ID_REQUIRED로 거부한다") {
+                Then("계획이 거부된다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_CONTENT_SAVED_LINK_ID_REQUIRED.message) { plan() }
                 }
             }
