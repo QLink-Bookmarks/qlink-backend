@@ -15,6 +15,7 @@ import com.qlink.ai.repository.AiProviderRepository
 import com.qlink.ai.repository.AvailableModelRepository
 import com.qlink.ai.repository.UserProviderRepository
 import com.qlink.ai.service.CompleteAiSummaryService
+import com.qlink.ai.service.FailAiSummaryService
 import com.qlink.ai.worker.AiSummaryDispatcher
 import com.qlink.ai.worker.AiSummaryWorker
 import com.qlink.auth.domain.Role
@@ -65,6 +66,15 @@ fun aiTestModule() =
         }
 
         single {
+            FailAiSummaryService(
+                tx = get(),
+                aiJobRepository = get(),
+                linkRepository = get(),
+                urlResolver = get(),
+            )
+        }
+
+        single {
             AiSummaryWorker(
                 tx = get(),
                 aiJobRepository = get(),
@@ -75,10 +85,10 @@ fun aiTestModule() =
                 folderRepository = get(),
                 linkRepository = get(),
                 completeAiSummaryService = get(),
+                failAiSummaryService = get(),
                 aiClientRouter = get(),
                 apiKeyCipher = get(),
                 channel = get(),
-                urlResolver = get(),
                 config =
                     WorkerConfig(
                         pollInterval = 10.minutes,

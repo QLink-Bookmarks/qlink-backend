@@ -10,6 +10,9 @@ import com.qlink.link.dto.CreateLinkRequest
 import com.qlink.link.dto.CreateLinkTodoRequest
 import com.qlink.link.repository.LinkRepository
 import com.qlink.link.service.CreateLinkService
+import com.qlink.linkcontent.domain.ContentPriority
+import com.qlink.linkcontent.domain.ContentStatus
+import com.qlink.linkcontent.repository.LinkContentRepository
 import com.qlink.notification.domain.NotificationContext
 import com.qlink.notification.repository.NotificationRepository
 import com.qlink.support.BaseServiceTest
@@ -43,6 +46,7 @@ class CreateLinkServiceTest :
         val folderMemberRepository = koinGet<FolderMemberRepository>()
         val todoRepository = koinGet<TodoRepository>()
         val notificationRepository = koinGet<NotificationRepository>()
+        val linkContentRepository = koinGet<LinkContentRepository>()
 
         Given("링크 생성 서비스 테스트") {
             lateinit var user: User
@@ -83,6 +87,28 @@ class CreateLinkServiceTest :
                     actual.faviconUrl shouldBe request.faviconUrl
                     actual.isVideo shouldBe request.isVideo
                     actual.tags shouldBe expectedTags
+                }
+            }
+
+            When("링크를 만들면") {
+                val request =
+                    CreateLinkRequest(
+                        url = RandomFixture.randomUrl(),
+                        title = RandomFixture.randomSentenceWithMax(300),
+                        sourceType = LinkFixture.randomRequestSourceType(),
+                        tags = RandomFixture.randomSentenceList(),
+                    )
+
+                Then("그 링크의 본문 행이 PENDING·INTERACTIVE로 1개 있다") {
+                    val created = createLinkService.createLink(user.id!!, request)
+                    val content = linkContentRepository.findByLinkId(created.id)
+
+                    content shouldNotBe null
+                    content!!.status shouldBe ContentStatus.PENDING
+                    content.priority shouldBe ContentPriority.INTERACTIVE
+                    content.sourceUrl shouldBe request.url
+                    content.generation shouldBe 0
+                    content.attempt shouldBe 0
                 }
             }
 

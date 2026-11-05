@@ -18,6 +18,10 @@ import com.qlink.common.error.requireFalse
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.repository.LinkRepository
+import com.qlink.linkcontent.domain.ContentPriority
+import com.qlink.linkcontent.domain.LinkContent
+import com.qlink.linkcontent.repository.LinkContentRepository
+import com.qlink.linkcontent.worker.LinkContentSignal
 import com.qlink.user.repository.UserRepository
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
@@ -30,6 +34,8 @@ class CreateImportService(
     private val linkRepository: LinkRepository,
     private val bookmarkImportRepository: BookmarkImportRepository,
     private val importThumbnailSignal: ImportThumbnailSignal,
+    private val linkContentRepository: LinkContentRepository,
+    private val linkContentSignal: LinkContentSignal,
 ) {
     suspend fun createImport(
         loginId: Long,
@@ -37,7 +43,10 @@ class CreateImportService(
     ): ImportSummary =
         tx
             .required { saveImport(loginId, request) }
-            .also { importThumbnailSignal.wake() }
+            .also {
+                importThumbnailSignal.wake()
+                linkContentSignal.wake()
+            }
 
     private suspend fun saveImport(
         loginId: Long,
@@ -61,13 +70,14 @@ class CreateImportService(
         loginId: Long,
         request: CreateImportRequest,
     ): ImportSummary {
+        val now = Clock.System.now()
         val plan =
             ImportPlanDomainService.plan(
                 source = request.toSource(),
                 ownerId = loginId,
                 myFolders = folderRepository.findAllByOwnerId(loginId),
                 myUrls = linkRepository.findAllUrlsByOwnerId(loginId),
-                now = Clock.System.now(),
+                now = now,
             )
         val bookmarkImport =
             bookmarkImportRepository.insert(
@@ -84,6 +94,16 @@ class CreateImportService(
         val importId = bookmarkImport.id!!
         val savedFolders = folderRepository.insertAll(ImportPlanDomainService.newFolders(plan))
         val savedLinks = linkRepository.insertAll(ImportPlanDomainService.links(plan = plan, savedNewFolders = savedFolders))
+        linkContentRepository.insertAll(
+            savedLinks.map {
+                LinkContent.create(
+                    linkId = it.id!!,
+                    sourceUrl = it.url,
+                    priority = ContentPriority.BULK,
+                    now = now,
+                )
+            },
+        )
         val savedImportFolders =
             bookmarkImportRepository.insertFolders(
                 ImportPlanDomainService.importFolders(plan = plan, importId = importId, savedNewFolders = savedFolders),

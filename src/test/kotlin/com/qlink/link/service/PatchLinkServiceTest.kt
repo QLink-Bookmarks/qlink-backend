@@ -6,7 +6,9 @@ import com.qlink.common.transaction.TransactionRunner
 import com.qlink.folder.domain.Folder
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.domain.Link
+import com.qlink.link.domain.LinkStatus
 import com.qlink.link.repository.LinkRepository
+import com.qlink.link.repository.table.Links
 import com.qlink.notification.domain.NotificationContext
 import com.qlink.notification.repository.NotificationRepository
 import com.qlink.notification.service.ScheduleTodoNotificationService
@@ -28,9 +30,22 @@ import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldContain
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeout
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.select
+import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import java.util.concurrent.TimeUnit
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toKotlinInstant
 
 class PatchLinkServiceTest :
@@ -134,6 +149,35 @@ class PatchLinkServiceTest :
                     actual.thumbnailUrl shouldBe link.thumbnailUrl
                     actual.faviconUrl shouldBe link.faviconUrl
                     actual.isVideo shouldBe link.isVideo
+                }
+            }
+
+            When("메모·태그·폴더를 바꾸면") {
+                val newMemo = RandomFixture.randomSentenceWithMax(1000)
+                val newTags = listOf("patched-${RandomFixture.randomId()}", "tag-${RandomFixture.randomId()}")
+                val patch =
+                    suspend {
+                        patchLinkService.patchLink(
+                            user.id!!,
+                            link.id!!,
+                            LinkFixture.createPatchLinkRequest(folderId = 0L, memo = newMemo, tags = newTags),
+                        )
+                    }
+
+                Then("links.url은 그대로이고 search_text에 새 메모·태그와 기존 URL이 모두 들어 있다") {
+                    patch()
+                    val actual = linkRepository.findById(link.id!!)
+                    val searchText = searchTextOf(link.id!!)
+
+                    actual!!.url shouldBe link.url
+                    actual.folderId shouldBe null
+                    actual.memo shouldBe newMemo
+                    actual.tags shouldBe newTags
+                    searchText shouldContain link.url
+                    searchText shouldContain newMemo
+                    searchText shouldContain newTags.joinToString(" ")
+                    searchText shouldBe
+                        listOf(link.title, link.url, newTags.joinToString(" "), link.summary.orEmpty(), newMemo).joinToString(" ")
                 }
             }
 
@@ -440,4 +484,102 @@ class PatchLinkServiceTest :
                 }
             }
         }
+        Given("다른 트랜잭션이 링크를 잠그고 AI 결과(태그)를 쓰는 중인 커밋된 링크") {
+            When("메모만 PATCH하면") {
+                val newMemo = RandomFixture.randomSentenceWithMax(1000)
+                val aiTags = listOf("ai-${RandomFixture.randomId()}")
+                val patchDuringAiWrite =
+                    suspend {
+                        CoroutineScope(Dispatchers.IO)
+                            .async {
+                                val (owner, link) =
+                                    tx.required {
+                                        val owner = userRepository.insert(UserFixture.createRandomValidUser())
+                                        owner to
+                                            linkRepository.insert(
+                                                LinkFixture.createRandomLinkOf(ownerId = owner.id!!, tags = listOf("before")),
+                                            )
+                                    }
+                                try {
+                                    runWhileLinkLocked(
+                                        tx = tx,
+                                        holdLock = {
+                                            linkRepository.findByIdForUpdate(link.id!!)
+                                            linkRepository.updateAiResult(
+                                                linkId = link.id!!,
+                                                folderId = link.folderId,
+                                                title = link.title,
+                                                summary = link.summary,
+                                                tags = aiTags,
+                                                status = LinkStatus.A,
+                                                workModelId = null,
+                                            )
+                                        },
+                                        action = {
+                                            patchLinkService.patchLink(
+                                                owner.id!!,
+                                                link.id!!,
+                                                LinkFixture.createPatchLinkRequest(memo = newMemo),
+                                            )
+                                        },
+                                    )
+                                    tx.readOnly { linkRepository.findById(link.id!!)!! }
+                                } finally {
+                                    tx.required { userRepository.deleteById(owner.id!!) }
+                                }
+                            }.await()
+                    }
+
+                Then("잠금을 기다린 뒤 최신 태그를 지키고 메모만 바꾼다") {
+                    val actual = patchDuringAiWrite()
+
+                    actual.tags shouldBe aiTags
+                    actual.status shouldBe LinkStatus.A
+                    actual.memo shouldBe newMemo
+                }
+            }
+        }
     })
+
+private fun searchTextOf(linkId: Long): String =
+    Links
+        .select(Links.searchText)
+        .where { Links.id eq linkId }
+        .single()[Links.searchText]
+
+/**
+ * 커밋된 데이터 위에서 [holdLock]이 다른 트랜잭션으로 링크 행을 잠근 채 머무는 동안 [action]을 시작하고,
+ * [action]이 잠금을 기다리기 시작한 뒤에야 그 트랜잭션을 커밋한다.
+ */
+private suspend fun <T> runWhileLinkLocked(
+    tx: TransactionRunner,
+    holdLock: suspend () -> Unit,
+    action: suspend () -> T,
+): T =
+    coroutineScope {
+        val locked = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        val competitor =
+            async {
+                tx.required {
+                    holdLock()
+                    locked.complete(Unit)
+                    release.await()
+                }
+            }
+        locked.await()
+        val result = async { action() }
+        withTimeout(10.seconds) {
+            while (tx.readOnly { countSessionsWaitingOnLock() } == 0) {
+                delay(20.milliseconds)
+            }
+        }
+        release.complete(Unit)
+        competitor.await()
+        result.await()
+    }
+
+private fun countSessionsWaitingOnLock(): Int =
+    TransactionManager.current().exec(
+        "SELECT count(*) FROM pg_stat_activity WHERE wait_event_type = 'Lock' AND datname = current_database()",
+    ) { it.takeIf { row -> row.next() }?.getInt(1) } ?: 0

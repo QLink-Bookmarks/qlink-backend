@@ -7,9 +7,11 @@ import com.qlink.common.search.coalesceText
 import com.qlink.common.search.doubleLiteral
 import com.qlink.common.search.longLiteral
 import com.qlink.common.search.lowerText
+import com.qlink.common.search.textLiteral
 import com.qlink.folder.repository.table.Folders
 import com.qlink.foldermember.repository.table.FolderMembers
 import com.qlink.link.domain.Link
+import com.qlink.link.domain.LinkStatus
 import com.qlink.link.dto.LinkDetailQuery
 import com.qlink.link.dto.LinkSearchCursor
 import com.qlink.link.dto.LinkSearchCursorValue
@@ -28,6 +30,7 @@ import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.alias
 import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.concat
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greater
 import org.jetbrains.exposed.v1.core.inList
@@ -350,6 +353,89 @@ class DbLinkRepository : LinkRepository {
             }.single()
             .toLinkDomain()
 
+    override suspend fun updateFavorite(
+        linkId: Long,
+        favoriteAt: Instant?,
+    ) {
+        Links.update(where = { Links.id eq linkId }) {
+            it[Links.favoriteAt] = favoriteAt?.toJavaInstant()
+            it.refreshUpdatedAt()
+        }
+    }
+
+    override suspend fun updatePatchFields(
+        linkId: Long,
+        folderId: Long?,
+        memo: String?,
+        tags: List<String>,
+    ): Link =
+        Links
+            .updateReturning(where = { Links.id eq linkId }) {
+                it[Links.folderId] = folderId
+                it[Links.memo] = memo
+                it[Links.tags] = tags
+                it[Links.searchText] =
+                    searchTextOf(
+                        title = Links.title,
+                        url = Links.url,
+                        tags = textLiteral(tags.joinToString(" ")),
+                        summary = coalesceText(Links.summary),
+                        memo = textLiteral(memo.orEmpty()),
+                    )
+                it.refreshUpdatedAt()
+            }.single()
+            .toLinkDomain()
+
+    override suspend fun updateAiResult(
+        linkId: Long,
+        folderId: Long?,
+        title: String,
+        summary: String?,
+        tags: List<String>,
+        status: LinkStatus,
+        workModelId: Long?,
+    ) {
+        Links.update(where = { Links.id eq linkId }) {
+            it[Links.folderId] = folderId
+            it[Links.title] = title
+            it[Links.summary] = summary
+            it[Links.tags] = tags
+            it[Links.status] = status
+            it[Links.workModelId] = workModelId
+            it[Links.searchText] =
+                searchTextOf(
+                    title = textLiteral(title),
+                    url = Links.url,
+                    tags = textLiteral(tags.joinToString(" ")),
+                    summary = textLiteral(summary.orEmpty()),
+                    memo = coalesceText(Links.memo),
+                )
+            it.refreshUpdatedAt()
+        }
+    }
+
+    override suspend fun updateAiFailure(
+        linkId: Long,
+        title: String,
+        summary: String?,
+        status: LinkStatus,
+    ) {
+        Links.update(where = { Links.id eq linkId }) {
+            it[Links.title] = title
+            it[Links.summary] = summary
+            it[Links.status] = status
+            it[Links.searchText] =
+                searchTextOf(
+                    title = textLiteral(title),
+                    url = Links.url,
+                    tags = arrayToString(Links.tags, " "),
+                    summary = textLiteral(summary.orEmpty()),
+                    memo = coalesceText(Links.memo),
+                )
+            it.refreshUpdatedAt()
+        }
+    }
+
     override suspend fun updatePreview(link: Link): Boolean =
         Links.update(
             where = { (Links.id eq link.id!!) and Links.thumbnailUrl.isNull() and Links.faviconUrl.isNull() },
@@ -384,6 +470,18 @@ class DbLinkRepository : LinkRepository {
     override suspend fun deleteAllByIds(linkIds: List<Long>) {
         Links.deleteWhere { id inList linkIds }
     }
+
+    /**
+     * `links.search_text`를 SQL에서 만든다. 테이블 매핑의 `Link.searchText()`와 같은 순서·구분자(공백)다.
+     * UPDATE의 SET 식은 갱신 전 행을 읽으므로, 이번에 쓰는 필드는 새 값(파라미터)으로, 쓰지 않는 필드는 컬럼으로 넘긴다.
+     */
+    private fun searchTextOf(
+        title: Expression<*>,
+        url: Expression<*>,
+        tags: Expression<*>,
+        summary: Expression<*>,
+        memo: Expression<*>,
+    ): Expression<String> = concat(separator = " ", expr = listOf(title, url, tags, summary, memo))
 
     private fun scoreExpression(
         keyword: String?,

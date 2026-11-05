@@ -17,6 +17,7 @@ import com.qlink.image.service.PreviewImageUrlResolver
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.repository.LinkRepository
+import com.qlink.link.repository.table.Links
 import com.qlink.notification.domain.Notification
 import com.qlink.notification.domain.NotificationContext
 import com.qlink.notification.repository.NotificationRepository
@@ -40,6 +41,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.select
 import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlin.time.Clock
@@ -118,6 +120,7 @@ class CompleteAiSummaryServiceTest :
                 val actual = linkRepository.findById(link.id!!)!!
                 actual.id shouldBe link.id
                 actual.ownerId shouldBe link.ownerId
+                actual.url shouldBe link.url
                 actual.folderId shouldBe folderId
                 actual.title shouldBe completion.response.title
                 actual.summary shouldBe completion.response.summary
@@ -126,6 +129,16 @@ class CompleteAiSummaryServiceTest :
                 actual.thumbnailUrl shouldBe link.thumbnailUrl
                 actual.status shouldBe LinkStatus.A
                 actual.workModelId shouldBe completion.responseModelId
+                searchTextOf(link.id!!) shouldBe
+                    listOf(
+                        completion.response.title,
+                        link.url,
+                        completion.response.tags
+                            .distinct()
+                            .joinToString(" "),
+                        completion.response.summary,
+                        link.memo.orEmpty(),
+                    ).joinToString(" ")
                 val job = jobRepository.findById(completion.snapshot.jobId)!!
                 job.status shouldBe AiJobStatus.C
                 job.response shouldBe completion.response.rawResponse
@@ -344,3 +357,9 @@ class CompleteAiSummaryServiceTest :
             }
         }
     })
+
+private fun searchTextOf(linkId: Long): String =
+    Links
+        .select(Links.searchText)
+        .where { Links.id eq linkId }
+        .single()[Links.searchText]

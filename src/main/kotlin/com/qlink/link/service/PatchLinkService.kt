@@ -36,7 +36,7 @@ class PatchLinkService(
                 userRepository.emptyById(loginId).requireFalse(ErrorCode.LINK_OWNER_NOT_FOUND)
 
                 val link =
-                    linkRepository.findById(linkId)?.also { it.validateOwner(loginId) }
+                    linkRepository.findByIdForUpdate(linkId)?.also { it.validateOwner(loginId) }
                         ?: throw BusinessException(ErrorCode.LINK_NOT_FOUND)
 
                 val targetFolderId = request.resolveFolderId(link, loginId)
@@ -62,7 +62,12 @@ class PatchLinkService(
                     if (updatedLink.hasSamePatchFieldsAs(link)) {
                         link
                     } else {
-                        linkRepository.update(updatedLink)
+                        linkRepository.updatePatchFields(
+                            linkId = linkId,
+                            folderId = updatedLink.folderId,
+                            memo = updatedLink.memo,
+                            tags = updatedLink.tags,
+                        )
                     }
 
                 val deletedTodoIds =

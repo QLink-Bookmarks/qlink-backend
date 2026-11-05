@@ -1,6 +1,7 @@
 package com.qlink.link.repository
 
 import com.qlink.link.domain.Link
+import com.qlink.link.domain.LinkStatus
 import com.qlink.link.dto.LinkDetailQuery
 import com.qlink.link.dto.LinkSearchCursor
 import com.qlink.link.dto.LinkSearchOrder
@@ -52,6 +53,39 @@ interface LinkRepository {
     ): List<SearchLinksQuery>
 
     suspend fun update(link: Link): Link
+
+    /** 즐겨찾기 시각만 쓴다. URL·검색 텍스트는 건드리지 않는다. */
+    suspend fun updateFavorite(
+        linkId: Long,
+        favoriteAt: Instant?,
+    )
+
+    /** 폴더·메모·태그만 쓰고, 검색 텍스트는 이 값들과 현재 제목·URL·요약 컬럼으로 SQL에서 다시 만든다. */
+    suspend fun updatePatchFields(
+        linkId: Long,
+        folderId: Long?,
+        memo: String?,
+        tags: List<String>,
+    ): Link
+
+    /** AI 요약 결과(폴더·제목·요약·태그·상태·모델)만 쓰고, 검색 텍스트는 현재 URL·메모 컬럼과 함께 SQL에서 다시 만든다. */
+    suspend fun updateAiResult(
+        linkId: Long,
+        folderId: Long?,
+        title: String,
+        summary: String?,
+        tags: List<String>,
+        status: LinkStatus,
+        workModelId: Long?,
+    )
+
+    /** AI 요약 실패(제목·요약·상태)만 쓰고, 검색 텍스트는 현재 URL·태그·메모 컬럼과 함께 SQL에서 다시 만든다. */
+    suspend fun updateAiFailure(
+        linkId: Long,
+        title: String,
+        summary: String?,
+        status: LinkStatus,
+    )
 
     suspend fun updatePreview(link: Link): Boolean
 

@@ -92,7 +92,7 @@ class CompleteAiSummaryService(
                 } else {
                     dailyUsageRepository.update(updatedUsage)
                 }
-                linkRepository.update(
+                val summarizedLink =
                     link
                         .update(
                             folderId = folderId,
@@ -105,7 +105,15 @@ class CompleteAiSummaryService(
                             sourceType = link.sourceType,
                             previewPublicBaseUrl = urlResolver.publicBaseUrl,
                             previewEnvironment = urlResolver.environment,
-                        ).copyAiStatus(status = LinkStatus.A, workModelId = completion.responseModelId),
+                        ).copyAiStatus(status = LinkStatus.A, workModelId = completion.responseModelId)
+                linkRepository.updateAiResult(
+                    linkId = link.id!!,
+                    folderId = summarizedLink.folderId,
+                    title = summarizedLink.title,
+                    summary = summarizedLink.summary,
+                    tags = summarizedLink.tags,
+                    status = summarizedLink.status,
+                    workModelId = summarizedLink.workModelId,
                 )
                 response.todos.map {
                     todoRepository.insert(
