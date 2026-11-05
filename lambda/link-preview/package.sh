@@ -4,7 +4,7 @@ cd "$(dirname "$0")"
 mkdir -p build
 rm -rf build/staging
 mkdir -p build/staging
-cp -R index.mjs src package.json package-lock.json build/staging/
+cp -R index.mjs content.mjs src package.json package-lock.json build/staging/
 (
   cd build/staging
   npm ci --omit=dev --os=linux --cpu=x64 --libc=glibc

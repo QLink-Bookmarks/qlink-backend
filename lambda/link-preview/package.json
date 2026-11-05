@@ -13,8 +13,10 @@
   "dependencies": {
     "@aws-sdk/client-s3": "3.1160.0",
     "@humanwhocodes/ico-to-png": "1.1.0",
+    "@mozilla/readability": "0.6.0",
     "cheerio": "1.2.0",
     "ipaddr.js": "2.5.0",
+    "linkedom": "0.18.15",
     "open-graph-scraper": "6.13.0",
     "sharp": "0.35.5"
   }
