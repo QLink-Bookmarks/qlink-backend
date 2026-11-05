@@ -1,5 +1,7 @@
 package com.qlink.common.crypto
 
+import com.qlink.common.error.ErrorCode
+import com.qlink.common.error.requireTrue
 import java.security.SecureRandom
 import java.util.Base64
 import javax.crypto.Cipher
@@ -11,7 +13,8 @@ class ApiKeyCipher(
     private val secureRandom: SecureRandom = SecureRandom(),
 ) {
     private val keyBytes = Base64.getDecoder().decode(keyBase64)
-    private val secretKey = SecretKeySpec(keyBytes.also { require(it.size == KEY_SIZE_BYTES) }, "AES")
+    private val secretKey =
+        SecretKeySpec(keyBytes.also { (it.size == KEY_SIZE_BYTES).requireTrue(ErrorCode.CONFIG_AI_API_KEY_ENCRYPTION_KEY_INVALID) }, "AES")
 
     fun encrypt(plainText: String): String {
         val nonce = ByteArray(NONCE_SIZE_BYTES)

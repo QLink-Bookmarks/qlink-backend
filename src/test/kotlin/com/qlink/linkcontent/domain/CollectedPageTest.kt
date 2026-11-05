@@ -1,5 +1,7 @@
 package com.qlink.linkcontent.domain
 
+import com.qlink.common.error.BusinessException
+import com.qlink.common.error.ErrorCode
 import com.qlink.support.fixture.LinkContentFixture
 import com.qlink.support.fixture.RandomFixture
 import io.kotest.assertions.throwables.shouldThrowWithMessage
@@ -13,7 +15,9 @@ class CollectedPageTest :
                 val creates = listOf("", " \n\t  ").map { text -> { LinkContentFixture.createCollectedPage(text = text) } }
 
                 Then("생성이 거부된다") {
-                    creates.forEach { create -> shouldThrowWithMessage<IllegalArgumentException>("수집한 본문이 비어 있다") { create() } }
+                    creates.forEach { create ->
+                        shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_CONTENT_TEXT_BLANK.message) { create() }
+                    }
                 }
             }
 

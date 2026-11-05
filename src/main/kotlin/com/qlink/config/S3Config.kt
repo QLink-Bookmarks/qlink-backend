@@ -1,5 +1,8 @@
 package com.qlink.config
 
+import com.qlink.common.error.ErrorCode
+import com.qlink.common.error.requirePresent
+import com.qlink.common.error.requireTrue
 import io.ktor.server.config.ApplicationConfig
 
 private const val DEFAULT_REGION = "ap-northeast-2"
@@ -15,8 +18,12 @@ data class S3Config(
     val environment: String,
 ) {
     init {
-        require(environment == "dev" || environment == "prod")
-        require(publicBaseUrl.startsWith("https://") || publicBaseUrl.startsWith("http://localhost"))
+        (environment == "dev" || environment == "prod").requireTrue(ErrorCode.CONFIG_S3_ENVIRONMENT_INVALID)
+        (
+            publicBaseUrl.startsWith(
+                "https://",
+            ) || publicBaseUrl.startsWith("http://localhost")
+        ).requireTrue(ErrorCode.CONFIG_S3_PUBLIC_BASE_URL_INVALID)
     }
 
     companion object {
@@ -40,10 +47,7 @@ data class S3Config(
             config: ApplicationConfig,
             envKey: String,
             yamlPath: String,
-        ): String =
-            requireNotNull(resolve(env, config, envKey, yamlPath)) {
-                "S3 setting is not configured ($envKey or $yamlPath)"
-            }
+        ): String = resolve(env, config, envKey, yamlPath).requirePresent(ErrorCode.CONFIG_S3_SETTING_REQUIRED)
 
         private fun resolve(
             env: Map<String, String>,

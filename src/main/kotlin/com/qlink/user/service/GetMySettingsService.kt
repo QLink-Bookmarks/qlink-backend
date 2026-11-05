@@ -5,6 +5,7 @@ import com.qlink.ai.repository.AvailableModelRepository
 import com.qlink.auth.repository.AuthProviderRepository
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
+import com.qlink.common.error.requirePresent
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.user.dto.GetMySettingsResponse
 import com.qlink.user.dto.UserAiSettingsResponse
@@ -55,7 +56,7 @@ class GetMySettingsService(
                 providers =
                     authProviders.map {
                         UserAuthProviderResponse(
-                            id = requireNotNull(it.id),
+                            id = it.id.requirePresent(ErrorCode.USER_SETTINGS_PROVIDER_ID_REQUIRED),
                             type = it.providerType.name,
                         )
                     },
