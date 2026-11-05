@@ -63,6 +63,7 @@ class GetFoldersService(
                             isShared = folder.sharedAt != null,
                             shareCounts = folder.shareCounts,
                             linkCounts = folder.linkCounts,
+                            myLinkCounts = folder.myLinkCounts,
                         )
                     },
                 nextCursor = contents.lastOrNull()?.takeIf { hasNext }?.let { encodeCursor(it, normalizedOrder) },
