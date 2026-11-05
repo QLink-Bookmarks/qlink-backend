@@ -69,7 +69,7 @@ fun dataModule(
 
         Flyway
             .configure()
-            // CREATE INDEX CONCURRENTLY(V17)는 트랜잭션 advisory lock을 쥔 세션과 교착하므로 세션 lock을 쓴다.
+            // CREATE INDEX CONCURRENTLY(V16)는 트랜잭션 advisory lock을 쥔 세션과 교착하므로 세션 lock을 쓴다.
             .configuration(mapOf(POSTGRESQL_TRANSACTIONAL_LOCK to "false"))
             .dataSource(get<DataSource>())
             .schemas(flywayConfig.schema)
