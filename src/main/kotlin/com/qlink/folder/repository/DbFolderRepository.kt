@@ -296,5 +296,6 @@ class DbFolderRepository : FolderRepository {
             shareCounts = 0,
             linkCounts = 0,
             score = this[score],
+            myLinkCounts = 0,
         )
 }
