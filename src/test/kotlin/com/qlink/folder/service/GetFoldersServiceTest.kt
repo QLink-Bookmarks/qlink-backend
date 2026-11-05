@@ -4,15 +4,20 @@ import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.scroll.Base64CursorCodec
 import com.qlink.common.scroll.ScrollRequest
+import com.qlink.common.scroll.ScrollResponse
 import com.qlink.folder.domain.Folder
 import com.qlink.folder.dto.FolderSearchCursor
 import com.qlink.folder.dto.FolderSearchCursorValue
 import com.qlink.folder.dto.FolderSearchOrder
+import com.qlink.folder.dto.GetFoldersContentResponse
 import com.qlink.folder.repository.FolderRepository
+import com.qlink.foldermember.domain.MemberRole
+import com.qlink.foldermember.repository.FolderMemberRepository
 import com.qlink.foldermember.repository.table.FolderMembers
 import com.qlink.link.repository.LinkRepository
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.FolderFixture
+import com.qlink.support.fixture.FolderMemberFixture
 import com.qlink.support.fixture.LinkFixture
 import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.UserFixture
@@ -21,6 +26,7 @@ import com.qlink.user.domain.User
 import com.qlink.user.repository.UserRepository
 import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.ints.shouldBeInRange
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import org.jetbrains.exposed.v1.jdbc.insert
@@ -32,6 +38,7 @@ class GetFoldersServiceTest :
         val getFoldersService = koinGet<GetFoldersService>()
         val folderRepository = koinGet<FolderRepository>()
         val linkRepository = koinGet<LinkRepository>()
+        val folderMemberRepository = koinGet<FolderMemberRepository>()
         val tx = koinGet<com.qlink.common.transaction.TransactionRunner>()
         val userRepository = koinGet<UserRepository>()
 
@@ -95,9 +102,11 @@ class GetFoldersServiceTest :
                     response.contents.first().id shouldBe sharedFolder.id
                     response.contents.first().name shouldBe sharedFolder.name
                     response.contents.first().emoji shouldBe sharedFolder.emoji
+                    response.contents.first().ownerNickname shouldBe null
                     response.contents.first().isShared shouldBe true
                     response.contents.first().shareCounts shouldBe 3
                     response.contents.first().linkCounts shouldBe 2
+                    response.contents.first().myLinkCounts shouldBe 2
                 }
             }
 
@@ -324,7 +333,13 @@ class GetFoldersServiceTest :
                 }
             }
 
-            When("폴더가 없으면") {
+            When("접근 가능한 폴더가 없으면") {
+                lateinit var unrelatedFolder: Folder
+
+                beforeTest {
+                    unrelatedFolder = folderRepository.insert(FolderFixture.createFolderWith(ownerId = otherUser.id!!))
+                }
+
                 val get =
                     suspend {
                         getFoldersService.getFolders(
@@ -342,6 +357,16 @@ class GetFoldersServiceTest :
                     response.contents shouldHaveSize 0
                     response.nextCursor shouldBe null
                     response.hasNext shouldBe false
+                    folderRepository.findAllByOwnerId(user.id!!) shouldHaveSize 0
+                    folderRepository.findAllByOwnerId(otherUser.id!!).map { it.id } shouldBe listOf(unrelatedFolder.id)
+                    folderMemberRepository.findAllByFolderIdOrderByJoinedAtAsc(unrelatedFolder.id!!) shouldHaveSize 0
+                    folderRepository.search(
+                        ownerId = user.id!!,
+                        query = null,
+                        order = FolderSearchOrder.LATEST,
+                        cursor = null,
+                        size = 10,
+                    ) shouldHaveSize 0
                 }
             }
 
@@ -684,6 +709,391 @@ class GetFoldersServiceTest :
                 Then("예외가 발생한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.COMMON_CURSOR_MALFORMED.message) {
                         get()
+                    }
+                }
+            }
+        }
+
+        Given("소유자 member 행 유무가 다른 공유 폴더") {
+            lateinit var user: User
+            lateinit var folder: Folder
+
+            for (hasOwnerMember in listOf(true, false)) {
+                for (otherMemberCount in listOf(0, 2)) {
+                    When("owner 행=$hasOwnerMember, 다른 멤버=$otherMemberCount 상태로 조회하면") {
+                        beforeTest {
+                            user = userRepository.insert(UserFixture.createRandomValidUser())
+                            folder = folderRepository.insert(FolderFixture.createSharedFolderOf(ownerId = user.id!!))
+                            if (hasOwnerMember) {
+                                folderMemberRepository.insertIfAbsent(
+                                    FolderMemberFixture.createOwnerMember(folderId = folder.id!!, userId = user.id!!),
+                                )
+                            }
+                            repeat(otherMemberCount) {
+                                val member = userRepository.insert(UserFixture.createRandomValidUser())
+                                folderMemberRepository.insertIfAbsent(
+                                    FolderMemberFixture.createMember(folderId = folder.id!!, userId = member.id!!),
+                                )
+                            }
+                        }
+
+                        val get =
+                            suspend {
+                                getFoldersService.getFolders(
+                                    loginId = user.id!!,
+                                    query = null,
+                                    order = "latest",
+                                    scrollRequest = ScrollRequest(),
+                                )
+                            }
+
+                        Then("owner와 member의 실제 사용자 수를 중복 없이 반환하고 member 행을 보존한다") {
+                            val membersBefore = folderMemberRepository.findAllByFolderIdOrderByJoinedAtAsc(folder.id!!)
+                            val response = get().contents.single()
+                            val membersAfter = folderMemberRepository.findAllByFolderIdOrderByJoinedAtAsc(folder.id!!)
+                            val storedFolder = folderRepository.findById(folder.id!!).shouldNotBeNull()
+
+                            response.shareCounts shouldBe (membersAfter.map { it.userId } + storedFolder.ownerId).toSet().size
+                            response.shareCounts shouldBe otherMemberCount + 1
+                            membersAfter shouldBe membersBefore
+                            membersAfter shouldHaveSize otherMemberCount + if (hasOwnerMember) 1 else 0
+                        }
+                    }
+                }
+            }
+        }
+
+        Given("공유 해제 후 stale member 행이 남은 개인 폴더") {
+            lateinit var owner: User
+            lateinit var staleMember: User
+            lateinit var folder: Folder
+
+            beforeTest {
+                owner = userRepository.insert(UserFixture.createRandomValidUser())
+                staleMember = userRepository.insert(UserFixture.createRandomValidUser())
+                folder = folderRepository.insert(FolderFixture.createFolderWith(ownerId = owner.id!!))
+                folderMemberRepository.insertIfAbsent(
+                    FolderMemberFixture.createOwnerMember(folderId = folder.id!!, userId = owner.id!!),
+                )
+                folderMemberRepository.insertIfAbsent(
+                    FolderMemberFixture.createMember(folderId = folder.id!!, userId = staleMember.id!!),
+                )
+                linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = owner.id!!, folderId = folder.id))
+                repeat(2) {
+                    linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = staleMember.id!!, folderId = folder.id))
+                }
+            }
+
+            When("개인 폴더 소유자가 조회하면") {
+                val get =
+                    suspend {
+                        getFoldersService.getFolders(
+                            loginId = owner.id!!,
+                            query = null,
+                            order = "latest",
+                            scrollRequest = ScrollRequest(),
+                        )
+                    }
+
+                Then("shareCounts는 1이고 stale member 행은 그대로다") {
+                    val membersBefore = folderMemberRepository.findAllByFolderIdOrderByJoinedAtAsc(folder.id!!)
+                    val response = get().contents.single()
+                    val storedLinks = linkRepository.findAllByFolderIds(listOf(folder.id!!))
+                    response.shareCounts shouldBe 1
+                    response.linkCounts shouldBe storedLinks.size
+                    response.myLinkCounts shouldBe storedLinks.count { it.ownerId == owner.id }
+                    response.linkCounts shouldBe 3
+                    response.myLinkCounts shouldBe 1
+                    folderRepository.findById(folder.id!!).shouldNotBeNull().isShared shouldBe false
+                    folderMemberRepository.findAllByFolderIdOrderByJoinedAtAsc(folder.id!!) shouldBe membersBefore
+                    membersBefore shouldHaveSize 2
+                }
+            }
+
+            When("stale member가 조회하면") {
+                val get =
+                    suspend {
+                        getFoldersService.getFolders(
+                            loginId = staleMember.id!!,
+                            query = null,
+                            order = "latest",
+                            scrollRequest = ScrollRequest(),
+                        )
+                    }
+
+                Then("현재 공유 폴더가 아니므로 접근 목록에서 제외한다") {
+                    get().contents shouldHaveSize 0
+                    folderMemberRepository.existsByFolderIdAndUserId(folderId = folder.id!!, userId = staleMember.id!!) shouldBe true
+                    folderRepository.findById(folder.id!!).shouldNotBeNull().isShared shouldBe false
+                }
+            }
+        }
+
+        Given("내 링크와 타인 링크의 수가 다른 폴더") {
+            for ((myCount, otherCount) in listOf(0 to 0, 1 to 0, 2 to 1, 4 to 5)) {
+                When("내 링크 $myCount 개와 타인 링크 $otherCount 개를 조회하면") {
+                    lateinit var user: User
+                    lateinit var folder: Folder
+
+                    beforeTest {
+                        user = userRepository.insert(UserFixture.createRandomValidUser())
+                        val otherUser = userRepository.insert(UserFixture.createRandomValidUser())
+                        folder = folderRepository.insert(FolderFixture.createSharedFolderOf(ownerId = user.id!!))
+                        repeat(myCount) {
+                            linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = user.id!!, folderId = folder.id))
+                        }
+                        repeat(otherCount) {
+                            val linkOwner = if (it % 2 == 0) otherUser else userRepository.insert(UserFixture.createRandomValidUser())
+                            linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = linkOwner.id!!, folderId = folder.id))
+                        }
+                        linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = user.id!!))
+                    }
+
+                    val get =
+                        suspend {
+                            getFoldersService.getFolders(
+                                loginId = user.id!!,
+                                query = null,
+                                order = "latest",
+                                scrollRequest = ScrollRequest(),
+                            )
+                        }
+
+                    Then("같은 DB 링크 집합으로 전체 수와 호출자 소유 수를 집계한다") {
+                        val linksBefore = linkRepository.findAllByFolderIds(listOf(folder.id!!))
+                        val response = get().contents.single()
+                        val linksAfter = linkRepository.findAllByFolderIds(listOf(folder.id!!))
+
+                        response.linkCounts shouldBe linksAfter.size
+                        response.myLinkCounts shouldBe linksAfter.count { it.ownerId == user.id }
+                        response.linkCounts shouldBe myCount + otherCount
+                        response.myLinkCounts shouldBe myCount
+                        response.linkCounts - response.myLinkCounts shouldBe otherCount
+                        response.myLinkCounts.shouldBeInRange(0..response.linkCounts)
+                        linksAfter.map { Triple(it.id, it.ownerId, it.folderId) } shouldBe
+                            linksBefore.map { Triple(it.id, it.ownerId, it.folderId) }
+                    }
+                }
+            }
+        }
+
+        Given("소유한 링크 수가 다른 폴더 소유자와 현재 멤버") {
+            lateinit var owner: User
+            lateinit var member: User
+            lateinit var folder: Folder
+
+            beforeTest {
+                owner = userRepository.insert(UserFixture.createRandomValidUser())
+                member = userRepository.insert(UserFixture.createRandomValidUser())
+                folder = folderRepository.insert(FolderFixture.createSharedFolderOf(ownerId = owner.id!!))
+                folderMemberRepository.insertIfAbsent(
+                    FolderMemberFixture.createMember(folderId = folder.id!!, userId = member.id!!),
+                )
+                repeat(2) {
+                    linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = owner.id!!, folderId = folder.id))
+                }
+                linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = member.id!!, folderId = folder.id))
+            }
+
+            When("폴더 owner가 아닌 멤버로 조회하면") {
+                val get =
+                    suspend {
+                        getFoldersService.getFolders(
+                            loginId = member.id!!,
+                            query = null,
+                            order = "latest",
+                            scrollRequest = ScrollRequest(),
+                        )
+                    }
+
+                Then("myLinkCounts는 폴더 owner가 아닌 호출자 기준이고 소유권은 보존된다") {
+                    val linksBefore = linkRepository.findAllByFolderIds(listOf(folder.id!!))
+                    val response = get().contents.single()
+                    val storedLinks = linkRepository.findAllByFolderIds(listOf(folder.id!!))
+
+                    response.ownerId shouldBe folderRepository.findById(folder.id!!).shouldNotBeNull().ownerId
+                    response.ownerNickname shouldBe userRepository.findById(owner.id!!).shouldNotBeNull().nickname
+                    response.linkCounts shouldBe storedLinks.size
+                    response.myLinkCounts shouldBe storedLinks.count { it.ownerId == member.id }
+                    response.linkCounts shouldBe 3
+                    response.myLinkCounts shouldBe 1
+                    storedLinks.map { Triple(it.id, it.ownerId, it.folderId) } shouldBe
+                        linksBefore.map { Triple(it.id, it.ownerId, it.folderId) }
+                }
+            }
+        }
+
+        Given("소유권 위임 또는 멤버 탈퇴를 완료하여 접근을 잃은 사용자") {
+            for (transferred in listOf(true, false)) {
+                When("${if (transferred) "위임 후 이전 owner" else "탈퇴한 멤버"}가 폴더 목록을 조회하면") {
+                    lateinit var caller: User
+                    lateinit var remainingUser: User
+                    lateinit var folder: Folder
+                    var linkId = 0L
+
+                    beforeTest {
+                        caller = userRepository.insert(UserFixture.createRandomValidUser())
+                        remainingUser = userRepository.insert(UserFixture.createRandomValidUser())
+                        val originalOwner = if (transferred) caller else remainingUser
+                        folder = folderRepository.insert(FolderFixture.createSharedFolderOf(ownerId = originalOwner.id!!))
+                        folderMemberRepository.insertIfAbsent(
+                            FolderMemberFixture.createOwnerMember(folderId = folder.id!!, userId = originalOwner.id!!),
+                        )
+                        val originalMember = if (transferred) remainingUser else caller
+                        folderMemberRepository.insertIfAbsent(
+                            FolderMemberFixture.createMember(folderId = folder.id!!, userId = originalMember.id!!),
+                        )
+                        linkId = linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = caller.id!!, folderId = folder.id)).id!!
+                        if (transferred) {
+                            folderRepository.update(folder.delegateTo(remainingUser.id!!))
+                            folderMemberRepository.updateRole(folderId = folder.id!!, userId = remainingUser.id!!, role = MemberRole.OWNER)
+                        }
+                        folderMemberRepository.deleteByFolderIdAndUserId(folderId = folder.id!!, userId = caller.id!!)
+                    }
+
+                    val get =
+                        suspend {
+                            getFoldersService.getFolders(
+                                loginId = caller.id!!,
+                                query = null,
+                                order = "latest",
+                                scrollRequest = ScrollRequest(),
+                            )
+                        }
+
+                    Then("폴더는 목록에서 제외되고 기존 자기 링크의 owner와 folder는 유지된다") {
+                        get().contents shouldHaveSize 0
+                        folderRepository.findById(folder.id!!).shouldNotBeNull().ownerId shouldBe remainingUser.id
+                        folderMemberRepository.existsByFolderIdAndUserId(folderId = folder.id!!, userId = caller.id!!) shouldBe false
+                        val storedLink = linkRepository.findById(linkId).shouldNotBeNull()
+                        storedLink.ownerId shouldBe caller.id
+                        storedLink.folderId shouldBe folder.id
+                    }
+                }
+            }
+        }
+
+        Given("검색 대상인 소유 폴더와 참여 폴더 및 접근할 수 없는 폴더") {
+            lateinit var user: User
+            lateinit var folders: List<Folder>
+            lateinit var keyword: String
+
+            beforeTest {
+                user = userRepository.insert(UserFixture.createRandomValidUser())
+                val otherUser = userRepository.insert(UserFixture.createRandomValidUser())
+                keyword = RandomFixture.randomFixedSentence(8)
+                val base = RandomFixture.randomPastInstant()
+                folders =
+                    (0..4).map { index ->
+                        val owner = if (index % 2 == 0) user else otherUser
+                        val folder =
+                            folderRepository.insert(
+                                FolderFixture.createFolderWith(
+                                    ownerId = owner.id!!,
+                                    name = "$keyword $index",
+                                    sharedAt = RandomFixture.randomPastInstant(),
+                                    createdAt = base + index.hours,
+                                ),
+                            )
+                        folderMemberRepository.insertIfAbsent(
+                            FolderMemberFixture.createOwnerMember(folderId = folder.id!!, userId = owner.id!!),
+                        )
+                        if (owner.id != user.id) {
+                            folderMemberRepository.insertIfAbsent(
+                                FolderMemberFixture.createMember(folderId = folder.id!!, userId = user.id!!),
+                            )
+                        }
+                        repeat(index) {
+                            linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = user.id!!, folderId = folder.id))
+                        }
+                        linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = otherUser.id!!, folderId = folder.id))
+                        folder
+                    }
+                folderRepository.insert(FolderFixture.createFolderWith(ownerId = otherUser.id!!, name = "$keyword outside"))
+                val privateFolder =
+                    folderRepository.insert(
+                        FolderFixture.createFolderWith(ownerId = otherUser.id!!, name = "$keyword stale"),
+                    )
+                folderMemberRepository.insertIfAbsent(
+                    FolderMemberFixture.createMember(folderId = privateFolder.id!!, userId = user.id!!),
+                )
+                folderRepository.insert(FolderFixture.createFolderWith(ownerId = user.id!!, name = RandomFixture.randomFixedSentence(7)))
+            }
+
+            for (order in FolderSearchOrder.entries) {
+                When("검색과 $order 정렬로 여러 페이지를 조회하면") {
+                    val get =
+                        suspend {
+                            val pages = mutableListOf<ScrollResponse<GetFoldersContentResponse>>()
+                            var cursor: String? = null
+                            do {
+                                val page =
+                                    getFoldersService.getFolders(
+                                        loginId = user.id!!,
+                                        query = keyword,
+                                        order = order.name.lowercase(),
+                                        scrollRequest = ScrollRequest(cursor = cursor, size = 2),
+                                    )
+                                pages.add(page)
+                                cursor = page.nextCursor
+                            } while (cursor != null && pages.size < 4)
+                            pages
+                        }
+
+                    Then("접근 가능한 폴더를 기존 순서로 빠짐·중복 없이 반환하고 모든 count가 DB와 일치한다") {
+                        val pages = get()
+                        pages shouldHaveSize 3
+                        pages.forEachIndexed { index, page ->
+                            page.hasNext shouldBe (index < pages.lastIndex)
+                            page.hasNext shouldBe (page.nextCursor != null)
+                            page.contents shouldHaveSize if (index < pages.lastIndex) 2 else 1
+                        }
+                        val responses = pages.flatMap { it.contents }
+                        val storedFolders = folderRepository.findAllByIds(folders.map { it.id!! })
+                        val expectedIds =
+                            when (order) {
+                                FolderSearchOrder.LATEST -> {
+                                    storedFolders
+                                        .sortedWith(compareByDescending<Folder> { it.createdAt }.thenByDescending { it.id })
+                                        .map { it.id!! }
+                                }
+
+                                FolderSearchOrder.EARLIEST -> {
+                                    storedFolders
+                                        .sortedWith(compareBy<Folder> { it.createdAt }.thenBy { it.id })
+                                        .map { it.id!! }
+                                }
+
+                                FolderSearchOrder.LAXICO -> {
+                                    storedFolders
+                                        .sortedWith(compareBy<Folder> { it.name }.thenBy { it.id })
+                                        .map { it.id!! }
+                                }
+
+                                FolderSearchOrder.SIMILAR -> {
+                                    folderRepository
+                                        .search(
+                                            ownerId = user.id!!,
+                                            query = keyword,
+                                            order = order,
+                                            cursor = null,
+                                            size = 10,
+                                        ).map { it.id }
+                                }
+                            }
+
+                        responses.map { it.id } shouldBe expectedIds
+                        responses.map { it.id }.toSet() shouldBe storedFolders.map { it.id }.toSet()
+                        responses shouldHaveSize storedFolders.size
+                        for (response in responses) {
+                            val storedLinks = linkRepository.findAllByFolderIds(listOf(response.id))
+                            val storedFolder = folderRepository.findById(response.id).shouldNotBeNull()
+                            val storedMembers = folderMemberRepository.findAllByFolderIdOrderByJoinedAtAsc(response.id)
+                            response.linkCounts shouldBe storedLinks.size
+                            response.myLinkCounts shouldBe storedLinks.count { it.ownerId == user.id }
+                            response.myLinkCounts.shouldBeInRange(0..response.linkCounts)
+                            response.shareCounts shouldBe (storedMembers.map { it.userId } + storedFolder.ownerId).toSet().size
+                        }
                     }
                 }
             }
