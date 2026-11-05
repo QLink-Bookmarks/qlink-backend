@@ -14,7 +14,6 @@ import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import org.koin.dsl.module
 import org.slf4j.LoggerFactory
 
-/** `LambdaClient`(리전·LocalStack 엔드포인트)는 [linkPreviewModule]의 것을 함께 쓴다. */
 fun linkContentModule(config: ApplicationConfig) =
     module {
         single { LinkContentConfig.from(config) }

@@ -78,7 +78,6 @@ class GetLinkContentTargetsServiceTest :
                             nextAttemptAt = sweepStartedAt - 3.hours,
                         )
                     }
-                // 대상이 아닌 행: sweep 시작 뒤 due, 미래, 실행 중, 끝난 행
                 insert { LinkContentFixture.createPendingContentOf(linkId = it, nextAttemptAt = sweepStartedAt + 1.minutes) }
                 insert {
                     LinkContentFixture.createPendingContentOf(

@@ -4,7 +4,6 @@ import com.qlink.linkcontent.domain.ContentFailureCode
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
 
-/** `alink-link-content-{env}` 핸들러 응답(`lambda/link-preview/src/content-handler.mjs`). */
 @Serializable
 internal data class LinkContentLambdaResponse(
     val outcome: String,

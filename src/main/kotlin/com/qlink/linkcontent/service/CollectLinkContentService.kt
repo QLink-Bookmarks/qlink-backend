@@ -18,7 +18,6 @@ import com.qlink.linkcontent.repository.LinkContentRepository
 import java.util.UUID
 import kotlin.time.Instant
 
-/** Lambda 핸들러 안의 수집 deadline. Lambda 타임아웃(30초)과 서버 호출 타임아웃(45초)보다 짧다. */
 private const val LAMBDA_DEADLINE_MS = 20_000L
 
 private val SKIPPED = CollectResult(status = null, outcome = CollectOutcome.SKIPPED)
@@ -122,7 +121,6 @@ class CollectLinkContentService(
             }
         }
 
-    /** Lambda 결과를 VO로 옮긴다. 정규화 뒤 빈 본문은 VO가 거절하므로 null(→ `CONTENT_EMPTY`). */
     private fun LinkContentResult.toPageOrNull(): CollectedPage? =
         text.takeIf(String::isNotBlank)?.let {
             CollectedPage(
@@ -164,11 +162,9 @@ class CollectLinkContentService(
     private fun LinkContentExtraction.isRateLimited(): Boolean =
         this is LinkContentExtraction.Failed && code == ContentFailureCode.UPSTREAM_RATE_LIMITED
 
-    /** 429를 받은 호스트. 워커가 인스턴스 메모리 쿨다운에 쓴다. */
     private fun LinkContentExtraction.rateLimitedHost(content: LinkContent): String? =
         if (isRateLimited()) content.sourceUrl.hostOrNull() ?: content.sourceUrl else null
 
-    /** 429의 Retry-After를 0~900초로 자른 값. 없으면 null(워커 기본 쿨다운). */
     private fun LinkContentExtraction.cooldownSeconds(): Int? =
         (this as? LinkContentExtraction.Failed)
             ?.takeIf { isRateLimited() }

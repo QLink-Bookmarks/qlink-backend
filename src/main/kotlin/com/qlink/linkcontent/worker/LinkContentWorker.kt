@@ -37,16 +37,6 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 import kotlin.time.TimeSource
 
-/**
- * 링크 본문 수집 워커(서버 프로세스 안). 서비스만 호출한다(D3).
- *
- * - scanner: 시그널을 받으면 [drain]한다. 한 번의 drain은 sweep을 최대 [LinkContentConfig.workerMaxPages]페이지 진행한다.
- * - sweep: 시작 시각에 고정한 due 집합을 keyset `(priority, next_attempt_at, id)` 순으로 EOF까지 읽는 단위. EOF 전에는 cursor를 버리지 않는다.
- * - timer: sweep이 끝나면 다음 실행 가능 시각·쿨다운 만료에 한 번 깨운다(취소·재예약 가능한 코루틴 하나).
- * - 일시 정지: throttle·오류로 배치가 멈추면 [INTERRUPT_DELAY] 동안 어떤 wake에도 drain하지 않는다(클레임 소진 방지).
- * - poller: [pollInterval]마다 깨운다.
- * - 호스트: 같은 호스트 요청 간 [LinkContentConfig.hostMinInterval] + jitter, 429 호스트는 인스턴스 메모리 쿨다운.
- */
 class LinkContentWorker(
     private val signal: LinkContentSignal,
     private val getTargetsService: GetLinkContentTargetsService,
@@ -66,7 +56,6 @@ class LinkContentWorker(
     private val pending = AtomicLong(0)
     private val oldestDueAge = AtomicLong(0)
 
-    // scanner 코루틴만 읽고 쓴다.
     private var sweep: Sweep? = null
     private var timer: Job? = null
     private var pausedUntil: Instant? = null
@@ -132,7 +121,6 @@ class LinkContentWorker(
             current.skipped += page.skipped
             isInterrupted = page.isInterrupted
             isEnd = targets.size < config.workerBatchSize
-            // 중단된 페이지는 cursor를 옮기지 않는다. 다시 읽으면 처리한 행은 더 이상 due가 아니어서 남은 행만 나온다.
             if (!isInterrupted) targets.lastOrNull()?.let { current.cursor = it.keyset }
         }
 
@@ -159,12 +147,8 @@ class LinkContentWorker(
         val cooldownEndsAt = hosts.earliestCooldownEnd(clock.now())
 
         when {
-            // sweep 시작 뒤 due가 된 행이 있으면 바로 새 sweep을 연다. 쿨다운 호스트 행만 남았으면 이 sweep이 이미 건너뛴 것이다.
             schedule.due > 0 && (finished.processed > 0 || finished.skipped == 0L) -> signal.wake()
-
-            // 아무것도 처리하지 못한 sweep(전부 쿨다운)은 가장 이른 쿨다운 만료보다 이르게 깨우지 않는다.
             finished.processed == 0L && cooldownEndsAt != null -> scheduleWake(cooldownEndsAt)
-
             else -> listOfNotNull(schedule.nextRunnableAt, cooldownEndsAt).minOrNull()?.let(::scheduleWake)
         }
     }
@@ -201,7 +185,6 @@ class LinkContentWorker(
         return Page(processed = processed.get(), skipped = skipped.get(), isInterrupted = isInterrupted.get())
     }
 
-    /** 결과 outcome. 서비스 예외면 null(배치 중단; 행은 stale 회수로 다시 클레임된다). */
     private suspend fun collect(target: LinkContentTargetQuery): CollectOutcome? {
         val started = TimeSource.Monotonic.markNow()
         inFlight.incrementAndGet()
@@ -257,7 +240,6 @@ class LinkContentWorker(
         scheduleWake(resumeAt)
     }
 
-    /** 예외 클래스와 SQLState만 남긴다. 메시지에는 PgJDBC "Failing row contains (...)"처럼 본문·URL이 들어갈 수 있다. */
     private fun Exception.describe(): String {
         val sqlState =
             generateSequence<Throwable>(this) { it.cause }
@@ -290,7 +272,6 @@ class LinkContentWorker(
         val isInterrupted: Boolean,
     )
 
-    /** 호스트별 요청 간격과 429 쿨다운(인스턴스 메모리, 각 [MAX_HOSTS]개 상한). */
     private class HostGate(
         private val minInterval: Duration,
         private val clock: Clock,
@@ -309,7 +290,6 @@ class LinkContentWorker(
             return false
         }
 
-        /** 가득 차면 만료가 가장 이른 항목을 교체한다. */
         @Synchronized
         fun cool(
             host: String,
@@ -332,7 +312,6 @@ class LinkContentWorker(
             if (wait.isPositive()) delay(wait)
         }
 
-        /** 이 호스트의 다음 요청 시각을 예약하고 그때까지 기다릴 시간을 돌려준다. 가득 차면 가장 오래된 항목을 뺀다. */
         @Synchronized
         private fun reserve(host: String): Duration {
             val now = clock.now()
