@@ -71,7 +71,6 @@ object AiFixture {
                     jobId = job.id!!,
                     linkId = link.id!!,
                     folderId = link.folderId,
-                    folderAssignmentRevision = link.folderAssignmentRevision,
                 ),
             responseModelId = job.requestModelId,
             candidateFolderId = candidateFolderId,
