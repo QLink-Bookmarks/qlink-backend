@@ -2,6 +2,9 @@
 
 package com.qlink.linkcontent.domain
 
+import com.qlink.common.error.ErrorCode
+import com.qlink.common.error.requirePresent
+import com.qlink.common.error.requireTrue
 import com.qlink.common.text.collapseWhitespace
 import com.qlink.common.text.sha256Hex
 import com.qlink.common.text.takeKeepingSurrogatePairs
@@ -40,9 +43,9 @@ class LinkContent(
     val fence: ClaimFence
         get() =
             ClaimFence(
-                id = checkNotNull(id) { "저장되지 않은 본문 행에는 fence가 없다" },
+                id = id.requirePresent(ErrorCode.LINK_CONTENT_NOT_SAVED),
                 generation = generation,
-                claimToken = checkNotNull(claimToken) { "클레임되지 않은 본문 행에는 fence가 없다" },
+                claimToken = claimToken.requirePresent(ErrorCode.LINK_CONTENT_NOT_CLAIMED),
             )
 
     init {
@@ -146,29 +149,33 @@ class LinkContent(
     }
 
     private fun validateCollected() {
-        val text = requireNotNull(page) { "수집된 본문 행에는 본문이 있어야 한다" }.text
-        requireNotNull(contentHash) { "수집된 본문 행에는 해시가 있어야 한다" }
-        requireNotNull(collectedAt) { "수집된 본문 행에는 수집 시각이 있어야 한다" }
+        val text = page.requirePresent(ErrorCode.LINK_CONTENT_PAGE_REQUIRED).text
+        (contentHash != null).requireTrue(ErrorCode.LINK_CONTENT_HASH_REQUIRED)
+        (collectedAt != null).requireTrue(ErrorCode.LINK_CONTENT_COLLECTED_AT_REQUIRED)
 
         val normalizedLength = text.collapseWhitespace().length
         when (excerpt) {
             null -> {
-                require(buildExcerpt(text) == null) { "발췌를 만들 수 있는 본문에는 발췌가 있어야 한다" }
+                (buildExcerpt(text) == null).requireTrue(ErrorCode.LINK_CONTENT_EXCERPT_REQUIRED)
             }
 
             else -> {
-                require(excerpt.endsWith(ELLIPSIS)) { "발췌는 말줄임으로 끝나야 한다" }
-                require(excerpt.length <= EXCERPT_MAX_CHARS + ELLIPSIS.length) { "발췌가 최대 길이를 넘는다" }
-                require(excerpt.length - ELLIPSIS.length <= excerptBudget(normalizedLength)) { "발췌가 본문 예산을 넘는다" }
-                require(buildExcerpt(text) != null) { "발췌를 만들 수 없는 본문에는 발췌가 없어야 한다" }
+                excerpt.endsWith(ELLIPSIS).requireTrue(ErrorCode.LINK_CONTENT_EXCERPT_SUFFIX_INVALID)
+                (excerpt.length <= EXCERPT_MAX_CHARS + ELLIPSIS.length).requireTrue(ErrorCode.LINK_CONTENT_EXCERPT_OVER_MAX)
+                (
+                    excerpt.length - ELLIPSIS.length <=
+                        excerptBudget(
+                            normalizedLength,
+                        )
+                ).requireTrue(ErrorCode.LINK_CONTENT_EXCERPT_OVER_BUDGET)
+                (buildExcerpt(text) != null).requireTrue(ErrorCode.LINK_CONTENT_EXCERPT_NOT_ALLOWED)
             }
         }
     }
 
     private fun validateNotCollected() {
-        require(page == null && contentHash == null && excerpt == null && collectedAt == null) {
-            "수집되지 않은 본문 행에는 본문·발췌가 없어야 한다"
-        }
+        (page == null && contentHash == null && excerpt == null && collectedAt == null)
+            .requireTrue(ErrorCode.LINK_CONTENT_COLLECTED_FIELDS_NOT_ALLOWED)
     }
 
     private fun copy(

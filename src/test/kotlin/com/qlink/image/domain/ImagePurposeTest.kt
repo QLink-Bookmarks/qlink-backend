@@ -38,6 +38,16 @@ class ImagePurposeTest :
                     ImagePurpose.LINK_PREVIEW to "preview",
                 )
 
+            When("파비콘의 직접 업로드 키를 만들면") {
+                val create = {
+                    ImagePurpose.FAVICON.newObjectKey(environment = "dev", type = ImageType.entries.random())
+                }
+
+                Then("ErrorCode.IMAGE_UPLOAD_PURPOSE_UNSUPPORTED로 거부한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.IMAGE_UPLOAD_PURPOSE_UNSUPPORTED.message) { create() }
+                }
+            }
+
             When("dev·prod에서 세 파일 목적의 키를 만들면") {
                 val type = ImageType.entries.random()
                 val keys =
