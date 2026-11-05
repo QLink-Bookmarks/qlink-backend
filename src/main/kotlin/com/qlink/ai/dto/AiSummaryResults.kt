@@ -7,7 +7,6 @@ data class AiSummarySnapshot(
     val jobId: Long,
     val linkId: Long,
     val folderId: Long?,
-    val folderAssignmentRevision: Long,
 )
 
 data class AiSummaryCompletion(

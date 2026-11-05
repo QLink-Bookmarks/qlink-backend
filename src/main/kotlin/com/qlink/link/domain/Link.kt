@@ -31,7 +31,6 @@ class Link(
     val favoriteAt: Instant? = null,
     val createdAt: Instant? = null,
     val updatedAt: Instant? = null,
-    val folderAssignmentRevision: Long = 0,
 ) {
     val tags: List<String> = tags.distinct()
 
@@ -49,7 +48,7 @@ class Link(
 
     fun hasUrl(url: String): Boolean = this.url == url
 
-    fun hasFolderAssignmentChangedSince(revision: Long): Boolean = folderAssignmentRevision != revision
+    fun hasFolderChangedSince(startedFolderId: Long?): Boolean = folderId != startedFolderId
 
     fun validateOwner(ownerId: Long) {
         if (this.ownerId != ownerId) {
@@ -107,7 +106,6 @@ class Link(
             favoriteAt = favoriteAt,
             createdAt = createdAt,
             updatedAt = updatedAt,
-            folderAssignmentRevision = folderAssignmentRevision,
         )
     }
 
@@ -158,7 +156,6 @@ class Link(
                     favoriteAt = resolveFavoriteAt(isFavorite, now),
                     createdAt = createdAt,
                     updatedAt = updatedAt,
-                    folderAssignmentRevision = folderAssignmentRevision,
                 )
             }
         }
@@ -199,7 +196,6 @@ class Link(
                     favoriteAt = favoriteAt,
                     createdAt = createdAt,
                     updatedAt = updatedAt,
-                    folderAssignmentRevision = folderAssignmentRevision,
                 )
             }
         }
