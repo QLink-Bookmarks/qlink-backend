@@ -281,7 +281,7 @@ class LinkContentTest :
                 val content = LinkContentFixture.createPendingContentOf(linkId = RandomFixture.randomId())
                 val readFence = { content.fence }
 
-                Then("ErrorCode.LINK_CONTENT_NOT_SAVED로 거부한다") {
+                Then("fence 읽기가 거부된다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_CONTENT_NOT_SAVED.message) { readFence() }
                 }
             }
@@ -290,7 +290,7 @@ class LinkContentTest :
                 val content = LinkContentFixture.createCollectedContentOf()
                 val readFence = { content.fence }
 
-                Then("ErrorCode.LINK_CONTENT_NOT_CLAIMED로 거부한다") {
+                Then("fence 읽기가 거부된다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_CONTENT_NOT_CLAIMED.message) { readFence() }
                 }
             }
@@ -302,7 +302,7 @@ class LinkContentTest :
                     LinkContentFixture.createContentWithExcerpt(status = ContentStatus.COLLECTED, text = null, excerpt = null)
                 }
 
-                Then("ErrorCode.LINK_CONTENT_PAGE_REQUIRED로 거부한다") {
+                Then("생성이 거부된다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_CONTENT_PAGE_REQUIRED.message) { create() }
                 }
             }
@@ -318,7 +318,7 @@ class LinkContentTest :
                     )
                 }
 
-                Then("ErrorCode.LINK_CONTENT_HASH_REQUIRED로 거부한다") {
+                Then("생성이 거부된다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_CONTENT_HASH_REQUIRED.message) { create() }
                 }
             }
@@ -334,7 +334,7 @@ class LinkContentTest :
                     )
                 }
 
-                Then("ErrorCode.LINK_CONTENT_COLLECTED_AT_REQUIRED로 거부한다") {
+                Then("생성이 거부된다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_CONTENT_COLLECTED_AT_REQUIRED.message) { create() }
                 }
             }

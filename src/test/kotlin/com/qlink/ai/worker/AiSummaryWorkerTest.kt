@@ -194,8 +194,7 @@ class AiSummaryWorkerTest :
                     actualJob.status shouldBe AiJobStatus.F
                     actualLink.status shouldBe LinkStatus.F
                     actualLink.title shouldBe "AI 생성 실패 - ${URI(link.url).host}"
-                    actualLink.summary shouldBe
-                        ErrorCode.AI_SUMMARY_LINK_MISMATCH.message
+                    actualLink.summary shouldBe ErrorCode.AI_SUMMARY_LINK_MISMATCH.message
                 }
             }
 

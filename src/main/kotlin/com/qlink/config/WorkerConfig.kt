@@ -14,7 +14,7 @@ data class WorkerConfig(
     val aiSummaryParallelism: Int,
 ) {
     init {
-        (pollInterval.isPositive()).requireTrue(ErrorCode.CONFIG_WORKER_POLL_INTERVAL_INVALID)
+        pollInterval.isPositive().requireTrue(ErrorCode.CONFIG_WORKER_POLL_INTERVAL_INVALID)
         (importThumbnailConcurrency > 0).requireTrue(ErrorCode.CONFIG_IMPORT_THUMBNAIL_CONCURRENCY_INVALID)
         (importThumbnailParallelism > 0).requireTrue(ErrorCode.CONFIG_IMPORT_THUMBNAIL_PARALLELISM_INVALID)
         (importThumbnailBatchSize > 0).requireTrue(ErrorCode.CONFIG_IMPORT_THUMBNAIL_BATCH_SIZE_INVALID)

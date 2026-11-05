@@ -19,6 +19,7 @@ import com.qlink.ai.worker.AiSummaryDispatcher
 import com.qlink.ai.worker.AiSummaryWorker
 import com.qlink.auth.domain.Role
 import com.qlink.common.crypto.ApiKeyCipher
+import com.qlink.common.error.ErrorCode
 import com.qlink.config.WorkerConfig
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import kotlinx.coroutines.channels.Channel
@@ -29,7 +30,10 @@ import kotlin.time.Duration.Companion.minutes
 fun aiTestModule() =
     module {
         single {
-            ApiKeyCipher(keyBase64 = TEST_AI_API_KEY_ENCRYPTION_KEY_BASE64)
+            ApiKeyCipher(
+                keyBase64 = TEST_AI_API_KEY_ENCRYPTION_KEY_BASE64,
+                invalidKeyErrorCode = ErrorCode.CONFIG_AI_API_KEY_ENCRYPTION_KEY_INVALID,
+            )
         }
 
         single {
@@ -169,7 +173,11 @@ suspend fun insertAiContext(
                 userId = userId,
                 providerId = provider.id,
                 userRole = role,
-                apiKey = ApiKeyCipher(TEST_AI_API_KEY_ENCRYPTION_KEY_BASE64).encrypt("api-key"),
+                apiKey =
+                    ApiKeyCipher(
+                        keyBase64 = TEST_AI_API_KEY_ENCRYPTION_KEY_BASE64,
+                        invalidKeyErrorCode = ErrorCode.CONFIG_AI_API_KEY_ENCRYPTION_KEY_INVALID,
+                    ).encrypt("api-key"),
             ),
         )
 

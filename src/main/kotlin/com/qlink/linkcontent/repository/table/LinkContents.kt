@@ -88,10 +88,6 @@ private fun ResultRow.toCollectedPageOrNull(): CollectedPage? =
         )
     }
 
-/**
- * id·link_id·generation을 뺀 모든 상태 컬럼을 도메인 값으로 채운다.
- * generation은 reset(upsert)만, link_id는 INSERT만 쓴다.
- */
 fun UpdateBuilder<*>.fromDomainState(content: LinkContent) {
     val page = content.page
     this[LinkContents.sourceUrl] = content.sourceUrl
