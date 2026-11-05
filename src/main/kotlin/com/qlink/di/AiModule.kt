@@ -25,6 +25,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.json.Json
 import org.koin.dsl.module
 import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 fun aiModule(
     config: ApplicationConfig,
@@ -139,6 +140,7 @@ fun aiModule(
             todoRepository = get(),
             scheduleTodoNotificationService = get(),
             urlResolver = get(),
+            log = LoggerFactory.getLogger(CompleteAiSummaryService::class.java),
         )
     }
 
