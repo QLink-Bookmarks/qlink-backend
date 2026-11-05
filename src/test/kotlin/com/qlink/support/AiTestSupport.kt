@@ -61,6 +61,7 @@ fun aiTestModule() =
                 todoRepository = get(),
                 scheduleTodoNotificationService = get(),
                 urlResolver = get(),
+                log = LoggerFactory.getLogger(CompleteAiSummaryService::class.java),
             )
         }
 
