@@ -143,7 +143,7 @@ object ServiceTestEnvironment {
                 repositoryModule(),
                 linkPreviewModule(testApplicationConfig()),
                 bookmarkImportModule(),
-                linkContentModule(),
+                linkContentModule(testApplicationConfig()),
                 linkContentTestModule(),
                 securityTestModule(),
                 notificationTestModule(),
