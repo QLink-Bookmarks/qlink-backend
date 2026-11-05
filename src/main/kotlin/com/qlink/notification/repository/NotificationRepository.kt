@@ -42,6 +42,11 @@ interface NotificationRepository {
 
     suspend fun update(notification: Notification): Notification
 
+    suspend fun deletePendingByContextIds(
+        context: NotificationContext,
+        ids: List<Long>,
+    ): List<Long>
+
     suspend fun deletePendingByContext(
         context: NotificationContext,
         contextId: Long,

@@ -2,8 +2,10 @@ package com.qlink.folder.domain
 
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
+import com.qlink.common.error.requireFalse
 import com.qlink.common.error.requireNotBlank
 import com.qlink.common.error.requireNotOver
+import com.qlink.common.error.requireTrue
 import com.qlink.common.error.requiresEmoji
 import kotlin.random.Random
 import kotlin.time.Instant
@@ -31,10 +33,38 @@ class Folder(
 
     fun isOwnedBy(userId: Long): Boolean = ownerId == userId
 
+    fun isLinkWritableBy(
+        userId: Long,
+        memberCanWrite: Boolean,
+    ): Boolean = isOwnedBy(userId) || (isShared && memberCanWrite)
+
     fun validateOwner(ownerId: Long) {
         if (!isOwnedBy(ownerId)) {
             throw BusinessException(ErrorCode.FOLDER_DIFFERENT_OWNER)
         }
+    }
+
+    fun validateTransferTo(targetUserId: Long) {
+        isShared.requireTrue(ErrorCode.FOLDER_TRANSFER_NOT_SHARED)
+        isOwnedBy(targetUserId).requireFalse(ErrorCode.FOLDER_TRANSFER_TO_SELF)
+    }
+
+    fun validateLeavable(userId: Long) {
+        isOwnedBy(userId).requireFalse(ErrorCode.FOLDER_OWNER_CANNOT_LEAVE)
+    }
+
+    fun validateMemberRemoval(
+        loginId: Long,
+        memberId: Long,
+    ) {
+        if (loginId != memberId) {
+            validateOwner(loginId)
+        }
+    }
+
+    fun validateMoveTarget(targetFolderId: Long) {
+        (id == targetFolderId).requireFalse(ErrorCode.FOLDER_DELETE_TARGET_SELF)
+        isShared.requireFalse(ErrorCode.FOLDER_DELETE_MOVE_SHARED)
     }
 
     fun update(

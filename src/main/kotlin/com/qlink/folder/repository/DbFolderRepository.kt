@@ -17,12 +17,17 @@ import com.qlink.folder.repository.table.toFolderDomain
 import com.qlink.foldermember.repository.table.FolderMembers
 import com.qlink.link.repository.table.Links
 import com.qlink.user.repository.table.Users
+import org.jetbrains.exposed.v1.core.DoubleColumnType
+import org.jetbrains.exposed.v1.core.Function
 import org.jetbrains.exposed.v1.core.JoinType
+import org.jetbrains.exposed.v1.core.LongColumnType
 import org.jetbrains.exposed.v1.core.Op
+import org.jetbrains.exposed.v1.core.QueryBuilder
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.alias
 import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.castTo
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greater
 import org.jetbrains.exposed.v1.core.inList
@@ -55,6 +60,14 @@ class DbFolderRepository : FolderRepository {
             .selectAll()
             .where { Folders.id inList ids }
             .orderBy(Folders.id to SortOrder.ASC)
+            .map { it.toFolderDomain() }
+
+    override suspend fun findAllByIdsForUpdate(ids: List<Long>): List<Folder> =
+        Folders
+            .selectAll()
+            .where { Folders.id inList ids.distinct().sorted() }
+            .orderBy(Folders.id to SortOrder.ASC)
+            .forUpdate()
             .map { it.toFolderDomain() }
 
     override suspend fun findAllByOwnerId(ownerId: Long): List<Folder> =
@@ -112,7 +125,10 @@ class DbFolderRepository : FolderRepository {
     ): List<SearchFoldersQuery> {
         val normalizedQuery = query?.trim()?.takeIf { it.isNotEmpty() }
         val loweredQuery = normalizedQuery?.lowercase()
-        val score = (normalizedQuery?.let { bigmSimilarity(Folders.name, it) } ?: doubleLiteral(0.0)).alias("score")
+        // Read the REAL score as DOUBLE PRECISION so its cursor value round-trips exactly.
+        val score =
+            (normalizedQuery?.let { bigmSimilarity(Folders.name, it).castTo<Double>(DoubleColumnType()) } ?: doubleLiteral(0.0))
+                .alias("score")
         val ownerUsers = Users.alias("owner_users")
         val ownerNickname = ownerUsers[Users.nickname].alias("owner_nickname")
         val joined =
@@ -163,23 +179,39 @@ class DbFolderRepository : FolderRepository {
         }
 
         val folderIds = folders.map { it.id }
-        val memberCounts =
+        val memberIdsByFolder =
             FolderMembers
-                .select(FolderMembers.folderId)
+                .select(FolderMembers.folderId, FolderMembers.userId)
                 .where { FolderMembers.folderId inList folderIds }
-                .groupingBy { it[FolderMembers.folderId] }
-                .eachCount()
-        val linkCounts =
+                .groupBy({ it[FolderMembers.folderId] }, { it[FolderMembers.userId] })
+        val linkCount =
+            object : Function<Long>(LongColumnType()) {
+                override fun toQueryBuilder(queryBuilder: QueryBuilder) {
+                    queryBuilder.append("COUNT(*)")
+                }
+            }
+        val myLinkCount =
+            object : Function<Long>(LongColumnType()) {
+                override fun toQueryBuilder(queryBuilder: QueryBuilder) {
+                    queryBuilder
+                        .append("COUNT(*) FILTER (WHERE ")
+                        .append(Links.ownerId eq ownerId)
+                        .append(")")
+                }
+            }
+        val linkCountsByFolder =
             Links
-                .select(Links.folderId)
+                .select(Links.folderId, linkCount, myLinkCount)
                 .where { Links.folderId inList folderIds }
-                .groupingBy { it[Links.folderId]!! }
-                .eachCount()
+                .groupBy(Links.folderId)
+                .associateBy { it[Links.folderId]!! }
 
-        return folders.map {
-            it.copy(
-                shareCounts = (memberCounts[it.id] ?: 0) + 1,
-                linkCounts = linkCounts[it.id] ?: 0,
+        return folders.map { folder ->
+            val counts = linkCountsByFolder[folder.id]
+            folder.copy(
+                shareCounts = if (folder.sharedAt == null) 1 else (memberIdsByFolder[folder.id].orEmpty() + folder.ownerId).distinct().size,
+                linkCounts = counts?.get(linkCount)?.toInt() ?: 0,
+                myLinkCounts = counts?.get(myLinkCount)?.toInt() ?: 0,
             )
         }
     }
@@ -229,9 +261,9 @@ class DbFolderRepository : FolderRepository {
             }
 
             FolderSearchOrder.SIMILAR -> {
-                (score less doubleLiteral(cursorValue.score ?: Double.MIN_VALUE)) or
+                (score.delegate less doubleLiteral(cursorValue.score ?: Double.MIN_VALUE)) or
                     (
-                        (score eq doubleLiteral(cursorValue.score ?: Double.MIN_VALUE)) and
+                        (score.delegate eq doubleLiteral(cursorValue.score ?: Double.MIN_VALUE)) and
                             (Folders.id less longLiteral(cursorValue.id ?: Long.MAX_VALUE))
                     )
             }
@@ -264,5 +296,6 @@ class DbFolderRepository : FolderRepository {
             shareCounts = 0,
             linkCounts = 0,
             score = this[score],
+            myLinkCounts = 0,
         )
 }

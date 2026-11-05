@@ -44,6 +44,10 @@ class Link(
         // TODO: summary, memo, tag도 검증 필요할지?
     }
 
+    fun isOwnedBy(userId: Long): Boolean = ownerId == userId
+
+    fun hasFolderChangedSince(startedFolderId: Long?): Boolean = folderId != startedFolderId
+
     fun validateOwner(ownerId: Long) {
         if (this.ownerId != ownerId) {
             throw BusinessException(ErrorCode.LINK_DIFFERENT_OWNER)

@@ -33,6 +33,18 @@ class DbFolderMemberRepository : FolderMemberRepository {
             }.singleOrNull()
             ?.toFolderMemberDomain()
 
+    override suspend fun findByFolderIdAndUserIdForUpdate(
+        folderId: Long,
+        userId: Long,
+    ): FolderMember? =
+        FolderMembers
+            .selectAll()
+            .where {
+                (FolderMembers.folderId eq folderId) and (FolderMembers.userId eq userId)
+            }.forUpdate()
+            .singleOrNull()
+            ?.toFolderMemberDomain()
+
     override suspend fun existsByFolderIdAndUserId(
         folderId: Long,
         userId: Long,
@@ -93,7 +105,7 @@ class DbFolderMemberRepository : FolderMemberRepository {
         folderId: Long,
         userId: Long,
         role: MemberRole,
-    ) {
+    ): Int =
         FolderMembers.update(
             where = {
                 (FolderMembers.folderId eq folderId) and
@@ -103,7 +115,6 @@ class DbFolderMemberRepository : FolderMemberRepository {
             it[FolderMembers.role] = role.name
             it[FolderMembers.updatedAt] = Clock.System.now().toJavaInstant()
         }
-    }
 
     override suspend fun deleteByFolderIdAndUserId(
         folderId: Long,

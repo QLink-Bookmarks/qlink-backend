@@ -14,6 +14,20 @@ interface LinkRepository {
 
     suspend fun findById(linkId: Long): Link?
 
+    suspend fun findByIdForUpdate(linkId: Long): Link?
+
+    suspend fun findByIdForShare(linkId: Long): Link?
+
+    suspend fun findAllByFolderIdForUpdate(folderId: Long): List<Link>
+
+    suspend fun findAllByIdsForUpdate(linkIds: List<Long>): List<Link>
+
+    suspend fun assignFolderByIds(
+        linkIds: List<Long>,
+        folderId: Long?,
+        now: Instant,
+    )
+
     suspend fun findAllByIds(linkIds: List<Long>): List<Link>
 
     suspend fun findAllByFolderIds(folderIds: List<Long>): List<Link>
