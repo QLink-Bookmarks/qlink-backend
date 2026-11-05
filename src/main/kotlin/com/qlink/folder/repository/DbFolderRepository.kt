@@ -17,6 +17,7 @@ import com.qlink.folder.repository.table.toFolderDomain
 import com.qlink.foldermember.repository.table.FolderMembers
 import com.qlink.link.repository.table.Links
 import com.qlink.user.repository.table.Users
+import org.jetbrains.exposed.v1.core.DoubleColumnType
 import org.jetbrains.exposed.v1.core.Function
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.LongColumnType
@@ -26,6 +27,7 @@ import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.alias
 import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.castTo
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greater
 import org.jetbrains.exposed.v1.core.inList
@@ -123,7 +125,10 @@ class DbFolderRepository : FolderRepository {
     ): List<SearchFoldersQuery> {
         val normalizedQuery = query?.trim()?.takeIf { it.isNotEmpty() }
         val loweredQuery = normalizedQuery?.lowercase()
-        val score = (normalizedQuery?.let { bigmSimilarity(Folders.name, it) } ?: doubleLiteral(0.0)).alias("score")
+        // Read the REAL score as DOUBLE PRECISION so its cursor value round-trips exactly.
+        val score =
+            (normalizedQuery?.let { bigmSimilarity(Folders.name, it).castTo<Double>(DoubleColumnType()) } ?: doubleLiteral(0.0))
+                .alias("score")
         val ownerUsers = Users.alias("owner_users")
         val ownerNickname = ownerUsers[Users.nickname].alias("owner_nickname")
         val joined =
@@ -256,9 +261,9 @@ class DbFolderRepository : FolderRepository {
             }
 
             FolderSearchOrder.SIMILAR -> {
-                (score less doubleLiteral(cursorValue.score ?: Double.MIN_VALUE)) or
+                (score.delegate less doubleLiteral(cursorValue.score ?: Double.MIN_VALUE)) or
                     (
-                        (score eq doubleLiteral(cursorValue.score ?: Double.MIN_VALUE)) and
+                        (score.delegate eq doubleLiteral(cursorValue.score ?: Double.MIN_VALUE)) and
                             (Folders.id less longLiteral(cursorValue.id ?: Long.MAX_VALUE))
                     )
             }
