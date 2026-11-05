@@ -7,11 +7,11 @@ import com.qlink.link.domain.Link
 object LinkAiFolderDomainService {
     fun resolve(
         link: Link,
-        startedFolderAssignmentRevision: Long,
+        startedFolderId: Long?,
         candidate: Folder?,
         member: FolderMember?,
     ): Long? {
-        if (link.hasFolderAssignmentChangedSince(startedFolderAssignmentRevision) || candidate == null) {
+        if (link.hasFolderChangedSince(startedFolderId) || candidate == null) {
             return link.folderId
         }
         val memberCanWrite =

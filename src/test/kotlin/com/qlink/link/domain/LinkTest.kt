@@ -670,63 +670,33 @@ class LinkTest :
                 }
             }
         }
-        Given("링크 소유자와 시작 folder assignment revision") {
+        Given("링크 소유자와 AI 시작 시점의 folderId") {
             val ownerId = RandomFixture.randomId()
-            val revision = RandomFixture.randomLong(1, Long.MAX_VALUE - 1)
-            val link =
-                LinkFixture.createRandomLinkOf(
-                    ownerId = ownerId,
-                    folderId = RandomFixture.randomId(),
-                    thumbnailUrl = null,
-                    folderAssignmentRevision = revision,
-                )
+            val startedFolderId = RandomFixture.randomLong(1, Long.MAX_VALUE - 1)
+            val link = LinkFixture.createRandomLinkOf(ownerId = ownerId, folderId = startedFolderId, thumbnailUrl = null)
             When("소유자를 비교하면") {
                 Then("true다") { link.isOwnedBy(ownerId) shouldBe true }
             }
             When("다른 사용자를 비교하면") {
                 Then("false다") { link.isOwnedBy(RandomFixture.randomId()) shouldBe false }
             }
-            When("시작 revision이 같으면") {
-                Then("배정이 바뀌지 않았다") { link.hasFolderAssignmentChangedSince(revision) shouldBe false }
+            When("현재 folderId가 시작과 같으면") {
+                Then("폴더가 바뀌지 않았다") { link.hasFolderChangedSince(startedFolderId) shouldBe false }
             }
-            When("시작 revision보다 커졌고 현재 folderId는 시작과 같으면") {
-                val start =
-                    LinkFixture.createRandomLinkOf(
-                        ownerId = ownerId,
-                        folderId = link.folderId,
-                        folderAssignmentRevision = revision - 1,
-                    )
-                Then("배정 변경 이력이 있다") {
-                    link.folderId shouldBe start.folderId
-                    link.hasFolderAssignmentChangedSince(start.folderAssignmentRevision) shouldBe true
-                }
+            When("다른 폴더로 옮겨졌으면") {
+                val moved = LinkFixture.createRandomLinkOf(ownerId = ownerId, folderId = startedFolderId + 1)
+                Then("폴더가 바뀌었다") { moved.hasFolderChangedSince(startedFolderId) shouldBe true }
             }
-            When("폴더 배정 없이 링크 내용을 수정하면") {
-                val updated =
-                    link.update(
-                        folderId = link.folderId,
-                        url = link.url,
-                        title = RandomFixture.randomSentenceWithMax(300),
-                        summary = link.summary,
-                        memo = link.memo,
-                        tags = link.tags,
-                        thumbnailUrl = link.thumbnailUrl,
-                        sourceType = link.sourceType,
-                        previewPublicBaseUrl = RandomFixture.randomPreviewBaseUrl(),
-                        previewEnvironment = RandomFixture.randomPreviewEnvironment(),
-                    )
-                Then("DB revision metadata를 보존한다") {
-                    updated.folderAssignmentRevision shouldBe revision
-                    updated.folderId shouldBe link.folderId
-                }
+            When("폴더에서 빠졌으면") {
+                val detached = LinkFixture.createRandomLinkOf(ownerId = ownerId, folderId = null)
+                Then("폴더가 바뀌었다") { detached.hasFolderChangedSince(startedFolderId) shouldBe true }
             }
-            When("즐겨찾기나 미리보기를 변경하면") {
-                val favorite = link.changeFavorite(isFavorite = true, now = RandomFixture.randomPastInstant())!!
-                val preview = link.fillPreview(thumbnailUrl = RandomFixture.randomUrl(), faviconUrl = null, isVideo = false)
-                Then("DB revision metadata를 보존한다") {
-                    favorite.folderAssignmentRevision shouldBe revision
-                    preview.folderAssignmentRevision shouldBe revision
-                }
+            When("시작 시 폴더가 없었고 폴더에 들어갔으면") {
+                Then("폴더가 바뀌었다") { link.hasFolderChangedSince(null) shouldBe true }
+            }
+            When("시작 시 폴더가 없었고 지금도 없으면") {
+                val detached = LinkFixture.createRandomLinkOf(ownerId = ownerId, folderId = null)
+                Then("폴더가 바뀌지 않았다") { detached.hasFolderChangedSince(null) shouldBe false }
             }
         }
     })
