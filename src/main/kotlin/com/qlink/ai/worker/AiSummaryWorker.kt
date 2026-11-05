@@ -204,7 +204,6 @@ class AiSummaryWorker(
                             jobId = job.id!!,
                             linkId = link.id!!,
                             folderId = link.folderId,
-                            folderAssignmentRevision = link.folderAssignmentRevision,
                         ),
                 )
             } ?: return countResult(RESULT_ABORTED)

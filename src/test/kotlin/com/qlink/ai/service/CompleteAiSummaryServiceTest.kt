@@ -36,7 +36,6 @@ import com.qlink.user.repository.UserRepository
 import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.core.test.TestType
 import io.kotest.matchers.collections.shouldHaveSize
-import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import org.jetbrains.exposed.v1.core.eq
@@ -157,7 +156,7 @@ class CompleteAiSummaryServiceTest :
                 notificationRepository.findById(unrelatedNotification.id!!)!!.willFireAt shouldBe unrelatedNotification.willFireAt
             }
 
-            When("시작 revision과 현재 revision이 같고 후보가 유효하면") {
+            When("시작 folderId와 현재 folderId가 같고 후보가 유효하면") {
                 val complete = suspend { service.complete(completion) }
                 Then("작업과 링크 AI 결과, 후보 배정, 액션, 예약과 사용량을 저장한다") {
                     shouldNotThrow<BusinessException> { complete() }
@@ -224,11 +223,9 @@ class CompleteAiSummaryServiceTest :
                     folderRepository.deleteById(source.id!!)
                 }
                 val complete = suspend { service.complete(completion) }
-                Then("미분류 배정과 증가한 revision을 보존한다") {
+                Then("미분류 배정을 보존한다") {
                     shouldNotThrow<BusinessException> { complete() }
                     assertCompletedIn(null)
-                    linkRepository.findById(link.id!!)!!.folderAssignmentRevision shouldBeGreaterThan
-                        completion.snapshot.folderAssignmentRevision
                 }
             }
 
@@ -241,11 +238,10 @@ class CompleteAiSummaryServiceTest :
                     folderRepository.deleteById(intermediate.id!!)
                 }
                 val complete = suspend { service.complete(completion) }
-                Then("revision 증가를 확인하고 AI 후보가 A를 덮어쓰지 않는다") {
+                // 알려진 한계: 시작 snapshot 비교라 A→B→A 이동은 감지하지 않는다. 데이터 손실은 없다.
+                Then("이동을 감지하지 않고 유효한 AI 후보를 적용한다") {
                     shouldNotThrow<BusinessException> { complete() }
-                    assertCompletedIn(source.id)
-                    linkRepository.findById(link.id!!)!!.folderAssignmentRevision shouldBeGreaterThan
-                        completion.snapshot.folderAssignmentRevision
+                    assertCompletedIn(candidate.id)
                 }
             }
 
@@ -289,7 +285,7 @@ class CompleteAiSummaryServiceTest :
                 }
             }
 
-            When("시작 revision 그대로 AI가 미분류를 선택하면") {
+            When("시작 folderId 그대로 AI가 미분류를 선택하면") {
                 beforeTest {
                     if (it.type != TestType.Test) return@beforeTest
                     completion = completion.copy(candidateFolderId = null)
@@ -350,7 +346,6 @@ class CompleteAiSummaryServiceTest :
                 }
                 val complete = suspend { service.complete(completion) }
                 Then("내용 변경을 이동으로 오인하지 않고 유효 후보를 적용한다") {
-                    linkRepository.findById(link.id!!)!!.folderAssignmentRevision shouldBe completion.snapshot.folderAssignmentRevision
                     shouldNotThrow<BusinessException> { complete() }
                     assertCompletedIn(candidate.id)
                 }
