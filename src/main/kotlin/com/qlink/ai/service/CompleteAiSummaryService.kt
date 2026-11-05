@@ -58,7 +58,7 @@ class CompleteAiSummaryService(
                 val folderId =
                     LinkAiFolderDomainService.resolve(
                         link = link,
-                        startedFolderAssignmentRevision = snapshot.folderAssignmentRevision,
+                        startedFolderId = snapshot.folderId,
                         candidateFolderId = completion.candidateFolderId,
                         candidate = candidate,
                         member = member,

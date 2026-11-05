@@ -7,12 +7,12 @@ import com.qlink.link.domain.Link
 object LinkAiFolderDomainService {
     fun resolve(
         link: Link,
-        startedFolderAssignmentRevision: Long,
+        startedFolderId: Long?,
         candidateFolderId: Long?,
         candidate: Folder?,
         member: FolderMember?,
     ): Long? {
-        if (link.hasFolderAssignmentChangedSince(startedFolderAssignmentRevision)) {
+        if (link.hasFolderChangedSince(startedFolderId)) {
             return link.folderId
         }
         if (candidateFolderId == null) return null
