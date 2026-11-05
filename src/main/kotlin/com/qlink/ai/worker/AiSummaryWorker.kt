@@ -229,6 +229,9 @@ class AiSummaryWorker(
                         ),
                     )
                 }.onSuccess { completionResult ->
+                    log.info(
+                        "[WORKER] Job has been successful for job=$jobId, link=${context.snapshot.linkId}, folderKeptAfterMove=${completionResult.folderKeptAfterMove}",
+                    )
                     countResult(if (completionResult.schedulingFailed) RESULT_ERROR else RESULT_COMPLETED)
                 }.onFailure {
                     log.warn("[WORKER] AI summary completion failed. jobId=$jobId", it)
