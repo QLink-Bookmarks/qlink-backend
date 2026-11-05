@@ -1,5 +1,7 @@
 package com.qlink.config
 
+import com.qlink.common.error.ErrorCode
+import com.qlink.common.error.requireTrue
 import io.ktor.server.config.ApplicationConfig
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -21,14 +23,14 @@ data class LinkContentConfig(
     val hostCooldown: Duration,
 ) {
     init {
-        require(functionName.isNotBlank())
-        require(invokeTimeout.isPositive())
-        require(workerConcurrency > 0)
-        require(workerParallelism > 0)
-        require(workerBatchSize > 0)
-        require(workerMaxPages > 0)
-        require(!hostMinInterval.isNegative())
-        require(hostCooldown.isPositive())
+        (functionName.isNotBlank()).requireTrue(ErrorCode.CONFIG_LINK_CONTENT_FUNCTION_REQUIRED)
+        (invokeTimeout.isPositive()).requireTrue(ErrorCode.CONFIG_LINK_CONTENT_INVOKE_TIMEOUT_INVALID)
+        (workerConcurrency > 0).requireTrue(ErrorCode.CONFIG_LINK_CONTENT_CONCURRENCY_INVALID)
+        (workerParallelism > 0).requireTrue(ErrorCode.CONFIG_LINK_CONTENT_PARALLELISM_INVALID)
+        (workerBatchSize > 0).requireTrue(ErrorCode.CONFIG_LINK_CONTENT_BATCH_SIZE_INVALID)
+        (workerMaxPages > 0).requireTrue(ErrorCode.CONFIG_LINK_CONTENT_MAX_PAGES_INVALID)
+        (!hostMinInterval.isNegative()).requireTrue(ErrorCode.CONFIG_LINK_CONTENT_HOST_INTERVAL_INVALID)
+        (hostCooldown.isPositive()).requireTrue(ErrorCode.CONFIG_LINK_CONTENT_HOST_COOLDOWN_INVALID)
     }
 
     companion object {
