@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package com.qlink.link.service
 
 import com.qlink.ai.domain.AiProvider
@@ -12,11 +14,16 @@ import com.qlink.folder.repository.FolderRepository
 import com.qlink.foldermember.repository.FolderMemberRepository
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
+import com.qlink.link.dto.LinkContentResponse
 import com.qlink.link.repository.LinkRepository
+import com.qlink.linkcontent.domain.ContentFailureCode
+import com.qlink.linkcontent.domain.ContentStatus
+import com.qlink.linkcontent.repository.LinkContentRepository
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.AiFixture
 import com.qlink.support.fixture.FolderFixture
 import com.qlink.support.fixture.FolderMemberFixture
+import com.qlink.support.fixture.LinkContentFixture
 import com.qlink.support.fixture.LinkFixture
 import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.TodoFixture
@@ -30,10 +37,14 @@ import com.qlink.user.domain.User
 import com.qlink.user.repository.UserRepository
 import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldNotContain
+import kotlinx.serialization.json.Json
 import java.time.LocalTime
 import kotlin.time.Clock
 import kotlin.time.toKotlinInstant
+import kotlin.uuid.ExperimentalUuidApi
 
 class GetLinkDetailServiceTest :
     BaseServiceTest({
@@ -45,6 +56,7 @@ class GetLinkDetailServiceTest :
         val todoRepository = koinGet<TodoRepository>()
         val aiProviderRepository = koinGet<AiProviderRepository>()
         val availableModelRepository = koinGet<AvailableModelRepository>()
+        val linkContentRepository = koinGet<LinkContentRepository>()
 
         suspend fun modelFixture(): AvailableModel {
             val provider =
@@ -264,6 +276,121 @@ class GetLinkDetailServiceTest :
                 }
             }
         }
+
+        Given("본문 행 상태가 각기 다른 링크들") {
+            lateinit var fixture: ContentDetailFixture
+
+            beforeTest {
+                val owner = userRepository.insert(UserFixture.createRandomValidUser())
+                val member = userRepository.insert(UserFixture.createRandomValidUser())
+                val sharedFolder =
+                    folderRepository.insert(FolderFixture.createFolderWith(ownerId = owner.id!!, sharedAt = Clock.System.now()))
+                folderMemberRepository.insertIfAbsent(
+                    FolderMemberFixture.createOwnerMember(folderId = sharedFolder.id!!, userId = owner.id!!),
+                )
+                folderMemberRepository.insertIfAbsent(
+                    FolderMemberFixture.createMember(folderId = sharedFolder.id!!, userId = member.id!!),
+                )
+
+                suspend fun insertLink(): Long =
+                    linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = owner.id!!, folderId = sharedFolder.id)).id!!
+
+                val now = RandomFixture.randomPastInstant()
+                val withoutRow = insertLink()
+                val pending = insertLink()
+                val collected = insertLink()
+                val tinyCollected = insertLink()
+                val failed = insertLink()
+                val blocked = insertLink()
+                val collectedText = LinkContentFixture.randomBodyText(RandomFixture.randomInt(200, 2_000))
+                linkContentRepository.insertAll(
+                    listOf(
+                        LinkContentFixture.createPendingContentOf(linkId = pending),
+                        LinkContentFixture.createCollectedContentOf(linkId = collected, text = collectedText),
+                        LinkContentFixture.createCollectedContentOf(linkId = tinyCollected, text = LinkContentFixture.randomBodyText(3)),
+                        LinkContentFixture
+                            .createClaimedContentOf(linkId = failed)
+                            .fail(code = ContentFailureCode.NOT_HTML, retryAfterSeconds = null, now = now),
+                        LinkContentFixture
+                            .createClaimedContentOf(linkId = blocked)
+                            .fail(code = ContentFailureCode.LOGIN_REQUIRED, retryAfterSeconds = null, now = now),
+                    ),
+                )
+                fixture =
+                    ContentDetailFixture(
+                        ownerId = owner.id!!,
+                        memberId = member.id!!,
+                        withoutRow = withoutRow,
+                        pending = pending,
+                        collected = collected,
+                        collectedText = collectedText,
+                        tinyCollected = tinyCollected,
+                        failed = failed,
+                        blocked = blocked,
+                    )
+            }
+
+            When("행이 없으면") {
+                val links = fixture
+                val response = getLinkDetailService.getLinkDetail(links.ownerId, links.withoutRow)
+
+                Then("content가 null이다") {
+                    response.content shouldBe null
+                }
+            }
+
+            When("PENDING이면") {
+                val links = fixture
+                val response = getLinkDetailService.getLinkDetail(links.ownerId, links.pending)
+
+                Then("content.excerpt가 null이고 isPending이 참이다") {
+                    response.content shouldBe LinkContentResponse(excerpt = null, isPending = true)
+                }
+            }
+
+            When("COLLECTED이면") {
+                val links = fixture
+                val response = getLinkDetailService.getLinkDetail(links.ownerId, links.collected)
+
+                Then("content.excerpt가 발췌이고 isPending이 거짓이며 본문 전체는 응답에 없다") {
+                    val stored = linkContentRepository.findByLinkId(links.collected).shouldNotBeNull()
+                    response.content shouldBe LinkContentResponse(excerpt = stored.excerpt.shouldNotBeNull(), isPending = false)
+                    Json.encodeToString(response) shouldNotContain links.collectedText
+                }
+            }
+
+            When("COLLECTED인데 발췌가 없는(3자 이하) 본문이면") {
+                val links = fixture
+                val response = getLinkDetailService.getLinkDetail(links.ownerId, links.tinyCollected)
+
+                Then("content.excerpt가 null이고 isPending이 거짓이다") {
+                    linkContentRepository.findByLinkId(links.tinyCollected).shouldNotBeNull().status shouldBe ContentStatus.COLLECTED
+                    response.content shouldBe LinkContentResponse(excerpt = null, isPending = false)
+                }
+            }
+
+            When("FAILED·BLOCKED이면") {
+                val links = fixture
+                val failed = getLinkDetailService.getLinkDetail(links.ownerId, links.failed)
+                val blocked = getLinkDetailService.getLinkDetail(links.ownerId, links.blocked)
+
+                Then("content.excerpt가 null이고 isPending이 거짓이다") {
+                    failed.content shouldBe LinkContentResponse(excerpt = null, isPending = false)
+                    blocked.content shouldBe LinkContentResponse(excerpt = null, isPending = false)
+                }
+            }
+
+            When("공유 폴더 멤버가 보면") {
+                val links = fixture
+                val asOwner = getLinkDetailService.getLinkDetail(links.ownerId, links.collected)
+                val asMember = getLinkDetailService.getLinkDetail(links.memberId, links.collected)
+
+                Then("소유자와 같은 content가 나온다") {
+                    asMember.content.shouldNotBeNull()
+                    asMember.content shouldBe asOwner.content
+                }
+            }
+        }
     })
 
 private fun Todo.toExpectedTodo() =
@@ -276,3 +403,15 @@ private fun Todo.toExpectedTodo() =
         repeatDays = repeatDays,
         repeatTime = repeatTime?.toString(),
     )
+
+private class ContentDetailFixture(
+    val ownerId: Long,
+    val memberId: Long,
+    val withoutRow: Long,
+    val pending: Long,
+    val collected: Long,
+    val collectedText: String,
+    val tinyCollected: Long,
+    val failed: Long,
+    val blocked: Long,
+)

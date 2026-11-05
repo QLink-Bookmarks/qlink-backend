@@ -129,6 +129,14 @@ internal fun updateLinkAiSummaryDocs(): RouteConfig.() -> Unit =
 internal fun getLinkDetailDocs(): RouteConfig.() -> Unit =
     {
         summary = "링크 상세 조회 API"
+        description =
+            """
+            content는 링크 본문의 발췌예요. 본문 기록이 없는(기능 이전) 링크는 null이에요.
+            excerpt는 본문 수집이 끝났고 발췌를 만들 수 있을 때만 있어요. 본문이 100자 이상이면 앞 100자, 미만이면 약 30%에
+            말줄임(…)을 붙여 101 UTF-16 유닛 이하예요. 앞부분이 비는 아주 짧은 본문(3자 이하, 이모지로 시작하는 4~6자)은 null이에요.
+            isPending은 본문을 아직 수집 중일 때만 true예요(앱의 자동 재확인용, 화면 미표시). 수집 실패·차단은 { excerpt: null, isPending: false }예요.
+            본문 전체와 수집 상태·실패 코드는 어떤 응답에도 없어요.
+            """.trimIndent()
         request {
             pathParameter<Long>("id") { description = "링크 ID" }
         }
@@ -156,8 +164,20 @@ internal fun getLinkDetailDocs(): RouteConfig.() -> Unit =
 internal fun getLinksDocs(): RouteConfig.() -> Unit =
     {
         summary = "링크 검색 API"
+        description =
+            """
+            query가 있으면 제목·URL·태그·요약·메모와 수집된 본문을 찾아요. 앞뒤 공백을 지우고 NFC·소문자로 맞춘 뒤 찾으며,
+            %·_·역슬래시는 와일드카드가 아니라 글자 그대로 찾아요. 1자 검색어는 본문을 찾지 않아요.
+            정렬은 메타데이터(제목·URL·태그·요약·메모) 일치 링크가 먼저, 본문만 일치한 링크가 뒤이고 각 묶음 안에서 order를 따라요.
+            query가 있을 때 발급된 커서에는 isMetadataMatched(similar는 contentScore도)가 있어야 해요. 이 기능 이전에 발급된 검색 커서는
+            COMMON_CURSOR_FIELD_MISSING으로 거절되니 첫 페이지부터 다시 요청해요. query가 없으면 정렬·커서는 기존과 같아요.
+            contentExcerpt는 본문 수집이 끝난 링크의 발췌(상세 content.excerpt와 같음)이고, 그 외에는 null이에요.
+            matchedFields는 일치한 필드(TITLE / URL / TAGS / SUMMARY / MEMO / CONTENT)이며 query가 없으면 []예요(앱 내부 판단용).
+            contentSnippet은 본문이 일치한 링크에만 있어요. text는 말줄임 포함 100 UTF-16 유닛 이하이고, highlights는 text 기준
+            [start, end) 범위로 겹치지 않으며 만들 수 없으면 []예요.
+            """.trimIndent()
         request {
-            queryParameter<String?>("query") { description = "검색어" }
+            queryParameter<String?>("query") { description = "검색어 (1자면 본문 미검색, %·_·역슬래시는 글자 그대로)" }
             queryParameter<Long?>("folderId") { description = "폴더 ID 필터" }
             queryParameter<Boolean?>("isFavorite") { description = "바로가기 필터 (true: 바로가기만, false: 일반만, 미지정: 전체)" }
             queryParameter<String>("order") {

@@ -2,6 +2,7 @@ package com.qlink.link.repository
 
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
+import com.qlink.link.domain.SearchKeyword
 import com.qlink.link.dto.LinkDetailQuery
 import com.qlink.link.dto.LinkSearchCursor
 import com.qlink.link.dto.LinkSearchOrder
@@ -42,9 +43,10 @@ interface LinkRepository {
         loginId: Long,
     ): LinkDetailQuery?
 
+    /** [keyword]가 null이면 검색어 없는 목록이다. */
     suspend fun search(
         ownerId: Long,
-        query: String?,
+        keyword: SearchKeyword?,
         folderId: Long?,
         isFavorite: Boolean?,
         order: LinkSearchOrder,

@@ -3,6 +3,7 @@
 package com.qlink.link.dto
 
 import com.qlink.link.domain.LinkStatus
+import com.qlink.link.domain.MatchedField
 import com.qlink.link.domain.SourceType
 import com.qlink.todo.dto.LinkDetailTodoQuery
 import kotlinx.serialization.Serializable
@@ -38,6 +39,14 @@ data class GetLinkDetailResponse(
     val todos: List<LinkDetailTodoQuery>,
     val workModel: String?,
     val isFavorite: Boolean,
+    val content: LinkContentResponse?,
+)
+
+/** 링크 본문 발췌. 본문 전체·수집 상태는 내보내지 않는다. */
+@Serializable
+data class LinkContentResponse(
+    val excerpt: String?,
+    val isPending: Boolean,
 )
 
 @Serializable
@@ -57,6 +66,21 @@ data class GetLinksContentResponse(
     val workModel: String?,
     val todoCounts: TodoCountsResponse,
     val isFavorite: Boolean,
+    val contentExcerpt: String?,
+    val matchedFields: List<MatchedField>,
+    val contentSnippet: SnippetResponse?,
+)
+
+@Serializable
+data class SnippetResponse(
+    val text: String,
+    val highlights: List<HighlightRange>,
+)
+
+@Serializable
+data class HighlightRange(
+    val start: Int,
+    val end: Int,
 )
 
 @Serializable

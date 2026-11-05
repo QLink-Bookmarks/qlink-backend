@@ -8,12 +8,17 @@ import com.qlink.common.scroll.ScrollRequest
 import com.qlink.common.scroll.ScrollResponse
 import com.qlink.common.search.SearchCursorCodec
 import com.qlink.common.transaction.TransactionRunner
+import com.qlink.link.domain.MatchedField
+import com.qlink.link.domain.SearchKeyword
+import com.qlink.link.domain.Snippet
 import com.qlink.link.dto.DEFAULT_LINK_SEARCH_ORDER
 import com.qlink.link.dto.GetLinksContentResponse
+import com.qlink.link.dto.HighlightRange
 import com.qlink.link.dto.LinkSearchCursor
 import com.qlink.link.dto.LinkSearchCursorValue
 import com.qlink.link.dto.LinkSearchOrder
 import com.qlink.link.dto.SearchLinksQuery
+import com.qlink.link.dto.SnippetResponse
 import com.qlink.link.dto.TodoCountsResponse
 import com.qlink.link.repository.LinkRepository
 import com.qlink.todo.domain.Todo
@@ -42,15 +47,19 @@ class GetLinksService(
             val normalizedOrder =
                 LinkSearchOrder.from(order.ifBlank { DEFAULT_LINK_SEARCH_ORDER })
                     ?: throw BusinessException(ErrorCode.COMMON_INVALID_SORT_ORDER)
+            val keyword = SearchKeyword.of(query).takeUnless { it.isBlank }
             val cursor =
                 scrollRequest.cursor
-                    ?.let { SearchCursorCodec.decode(it, normalizedOrder, ::validateCursorValue) }
-                    ?.withCreatedAt()
+                    ?.let { encoded ->
+                        SearchCursorCodec.decode<LinkSearchCursorValue>(encoded, normalizedOrder) { value, expectedOrder ->
+                            validateCursorValue(value = value, expectedOrder = expectedOrder, hasKeyword = keyword != null)
+                        }
+                    }?.withCreatedAt()
             val size = scrollRequest.size.takeIf { it > 0 } ?: DEFAULT_SCROLL_SIZE
             val queries =
                 linkRepository.search(
                     ownerId = loginId,
-                    query = query,
+                    keyword = keyword,
                     folderId = folderId,
                     isFavorite = isFavorite,
                     order = normalizedOrder,
@@ -82,17 +91,33 @@ class GetLinksService(
                             createdAt = queryRow.createdAt,
                             todoCounts = todosByLinkId[queryRow.id].orEmpty().toCounts(now),
                             isFavorite = queryRow.favoriteAt != null,
+                            contentExcerpt = queryRow.contentExcerpt,
+                            matchedFields = queryRow.matchedFields(),
+                            contentSnippet = keyword?.let { queryRow.toSnippetResponse(it) },
                         )
                     },
-                nextCursor = contents.lastOrNull()?.takeIf { hasNext }?.let { encodeCursor(it, normalizedOrder) },
+                nextCursor =
+                    contents
+                        .lastOrNull()
+                        ?.takeIf { hasNext }
+                        ?.let { encodeCursor(query = it, order = normalizedOrder, hasKeyword = keyword != null) },
                 hasNext = hasNext,
             )
         }
 
+    /** 검색어가 있으면 메타 일치 여부(similar는 본문 점수까지)가 정렬 키라 커서에 있어야 한다. 검색어가 없으면 기존 검사 그대로다. */
     private fun validateCursorValue(
         value: LinkSearchCursorValue,
         expectedOrder: LinkSearchOrder,
+        hasKeyword: Boolean,
     ) {
+        if (hasKeyword) {
+            value.isMetadataMatched ?: throw BusinessException(ErrorCode.COMMON_CURSOR_FIELD_MISSING)
+            if (expectedOrder == LinkSearchOrder.SIMILAR) {
+                value.contentScore ?: throw BusinessException(ErrorCode.COMMON_CURSOR_FIELD_MISSING)
+            }
+        }
+
         when (expectedOrder) {
             LinkSearchOrder.LATEST, LinkSearchOrder.EARLIEST -> {
                 value.id ?: throw BusinessException(ErrorCode.COMMON_CURSOR_FIELD_MISSING)
@@ -127,6 +152,7 @@ class GetLinksService(
     private fun encodeCursor(
         query: SearchLinksQuery,
         order: LinkSearchOrder,
+        hasKeyword: Boolean,
     ): String =
         SearchCursorCodec.encode(
             order = order,
@@ -141,8 +167,36 @@ class GetLinksService(
                     tagsScore = query.tagsScore,
                     summaryScore = query.summaryScore,
                     memoScore = query.memoScore,
+                    isMetadataMatched = query.isMetadataMatched.takeIf { hasKeyword },
+                    contentScore = query.contentScore.takeIf { hasKeyword },
                 ),
         )
+
+    private fun SearchLinksQuery.matchedFields(): List<MatchedField> =
+        listOfNotNull(
+            MatchedField.TITLE.takeIf { titleMatched },
+            MatchedField.URL.takeIf { urlMatched },
+            MatchedField.TAGS.takeIf { tagsMatched },
+            MatchedField.SUMMARY.takeIf { summaryMatched },
+            MatchedField.MEMO.takeIf { memoMatched },
+            MatchedField.CONTENT.takeIf { contentMatched },
+        )
+
+    private fun SearchLinksQuery.toSnippetResponse(keyword: SearchKeyword): SnippetResponse? =
+        snippetSource?.let { source ->
+            val snippet =
+                Snippet.of(
+                    source = source,
+                    headCut = snippetHeadCut,
+                    tailCut = snippetTailCut,
+                    keyword = keyword.value,
+                    bodyLength = checkNotNull(snippetBodyLength) { "스니펫 창에는 본문 길이가 있어야 한다" },
+                )
+            SnippetResponse(
+                text = snippet.text,
+                highlights = snippet.highlights.map { HighlightRange(start = it.start, end = it.end) },
+            )
+        }
 
     private fun List<Todo>.toCounts(now: Instant): TodoCountsResponse =
         TodoCountsResponse(
