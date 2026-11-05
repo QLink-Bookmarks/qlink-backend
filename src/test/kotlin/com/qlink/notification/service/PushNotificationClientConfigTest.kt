@@ -1,5 +1,6 @@
 package com.qlink.notification.service
 
+import com.qlink.common.error.ErrorCode
 import com.qlink.config.NotificationConfig
 import com.qlink.device.domain.DevicePlatform
 import com.qlink.push.client.ExpoPushClient
@@ -146,6 +147,41 @@ class PushNotificationClientConfigTest :
                     val result = client.send(pushRequest())
 
                     result.success shouldBe false
+                    result.errorMessage shouldBe ErrorCode.PUSH_EXPO_REQUEST_FAILED.message
+                    statuses shouldHaveSize 2
+                    delays shouldHaveSize 9
+                }
+            }
+
+            When("재시도 대상이 아닌 응답이면") {
+                val statuses = mutableListOf(HttpStatusCode.BadRequest, HttpStatusCode.OK)
+                val delays = mutableListOf<Long>()
+                val client = expoClient(statuses = statuses, delays = delays)
+
+                Then("BusinessException을 실패 결과로 매핑하고 재시도하지 않는다") {
+                    val result = client.send(pushRequest())
+
+                    result.success shouldBe false
+                    result.errorMessage shouldBe ErrorCode.PUSH_EXPO_REQUEST_FAILED.message
+                    statuses shouldHaveSize 1
+                    delays shouldHaveSize 0
+                }
+            }
+
+            When("여러 푸시 발송의 재시도를 모두 소진하면") {
+                val statuses = MutableList(12) { HttpStatusCode.InternalServerError }
+                val delays = mutableListOf<Long>()
+                val client = expoClient(statuses = statuses, delays = delays)
+                val requests = List(2) { pushRequest() }
+
+                Then("예외를 전파하지 않고 모든 요청을 실패로 매핑한다") {
+                    val results = client.sendMulticast(requests)
+
+                    results shouldHaveSize requests.size
+                    results.forEach {
+                        it.success shouldBe false
+                        it.errorMessage shouldBe ErrorCode.PUSH_EXPO_REQUEST_FAILED.message
+                    }
                     statuses shouldHaveSize 2
                     delays shouldHaveSize 9
                 }

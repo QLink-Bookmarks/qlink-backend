@@ -5,6 +5,8 @@ import com.qlink.bookmarkimport.dto.ImportThumbnailTargetQuery
 import com.qlink.bookmarkimport.service.CountImportThumbnailTargetsService
 import com.qlink.bookmarkimport.service.FillImportThumbnailService
 import com.qlink.bookmarkimport.service.GetImportThumbnailTargetsService
+import com.qlink.common.error.ErrorCode
+import com.qlink.common.error.requirePresent
 import com.qlink.common.text.hostOrNull
 import com.qlink.config.WorkerConfig
 import io.micrometer.core.instrument.Counter
@@ -36,8 +38,13 @@ class ImportThumbnailWorker(
 ) {
     private val dispatcher = Dispatchers.IO.limitedParallelism(config.importThumbnailParallelism, DISPATCHER_NAME)
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
-    private val inFlight = requireNotNull(meterRegistry.gauge(IN_FLIGHT_METRIC, AtomicInteger(0)))
-    private val pending = requireNotNull(meterRegistry.gauge(PENDING_METRIC, AtomicLong(0)))
+    private val inFlight =
+        meterRegistry
+            .gauge(
+                IN_FLIGHT_METRIC,
+                AtomicInteger(0),
+            ).requirePresent(ErrorCode.COMMON_METRIC_REGISTRATION_FAILED)
+    private val pending = meterRegistry.gauge(PENDING_METRIC, AtomicLong(0)).requirePresent(ErrorCode.COMMON_METRIC_REGISTRATION_FAILED)
 
     fun start() {
         scope.launch(CoroutineName("$DISPATCHER_NAME-poller")) {

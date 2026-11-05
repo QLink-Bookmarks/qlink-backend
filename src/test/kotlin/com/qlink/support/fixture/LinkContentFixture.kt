@@ -100,6 +100,8 @@ object LinkContentFixture {
         status: ContentStatus,
         text: String?,
         excerpt: String?,
+        contentHash: String? = text?.sha256Hex(),
+        collectedAt: Instant? = text?.let { RandomFixture.randomPastInstant() },
     ): LinkContent =
         LinkContent(
             id = RandomFixture.randomId(),
@@ -109,9 +111,9 @@ object LinkContentFixture {
             priority = randomPriority(),
             nextAttemptAt = RandomFixture.randomPastInstant(),
             page = text?.let { createCollectedPage(text = it) },
-            contentHash = text?.sha256Hex(),
+            contentHash = contentHash,
             excerpt = excerpt,
-            collectedAt = text?.let { RandomFixture.randomPastInstant() },
+            collectedAt = collectedAt,
         )
 
     fun collectedResult(

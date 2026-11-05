@@ -20,6 +20,9 @@ import com.qlink.ai.service.CompleteAiSummaryService
 import com.qlink.ai.service.copyAiStatus
 import com.qlink.auth.domain.Role
 import com.qlink.common.crypto.ApiKeyCipher
+import com.qlink.common.error.ErrorCode
+import com.qlink.common.error.requirePresent
+import com.qlink.common.error.requireTrue
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.config.WorkerConfig
 import com.qlink.folder.repository.FolderRepository
@@ -68,8 +71,13 @@ class AiSummaryWorker(
 ) {
     private val dispatcher = Dispatchers.IO.limitedParallelism(config.aiSummaryParallelism, DISPATCHER_NAME)
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
-    private val inFlight = requireNotNull(meterRegistry.gauge(IN_FLIGHT_METRIC, AtomicInteger(0)))
-    private val pending = requireNotNull(meterRegistry.gauge(PENDING_METRIC, AtomicLong(0)))
+    private val inFlight =
+        meterRegistry
+            .gauge(
+                IN_FLIGHT_METRIC,
+                AtomicInteger(0),
+            ).requirePresent(ErrorCode.COMMON_METRIC_REGISTRATION_FAILED)
+    private val pending = meterRegistry.gauge(PENDING_METRIC, AtomicLong(0)).requirePresent(ErrorCode.COMMON_METRIC_REGISTRATION_FAILED)
 
     fun start() {
         scope.launch(CoroutineName("$DISPATCHER_NAME-consumer")) {
@@ -280,9 +288,7 @@ class AiSummaryWorker(
                     return@forEach
                 }
 
-                check(result.linkId == null || result.linkId == context.job.linkId) {
-                    "AI summary response linkId does not match. expected=${context.job.linkId}, actual=${result.linkId}"
-                }
+                (result.linkId == null || result.linkId == context.job.linkId).requireTrue(ErrorCode.AI_SUMMARY_LINK_MISMATCH)
                 return AiSummaryResult(model = model, response = result)
             }
 

@@ -3,6 +3,8 @@ package com.qlink.image.storage
 import aws.sdk.kotlin.services.s3.S3Client
 import aws.sdk.kotlin.services.s3.putObject
 import aws.smithy.kotlin.runtime.content.ByteStream
+import com.qlink.common.error.BusinessException
+import com.qlink.common.error.ErrorCode
 import com.qlink.config.S3Config
 import com.qlink.image.domain.ImagePurpose
 
@@ -29,6 +31,6 @@ class S3ImageStorage(
             ImagePurpose.PROFILE -> config.profileBucket
             ImagePurpose.POST -> config.postBucket
             ImagePurpose.LINK_PREVIEW -> config.previewBucket
-            ImagePurpose.FAVICON -> error("Favicon objects are stored by the link preview Lambda")
+            ImagePurpose.FAVICON -> throw BusinessException(ErrorCode.IMAGE_STORAGE_PURPOSE_UNSUPPORTED)
         }
 }

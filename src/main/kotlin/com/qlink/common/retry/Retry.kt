@@ -14,7 +14,8 @@ suspend fun <T> retryWithExponentialBackoff(
     val attempts = maxAttempts.coerceAtLeast(1)
     var nextDelayMs = initialDelayMs.coerceAtLeast(0)
 
-    repeat(attempts) { attemptIndex ->
+    var attemptIndex = 0
+    while (true) {
         val result = block()
         val isLastAttempt = attemptIndex == attempts - 1
         if (!shouldRetry(result) || isLastAttempt) {
@@ -23,7 +24,6 @@ suspend fun <T> retryWithExponentialBackoff(
 
         delayProvider(nextDelayMs)
         nextDelayMs *= 2
+        attemptIndex++
     }
-
-    error("Unreachable retry state.")
 }
