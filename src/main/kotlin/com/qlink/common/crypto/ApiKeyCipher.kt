@@ -10,11 +10,11 @@ import javax.crypto.spec.SecretKeySpec
 
 class ApiKeyCipher(
     keyBase64: String,
+    invalidKeyErrorCode: ErrorCode,
     private val secureRandom: SecureRandom = SecureRandom(),
 ) {
     private val keyBytes = Base64.getDecoder().decode(keyBase64)
-    private val secretKey =
-        SecretKeySpec(keyBytes.also { (it.size == KEY_SIZE_BYTES).requireTrue(ErrorCode.CONFIG_AI_API_KEY_ENCRYPTION_KEY_INVALID) }, "AES")
+    private val secretKey = SecretKeySpec(keyBytes.also { (it.size == KEY_SIZE_BYTES).requireTrue(invalidKeyErrorCode) }, "AES")
 
     fun encrypt(plainText: String): String {
         val nonce = ByteArray(NONCE_SIZE_BYTES)

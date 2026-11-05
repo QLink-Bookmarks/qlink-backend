@@ -435,10 +435,6 @@ private data class UpdateResult(
     val response: UpdateLinkResponse,
 )
 
-/**
- * 커밋된 데이터 위에서 [holdLock]이 다른 트랜잭션으로 링크 행을 잠근 채 머무는 동안 [action]을 시작하고,
- * [action]이 잠금을 기다리기 시작한 뒤에야 그 트랜잭션을 커밋한다.
- */
 private suspend fun <T> runWhileLinkLocked(
     tx: TransactionRunner,
     holdLock: suspend () -> Unit,

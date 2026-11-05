@@ -1,7 +1,5 @@
 package com.qlink.push.client
 
-import com.qlink.common.error.ErrorCode
-import com.qlink.common.error.requireTrue
 import com.qlink.common.retry.retryWithExponentialBackoff
 import com.qlink.device.domain.DevicePlatform
 import io.ktor.client.HttpClient
@@ -41,12 +39,12 @@ class ExpoPushClient(
                         setBody(ExpoPushSendRequest.from(request))
                     }
                 }
-            response.status.isSuccess().requireTrue(ErrorCode.PUSH_EXPO_REQUEST_FAILED)
-            response.body<ExpoPushSendResponse>()
-        }.fold(
-            onSuccess = { it.toPushNotificationSendResult() },
-            onFailure = { PushNotificationSendResult.failure(errorMessage = it.message) },
-        )
+            if (response.status.isSuccess()) {
+                response.body<ExpoPushSendResponse>().toPushNotificationSendResult()
+            } else {
+                PushNotificationSendResult.failure(errorMessage = response.status.failureMessage())
+            }
+        }.getOrElse { PushNotificationSendResult.failure(errorMessage = it.message) }
 
     override suspend fun sendMulticast(requests: List<PushNotificationSendRequest>): List<PushNotificationSendResult> {
         if (requests.isEmpty()) return emptyList()
@@ -64,18 +62,20 @@ class ExpoPushClient(
                         setBody(requests.map { ExpoPushSendRequest.from(it) })
                     }
                 }
-            response.status.isSuccess().requireTrue(ErrorCode.PUSH_EXPO_REQUEST_FAILED)
-            response.body<ExpoPushBatchResponse>()
-        }.fold(
-            onSuccess = { batch -> batch.data.map { it.toPushNotificationSendResult() } },
-            onFailure = { error -> requests.map { PushNotificationSendResult.failure(errorMessage = error.message) } },
-        )
+            if (response.status.isSuccess()) {
+                response.body<ExpoPushBatchResponse>().data.map { it.toPushNotificationSendResult() }
+            } else {
+                requests.map { PushNotificationSendResult.failure(errorMessage = response.status.failureMessage()) }
+            }
+        }.getOrElse { error -> requests.map { PushNotificationSendResult.failure(errorMessage = error.message) } }
     }
 }
 
 private fun HttpStatusCode.isExpoRetryable(): Boolean = this == HttpStatusCode.TooManyRequests || value in 500..599
 
 private fun HttpStatusCode.isSuccess(): Boolean = value in 200..299
+
+private fun HttpStatusCode.failureMessage(): String = "Expo push request failed with status $value."
 
 @Serializable
 private data class ExpoPushSendRequest(

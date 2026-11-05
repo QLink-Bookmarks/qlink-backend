@@ -13,6 +13,7 @@ import com.qlink.auth.client.GoogleAuthResourceClient
 import com.qlink.auth.client.KakaoAuthResourceClient
 import com.qlink.auth.client.NaverAuthResourceClient
 import com.qlink.common.crypto.ApiKeyCipher
+import com.qlink.common.error.ErrorCode
 import com.qlink.config.MonitoringConfig
 import com.qlink.config.string
 import com.qlink.plugin.ExternalHttpClientLogging
@@ -59,7 +60,7 @@ fun aiModule(
                 ?.takeUnless { it.isBlank() }
                 ?: config.string("security.aiApiKeyEncryptionKeyBase64")
 
-        ApiKeyCipher(keyBase64 = keyBase64)
+        ApiKeyCipher(keyBase64 = keyBase64, invalidKeyErrorCode = ErrorCode.CONFIG_AI_API_KEY_ENCRYPTION_KEY_INVALID)
     }
 
     single {

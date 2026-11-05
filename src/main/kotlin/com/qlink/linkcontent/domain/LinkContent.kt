@@ -162,12 +162,8 @@ class LinkContent(
             else -> {
                 excerpt.endsWith(ELLIPSIS).requireTrue(ErrorCode.LINK_CONTENT_EXCERPT_SUFFIX_INVALID)
                 (excerpt.length <= EXCERPT_MAX_CHARS + ELLIPSIS.length).requireTrue(ErrorCode.LINK_CONTENT_EXCERPT_OVER_MAX)
-                (
-                    excerpt.length - ELLIPSIS.length <=
-                        excerptBudget(
-                            normalizedLength,
-                        )
-                ).requireTrue(ErrorCode.LINK_CONTENT_EXCERPT_OVER_BUDGET)
+                (excerpt.length - ELLIPSIS.length <= excerptBudget(normalizedLength))
+                    .requireTrue(ErrorCode.LINK_CONTENT_EXCERPT_OVER_BUDGET)
                 (buildExcerpt(text) != null).requireTrue(ErrorCode.LINK_CONTENT_EXCERPT_NOT_ALLOWED)
             }
         }
