@@ -21,7 +21,9 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -96,9 +98,8 @@ class LinkContentWorker(
                 withContext(traceContext(traceIdLength)) {
                     try {
                         drain()
-                    } catch (error: CancellationException) {
-                        throw error
-                    } catch (error: Exception) {
+                    } catch (error: Throwable) {
+                        if (error is CancellationException) currentCoroutineContext().ensureActive()
                         log.warn("[LINK_CONTENT] Failed to drain link content targets. cause={}", error.describe())
                         pause()
                     }
@@ -224,7 +225,7 @@ class LinkContentWorker(
                 collectService.collect(contentId = target.contentId, now = clock.now())
             } catch (error: CancellationException) {
                 throw error
-            } catch (error: Exception) {
+            } catch (error: Throwable) {
                 log.warn(
                     "[LINK_CONTENT] Failed to collect. contentId={} linkId={} cause={}",
                     target.contentId,
@@ -271,7 +272,7 @@ class LinkContentWorker(
         scheduleWake(resumeAt)
     }
 
-    private fun Exception.describe(): String {
+    private fun Throwable.describe(): String {
         val sqlState =
             generateSequence<Throwable>(this) { it.cause }
                 .filterIsInstance<SQLException>()

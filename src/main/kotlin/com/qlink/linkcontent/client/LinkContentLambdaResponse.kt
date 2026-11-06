@@ -4,6 +4,11 @@ import com.qlink.linkcontent.domain.ContentFailureCode
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
 
+private const val OUTCOME_COLLECTED = "COLLECTED"
+private const val OUTCOME_BLOCKED = "BLOCKED"
+private const val OUTCOME_FAILED = "FAILED"
+private const val TRUNCATION_NONE = "NONE"
+
 @Serializable
 internal data class LinkContentLambdaResponse(
     val outcome: String,
@@ -49,11 +54,4 @@ internal data class LinkContentLambdaResponse(
             upstreamStatus = upstreamStatus,
             retryAfterSeconds = retryAfterSeconds?.coerceIn(0L, Int.MAX_VALUE.toLong())?.toInt(),
         )
-
-    private companion object {
-        const val OUTCOME_COLLECTED = "COLLECTED"
-        const val OUTCOME_BLOCKED = "BLOCKED"
-        const val OUTCOME_FAILED = "FAILED"
-        const val TRUNCATION_NONE = "NONE"
-    }
 }

@@ -46,7 +46,7 @@ class LambdaLinkContentSyncClient(
             } catch (error: TooManyRequestsException) {
                 log.warn("[LINK_CONTENT_LAMBDA] traceId={} throttled cause={}", traceId, error::class.simpleName)
                 LinkContentExtraction.Throttled
-            } catch (error: Exception) {
+            } catch (error: Throwable) {
                 log.warn("[LINK_CONTENT_LAMBDA] traceId={} failed cause={}", traceId, error::class.simpleName)
                 LinkContentExtraction.Invalid
             }

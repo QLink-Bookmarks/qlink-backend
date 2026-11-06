@@ -18,7 +18,9 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -57,9 +59,8 @@ class ImportThumbnailWorker(
                 withContext(traceContext(traceIdLength)) {
                     try {
                         drain()
-                    } catch (error: CancellationException) {
-                        throw error
-                    } catch (error: Exception) {
+                    } catch (error: Throwable) {
+                        if (error is CancellationException) currentCoroutineContext().ensureActive()
                         log.warn("[IMPORT_THUMBNAIL] Failed to drain thumbnail targets", error)
                     }
                 }
@@ -116,7 +117,7 @@ class ImportThumbnailWorker(
                 resultOf(fillService.fill(target.importLinkId))
             } catch (error: CancellationException) {
                 throw error
-            } catch (error: Exception) {
+            } catch (error: Throwable) {
                 log.warn("[IMPORT_THUMBNAIL] Failed to fill thumbnail. importLinkId={}", target.importLinkId, error)
                 RESULT_ERROR
             } finally {
