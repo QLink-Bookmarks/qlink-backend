@@ -11,7 +11,7 @@ import io.micrometer.core.instrument.Timer
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
-import org.slf4j.LoggerFactory
+import org.slf4j.Logger
 import kotlin.time.TimeSource
 import kotlin.time.toJavaDuration
 
@@ -19,8 +19,8 @@ class LambdaLinkContentSyncClient(
     private val lambdaClient: LambdaClient,
     private val config: LinkContentConfig,
     private val meterRegistry: MeterRegistry,
+    private val log: Logger,
 ) : LinkContentSyncClient {
-    private val log = LoggerFactory.getLogger(LambdaLinkContentSyncClient::class.java)
     private val contentLambdaClient =
         lambdaClient.withConfig {
             retryStrategy { maxAttempts = 1 }

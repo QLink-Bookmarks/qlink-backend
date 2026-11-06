@@ -27,6 +27,7 @@ fun linkContentModule(config: ApplicationConfig) =
                 lambdaClient = get(),
                 config = get(),
                 meterRegistry = get<PrometheusMeterRegistry>(),
+                log = LoggerFactory.getLogger(LambdaLinkContentSyncClient::class.java),
             )
         }
 
