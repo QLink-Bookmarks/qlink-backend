@@ -129,6 +129,9 @@ internal fun updateLinkAiSummaryDocs(): RouteConfig.() -> Unit =
 internal fun getLinkDetailDocs(): RouteConfig.() -> Unit =
     {
         summary = "링크 상세 조회 API"
+        description =
+            "content는 링크 본문의 발췌예요. 본문 기록이 없으면 null이고, 수집 중이면 isPending이 true예요. " +
+            "본문 전체와 수집 상태는 내보내지 않아요."
         request {
             pathParameter<Long>("id") { description = "링크 ID" }
         }
@@ -156,8 +159,12 @@ internal fun getLinkDetailDocs(): RouteConfig.() -> Unit =
 internal fun getLinksDocs(): RouteConfig.() -> Unit =
     {
         summary = "링크 검색 API"
+        description =
+            "query가 있으면 본문까지 찾고 메타데이터가 일치한 링크를 먼저 둬요. " +
+            "%·_·역슬래시는 글자 그대로 찾고, 1자 검색어는 본문을 찾지 않아요. " +
+            "이 기능 이전에 발급된 검색 커서는 COMMON_CURSOR_FIELD_MISSING으로 거절돼요."
         request {
-            queryParameter<String?>("query") { description = "검색어" }
+            queryParameter<String?>("query") { description = "검색어 (1자면 본문 미검색, %·_·역슬래시는 글자 그대로)" }
             queryParameter<Long?>("folderId") { description = "폴더 ID 필터" }
             queryParameter<Boolean?>("isFavorite") { description = "바로가기 필터 (true: 바로가기만, false: 일반만, 미지정: 전체)" }
             queryParameter<String>("order") {

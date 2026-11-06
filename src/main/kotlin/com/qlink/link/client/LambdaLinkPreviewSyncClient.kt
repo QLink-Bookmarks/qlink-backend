@@ -3,6 +3,8 @@ package com.qlink.link.client
 import aws.sdk.kotlin.services.lambda.LambdaClient
 import aws.sdk.kotlin.services.lambda.model.InvokeRequest
 import aws.sdk.kotlin.services.lambda.model.TooManyRequestsException
+import com.qlink.common.error.ErrorCode
+import com.qlink.common.error.requireTrue
 import com.qlink.config.LinkPreviewConfig
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
@@ -68,8 +70,8 @@ class LambdaLinkPreviewSyncClient(
         traceId: String,
         faviconBytes: ByteArray?,
     ): LinkPreviewExtraction {
-        require(faviconBytes == null || mode == LinkPreviewMode.FAVICON_ONLY)
-        require(faviconBytes == null || faviconBytes.size <= MAX_INLINE_FAVICON_BYTES)
+        (faviconBytes == null || mode == LinkPreviewMode.FAVICON_ONLY).requireTrue(ErrorCode.LINK_INLINE_FAVICON_MODE_INVALID)
+        (faviconBytes == null || faviconBytes.size <= MAX_INLINE_FAVICON_BYTES).requireTrue(ErrorCode.LINK_INLINE_FAVICON_TOO_LARGE)
         val payload =
             json.encodeToString(
                 LinkPreviewLambdaRequest(
@@ -79,7 +81,7 @@ class LambdaLinkPreviewSyncClient(
                     favicon = faviconBytes?.let { LinkPreviewLambdaFavicon(base64 = Base64.getEncoder().encodeToString(it)) },
                 ),
             )
-        require(payload.toByteArray().size <= MAX_INVOKE_PAYLOAD_BYTES)
+        (payload.toByteArray().size <= MAX_INVOKE_PAYLOAD_BYTES).requireTrue(ErrorCode.LINK_PREVIEW_PAYLOAD_TOO_LARGE)
 
         val response =
             lambdaClient.invoke(

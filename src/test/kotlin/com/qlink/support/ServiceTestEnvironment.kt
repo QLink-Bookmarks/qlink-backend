@@ -9,14 +9,17 @@ import com.qlink.config.S3Config
 import com.qlink.config.SecurityConfig
 import com.qlink.di.bookmarkImportModule
 import com.qlink.di.dataModule
+import com.qlink.di.linkContentModule
 import com.qlink.di.linkPreviewModule
 import com.qlink.di.repositoryModule
 import com.qlink.di.serviceModule
 import com.qlink.di.storageModule
 import com.qlink.di.transactionModule
 import com.qlink.link.client.LinkPreviewSyncClient
+import com.qlink.linkcontent.client.LinkContentSyncClient
 import com.qlink.notification.worker.TaskScheduler
 import com.qlink.push.client.PushNotificationSenderRouter
+import com.qlink.support.fixture.FakeLinkContentSyncClient
 import com.qlink.support.fixture.FakeLinkPreviewSyncClient
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.config.ApplicationConfig
@@ -141,6 +144,8 @@ object ServiceTestEnvironment {
                 repositoryModule(),
                 linkPreviewModule(testApplicationConfig()),
                 bookmarkImportModule(),
+                linkContentModule(testApplicationConfig()),
+                linkContentTestModule(),
                 securityTestModule(),
                 notificationTestModule(),
                 aiTestModule(),
@@ -176,6 +181,12 @@ object ServiceTestEnvironment {
             }
             single { FakeLinkPreviewSyncClient() }
             single<LinkPreviewSyncClient> { get<FakeLinkPreviewSyncClient>() }
+        }
+
+    private fun linkContentTestModule() =
+        module {
+            single { FakeLinkContentSyncClient() }
+            single<LinkContentSyncClient> { get<FakeLinkContentSyncClient>() }
         }
 
     private fun ensureS3Bucket() {

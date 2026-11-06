@@ -4,6 +4,7 @@ import com.qlink.auth.dto.AuthTokenResponse
 import com.qlink.auth.repository.RefreshTokenRepository
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
+import com.qlink.common.error.requirePresent
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.user.domain.User
 import com.qlink.user.repository.UserRepository
@@ -81,7 +82,7 @@ class RefreshAuthTokenService(
     }
 
     private fun User.toAuthTokenResponse(refreshToken: String): AuthTokenResponse {
-        val userId = requireNotNull(id)
+        val userId = id.requirePresent(ErrorCode.AUTH_REFRESH_USER_ID_REQUIRED)
 
         return AuthTokenResponse(
             accessToken =

@@ -10,6 +10,7 @@ import com.qlink.ai.repository.DailyUsageRepository
 import com.qlink.ai.repository.UserProviderRepository
 import com.qlink.ai.service.UpdateLinkAiSummaryService
 import com.qlink.auth.domain.Role
+import com.qlink.common.error.ErrorCode
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
@@ -193,8 +194,7 @@ class AiSummaryWorkerTest :
                     actualJob.status shouldBe AiJobStatus.F
                     actualLink.status shouldBe LinkStatus.F
                     actualLink.title shouldBe "AI 생성 실패 - ${URI(link.url).host}"
-                    actualLink.summary shouldBe
-                        "AI summary response linkId does not match. expected=${link.id}, actual=${link.id!! + 1}"
+                    actualLink.summary shouldBe ErrorCode.AI_SUMMARY_LINK_MISMATCH.message
                 }
             }
 

@@ -1,5 +1,7 @@
 package com.qlink.config
 
+import com.qlink.common.error.ErrorCode
+import com.qlink.common.error.requireTrue
 import io.ktor.server.config.ApplicationConfig
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
@@ -12,11 +14,11 @@ data class WorkerConfig(
     val aiSummaryParallelism: Int,
 ) {
     init {
-        require(pollInterval.isPositive())
-        require(importThumbnailConcurrency > 0)
-        require(importThumbnailParallelism > 0)
-        require(importThumbnailBatchSize > 0)
-        require(aiSummaryParallelism > 0)
+        pollInterval.isPositive().requireTrue(ErrorCode.CONFIG_WORKER_POLL_INTERVAL_INVALID)
+        (importThumbnailConcurrency > 0).requireTrue(ErrorCode.CONFIG_IMPORT_THUMBNAIL_CONCURRENCY_INVALID)
+        (importThumbnailParallelism > 0).requireTrue(ErrorCode.CONFIG_IMPORT_THUMBNAIL_PARALLELISM_INVALID)
+        (importThumbnailBatchSize > 0).requireTrue(ErrorCode.CONFIG_IMPORT_THUMBNAIL_BATCH_SIZE_INVALID)
+        (aiSummaryParallelism > 0).requireTrue(ErrorCode.CONFIG_AI_SUMMARY_PARALLELISM_INVALID)
     }
 
     companion object {

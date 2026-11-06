@@ -2,6 +2,7 @@ package com.qlink
 
 import com.qlink.ai.worker.AiSummaryWorker
 import com.qlink.bookmarkimport.worker.ImportThumbnailWorker
+import com.qlink.linkcontent.worker.LinkContentWorker
 import com.qlink.notification.worker.TaskScheduler
 import com.qlink.plugin.configureDocs
 import com.qlink.plugin.configureHttp
@@ -46,10 +47,14 @@ fun Application.module() {
     val importThumbnailWorker by inject<ImportThumbnailWorker>()
     importThumbnailWorker.start()
 
+    val linkContentWorker by inject<LinkContentWorker>()
+    linkContentWorker.start()
+
     val taskScheduler by inject<TaskScheduler>()
     taskScheduler.start()
     monitor.subscribe(ApplicationStopping) {
         taskScheduler.stop()
+        linkContentWorker.stop()
         importThumbnailWorker.stop()
         aiSummaryWorker.stop()
     }

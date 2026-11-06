@@ -40,8 +40,8 @@ class ImportThumbnailWorker(
 ) {
     private val dispatcher = Dispatchers.IO.limitedParallelism(config.importThumbnailParallelism, DISPATCHER_NAME)
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
-    private val inFlight = requireNotNull(meterRegistry.gauge(IN_FLIGHT_METRIC, AtomicInteger(0)))
-    private val pending = requireNotNull(meterRegistry.gauge(PENDING_METRIC, AtomicLong(0)))
+    private val inFlight = AtomicInteger(0).also { meterRegistry.gauge(IN_FLIGHT_METRIC, it) }
+    private val pending = AtomicLong(0).also { meterRegistry.gauge(PENDING_METRIC, it) }
 
     fun start() {
         log.info("[IMPORT_THUMBNAIL] Starting import thumbnail worker")

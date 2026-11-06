@@ -10,3 +10,8 @@ http:
     hosts:
       - archivelink.app
       - api.archivelink.app
+linkContent:
+  lambdaFunction: alink-link-content-prod:live
+worker:
+  linkContent:
+    enabled: false

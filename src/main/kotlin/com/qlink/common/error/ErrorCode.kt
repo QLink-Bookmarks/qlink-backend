@@ -29,6 +29,10 @@ enum class ErrorCode(
     AUTH_CSRF_TOKEN_INVALID("AUTH_403_0001", 403, "요청 보안 토큰이 유효하지 않아요"),
     AUTH_PROVIDER_COMMUNICATION_FAILED("AUTH_422_0001", 422, "소셜 로그인 제공자와 통신에 실패했어요"),
     AUTH_PROVIDER_TOKEN_INVALID("AUTH_422_0002", 422, "소셜 로그인 토큰이 유효하지 않아요"),
+    AUTH_CONNECT_PROVIDER_ID_REQUIRED("AUTH_500_0001", 500, "연동한 인증 제공자 정보에 ID가 없어요"),
+    AUTH_SIGN_IN_USER_MISSING("AUTH_500_0002", 500, "인증 제공자에 연동된 사용자를 찾을 수 없어요"),
+    AUTH_SIGN_IN_USER_ID_REQUIRED("AUTH_500_0003", 500, "로그인 사용자 정보에 ID가 없어요"),
+    AUTH_REFRESH_USER_ID_REQUIRED("AUTH_500_0004", 500, "토큰을 갱신할 사용자 정보에 ID가 없어요"),
 
     // User
     USER_THEME_NOT_SUPPORTED("USER_400_0001", 400, "지원하지 않는 화면 테마에요"),
@@ -42,6 +46,8 @@ enum class ErrorCode(
     USER_AVATAR_EMOJI_INVALID("USER_400_0009", 400, "프로필 이모지 형식이 올바르지 않아요"),
     USER_NOT_FOUND("USER_404_0001", 404, "로그인 사용자를 찾을 수 없어요"),
     USER_USERNAME_DUPLICATED("USER_409_0001", 409, "이미 사용 중인 사용자 이름이에요"),
+    USER_DELETE_FOLDER_ID_REQUIRED("USER_500_0001", 500, "계정 삭제 대상 폴더에 ID가 없어요"),
+    USER_SETTINGS_PROVIDER_ID_REQUIRED("USER_500_0002", 500, "연동된 인증 제공자 정보에 ID가 없어요"),
 
     // LINK
     LINK_URL_BLANK("LINK_400_0001", 400, "URL에 입력된 값이 없어요"),
@@ -70,6 +76,24 @@ enum class ErrorCode(
 
     LINK_COPY_NOT_SHARED_FOLDER("LINK_422_0001", 422, "공유 폴더가 아니에요"),
 
+    LINK_INLINE_FAVICON_MODE_INVALID("LINK_500_0001", 500, "인라인 파비콘을 처리할 수 없는 프리뷰 모드예요"),
+    LINK_INLINE_FAVICON_TOO_LARGE("LINK_500_0002", 500, "인라인 파비콘이 최대 크기를 넘었어요"),
+    LINK_PREVIEW_PAYLOAD_TOO_LARGE("LINK_500_0003", 500, "프리뷰 호출 데이터가 최대 크기를 넘었어요"),
+
+    // Link content
+    LINK_CONTENT_PAGE_REQUIRED("LINK_CONTENT_500_0001", 500, "수집된 본문 정보에 본문이 없어요"),
+    LINK_CONTENT_HASH_REQUIRED("LINK_CONTENT_500_0002", 500, "수집된 본문 정보에 해시가 없어요"),
+    LINK_CONTENT_COLLECTED_AT_REQUIRED("LINK_CONTENT_500_0003", 500, "수집된 본문 정보에 수집 시각이 없어요"),
+    LINK_CONTENT_EXCERPT_REQUIRED("LINK_CONTENT_500_0004", 500, "본문 발췌가 없어요"),
+    LINK_CONTENT_EXCERPT_SUFFIX_INVALID("LINK_CONTENT_500_0005", 500, "본문 발췌가 말줄임으로 끝나지 않아요"),
+    LINK_CONTENT_EXCERPT_OVER_MAX("LINK_CONTENT_500_0006", 500, "본문 발췌가 최대 길이를 넘었어요"),
+    LINK_CONTENT_EXCERPT_OVER_BUDGET("LINK_CONTENT_500_0007", 500, "본문 발췌가 본문 길이에 비해 길어요"),
+    LINK_CONTENT_EXCERPT_NOT_ALLOWED("LINK_CONTENT_500_0008", 500, "발췌할 수 없는 본문에 발췌가 있어요"),
+    LINK_CONTENT_COLLECTED_FIELDS_NOT_ALLOWED("LINK_CONTENT_500_0009", 500, "수집되지 않은 본문 정보에 본문이나 발췌가 있어요"),
+    LINK_CONTENT_TEXT_BLANK("LINK_CONTENT_500_0010", 500, "수집한 본문이 비어 있어요"),
+    LINK_CONTENT_SAVED_LINK_ID_REQUIRED("LINK_CONTENT_500_0011", 500, "저장된 링크에 ID가 없어요"),
+    LINK_CONTENT_PRIORITY_NOT_SUPPORTED("LINK_CONTENT_500_0012", 500, "지원하지 않는 본문 수집 우선순위예요"),
+
     // AI
     AI_PROVIDER_NOT_SUPPORTED("AI_400_0001", 400, "지원하지 않는 AI 제공자에요"),
     AI_API_KEY_INVALID("AI_400_0002", 400, "유효하지 않은 AI API 키에요"),
@@ -80,6 +104,7 @@ enum class ErrorCode(
     AI_MODEL_NOT_FOUND("AI_404_0002", 404, "AI 모델을 찾을 수 없어요"),
     AI_PROVIDER_NOT_FOUND("AI_404_0003", 404, "AI 제공자를 찾을 수 없어요"),
     AI_API_KEY_MISSING("AI_500_0001", 500, "AI API 키가 설정되지 않았어요"),
+    AI_SUMMARY_LINK_MISMATCH("AI_500_0002", 500, "AI 응답의 링크가 요청한 링크와 달라요"),
     AI_EMPTY_RESPONSE("AI_502_0001", 502, "AI 응답이 비어 있어요"),
 
     // Todo
@@ -165,6 +190,31 @@ enum class ErrorCode(
     IMAGE_URL_INVALID("IMAGE_400_0006", 400, "페이지 URL이 올바르지 않아요"),
     IMAGE_OWNER_NOT_FOUND("IMAGE_404_0001", 404, "로그인 사용자를 찾을 수 없어요"),
     IMAGE_UPLOAD_FAILED("IMAGE_500_0001", 500, "이미지 업로드에 실패했어요"),
+    IMAGE_UPLOAD_PURPOSE_UNSUPPORTED("IMAGE_500_0002", 500, "파일 업로드를 지원하지 않는 이미지 용도예요"),
+    IMAGE_STORAGE_PURPOSE_UNSUPPORTED("IMAGE_500_0003", 500, "직접 저장을 지원하지 않는 이미지 용도예요"),
+
+    // Config
+    CONFIG_S3_ENVIRONMENT_INVALID("CONFIG_500_0001", 500, "이미지 저장 환경 설정이 올바르지 않아요"),
+    CONFIG_S3_PUBLIC_BASE_URL_INVALID("CONFIG_500_0002", 500, "이미지 공개 기본 URL 설정이 올바르지 않아요"),
+    CONFIG_S3_PROFILE_BUCKET_REQUIRED("CONFIG_500_0003", 500, "프로필 이미지 버킷 설정이 없어요"),
+    CONFIG_WORKER_POLL_INTERVAL_INVALID("CONFIG_500_0004", 500, "워커 폴링 간격은 양수여야 해요"),
+    CONFIG_IMPORT_THUMBNAIL_CONCURRENCY_INVALID("CONFIG_500_0005", 500, "가져오기 썸네일 동시 실행 수는 양수여야 해요"),
+    CONFIG_IMPORT_THUMBNAIL_PARALLELISM_INVALID("CONFIG_500_0006", 500, "가져오기 썸네일 병렬 처리 수는 양수여야 해요"),
+    CONFIG_IMPORT_THUMBNAIL_BATCH_SIZE_INVALID("CONFIG_500_0007", 500, "가져오기 썸네일 배치 크기는 양수여야 해요"),
+    CONFIG_AI_SUMMARY_PARALLELISM_INVALID("CONFIG_500_0008", 500, "AI 요약 병렬 처리 수는 양수여야 해요"),
+    CONFIG_LINK_PREVIEW_FUNCTION_REQUIRED("CONFIG_500_0009", 500, "링크 프리뷰 함수 설정이 없어요"),
+    CONFIG_AI_API_KEY_ENCRYPTION_KEY_INVALID("CONFIG_500_0010", 500, "AI API 키 암호화 키의 길이가 올바르지 않아요"),
+    CONFIG_S3_POST_BUCKET_REQUIRED("CONFIG_500_0011", 500, "게시글 이미지 버킷 설정이 없어요"),
+    CONFIG_S3_PREVIEW_BUCKET_REQUIRED("CONFIG_500_0012", 500, "링크 프리뷰 이미지 버킷 설정이 없어요"),
+    CONFIG_S3_PUBLIC_BASE_URL_REQUIRED("CONFIG_500_0013", 500, "이미지 공개 기본 URL 설정이 없어요"),
+    CONFIG_LINK_CONTENT_FUNCTION_REQUIRED("CONFIG_500_0014", 500, "본문 수집 함수 설정이 없어요"),
+    CONFIG_LINK_CONTENT_INVOKE_TIMEOUT_INVALID("CONFIG_500_0015", 500, "본문 수집 호출 제한 시간은 양수여야 해요"),
+    CONFIG_LINK_CONTENT_CONCURRENCY_INVALID("CONFIG_500_0016", 500, "본문 수집 동시 실행 수는 양수여야 해요"),
+    CONFIG_LINK_CONTENT_PARALLELISM_INVALID("CONFIG_500_0017", 500, "본문 수집 병렬 처리 수는 양수여야 해요"),
+    CONFIG_LINK_CONTENT_BATCH_SIZE_INVALID("CONFIG_500_0018", 500, "본문 수집 배치 크기는 양수여야 해요"),
+    CONFIG_LINK_CONTENT_MAX_PAGES_INVALID("CONFIG_500_0019", 500, "본문 수집 최대 페이지 수는 양수여야 해요"),
+    CONFIG_LINK_CONTENT_HOST_INTERVAL_INVALID("CONFIG_500_0020", 500, "본문 수집 호스트 간격은 음수일 수 없어요"),
+    CONFIG_LINK_CONTENT_HOST_COOLDOWN_INVALID("CONFIG_500_0021", 500, "본문 수집 호스트 대기 시간은 양수여야 해요"),
 
     // Import
     IMPORT_LINKS_EMPTY("IMPORT_400_0001", 400, "가져올 링크가 없어요"),

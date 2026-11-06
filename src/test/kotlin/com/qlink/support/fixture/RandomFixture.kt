@@ -224,6 +224,8 @@ object RandomFixture {
 
     fun randomEmoji(): String = faker.emoji().smiley()
 
+    fun randomLanguage(): String = Locale.getISOLanguages().random()
+
     fun randomSentenceList(
         maxSize: Int? = null,
         maxSentenceLength: String? = null,

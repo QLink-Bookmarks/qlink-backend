@@ -4,6 +4,7 @@ import com.qlink.ai.client.AiClientRouter
 import com.qlink.ai.client.GeminiAiClient
 import com.qlink.ai.client.OpenAiClient
 import com.qlink.ai.service.CompleteAiSummaryService
+import com.qlink.ai.service.FailAiSummaryService
 import com.qlink.ai.worker.AiSummaryDispatcher
 import com.qlink.ai.worker.AiSummaryWorker
 import com.qlink.auth.client.AppleAuthResourceClient
@@ -13,6 +14,7 @@ import com.qlink.auth.client.KakaoAuthResourceClient
 import com.qlink.auth.client.NaverAuthResourceClient
 import com.qlink.auth.client.OidcIdTokenVerifier
 import com.qlink.common.crypto.ApiKeyCipher
+import com.qlink.common.error.ErrorCode
 import com.qlink.config.MonitoringConfig
 import com.qlink.config.string
 import com.qlink.plugin.ExternalHttpClientLogging
@@ -56,7 +58,7 @@ fun aiModule(config: ApplicationConfig) =
                     ?.takeUnless { it.isBlank() }
                     ?: config.string("security.aiApiKeyEncryptionKeyBase64")
 
-            ApiKeyCipher(keyBase64 = keyBase64)
+            ApiKeyCipher(keyBase64 = keyBase64, invalidKeyErrorCode = ErrorCode.CONFIG_AI_API_KEY_ENCRYPTION_KEY_INVALID)
         }
 
         single {
@@ -145,6 +147,15 @@ fun aiModule(config: ApplicationConfig) =
         }
 
         single {
+            FailAiSummaryService(
+                tx = get(),
+                aiJobRepository = get(),
+                linkRepository = get(),
+                urlResolver = get(),
+            )
+        }
+
+        single {
             AiSummaryWorker(
                 tx = get(),
                 aiJobRepository = get(),
@@ -155,10 +166,10 @@ fun aiModule(config: ApplicationConfig) =
                 folderRepository = get(),
                 linkRepository = get(),
                 completeAiSummaryService = get(),
+                failAiSummaryService = get(),
                 aiClientRouter = get(),
                 apiKeyCipher = get(),
                 channel = get(),
-                urlResolver = get(),
                 config = get(),
                 meterRegistry = get<PrometheusMeterRegistry>(),
                 traceIdLength = get<MonitoringConfig>().httpLogging.traceIdLength,
