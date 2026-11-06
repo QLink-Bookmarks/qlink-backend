@@ -1,17 +1,13 @@
-@file:OptIn(ExperimentalUuidApi::class)
-
 package com.qlink.linkcontent.repository
 
 import com.qlink.common.text.hostOrNull
-import com.qlink.linkcontent.domain.ClaimFence
 import com.qlink.linkcontent.domain.ContentPriority
-import com.qlink.linkcontent.domain.ContentStatus
 import com.qlink.linkcontent.domain.LinkContent
 import com.qlink.linkcontent.dto.DueKeyset
 import com.qlink.linkcontent.dto.LinkContentTargetQuery
 import com.qlink.linkcontent.repository.table.LinkContents
-import com.qlink.linkcontent.repository.table.fromDomainState
-import com.qlink.linkcontent.repository.table.fromNewDomain
+import com.qlink.linkcontent.repository.table.fromDomain
+import com.qlink.linkcontent.repository.table.fromDomainForInsert
 import com.qlink.linkcontent.repository.table.refreshLinkContentUpdatedAt
 import com.qlink.linkcontent.repository.table.toLinkContentDomain
 import org.jetbrains.exposed.v1.core.Op
@@ -36,8 +32,6 @@ import kotlin.time.Duration
 import kotlin.time.Instant
 import kotlin.time.toJavaInstant
 import kotlin.time.toKotlinInstant
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 class DbLinkContentRepository : LinkContentRepository {
     override suspend fun insertAll(contents: List<LinkContent>) {
@@ -46,7 +40,7 @@ class DbLinkContentRepository : LinkContentRepository {
         }
 
         LinkContents.batchInsert(contents, ignore = true, shouldReturnGeneratedValues = false) { content ->
-            fromNewDomain(content)
+            fromDomainForInsert(content)
         }
     }
 
@@ -69,12 +63,11 @@ class DbLinkContentRepository : LinkContentRepository {
             .upsertReturning(
                 LinkContents.linkId,
                 onUpdate = { statement ->
-                    statement[LinkContents.generation] = LinkContents.generation + 1
-                    statement.fromDomainState(content)
+                    statement.fromDomain(content)
                     statement.refreshLinkContentUpdatedAt()
                 },
             ) {
-                it.fromNewDomain(content)
+                it.fromDomainForInsert(content)
             }.single()
             .toLinkContentDomain()
 
@@ -92,25 +85,20 @@ class DbLinkContentRepository : LinkContentRepository {
                 },
             ) {
                 it[LinkContents.startedAt] = now.toJavaInstant()
-                it[LinkContents.claimToken] = Uuid.random()
                 it[LinkContents.claimCount] = LinkContents.claimCount + 1.toShort()
                 it.refreshLinkContentUpdatedAt()
             }.singleOrNull()
             ?.toLinkContentDomain()
 
-    override suspend fun updateClaimed(
-        fence: ClaimFence,
-        next: LinkContent,
-    ): Boolean =
+    override suspend fun updateCollectResult(content: LinkContent): Boolean =
         LinkContents.update(
             where = {
-                (LinkContents.id eq fence.id) and
-                    (LinkContents.status eq ContentStatus.PENDING) and
-                    (LinkContents.generation eq fence.generation) and
-                    (LinkContents.claimToken eq fence.claimToken)
+                (LinkContents.id eq content.id!!) and
+                    LinkContents.isPending() and
+                    (LinkContents.sourceUrl eq content.sourceUrl)
             },
         ) {
-            it.fromDomainState(next)
+            it.fromDomain(content)
             it.refreshLinkContentUpdatedAt()
         } == 1
 
@@ -160,7 +148,7 @@ class DbLinkContentRepository : LinkContentRepository {
     override suspend fun countPending(): Long =
         LinkContents
             .selectAll()
-            .where { LinkContents.status eq ContentStatus.PENDING }
+            .where { LinkContents.isPending() }
             .count()
 
     override suspend fun nextRunnableAt(
@@ -173,7 +161,7 @@ class DbLinkContentRepository : LinkContentRepository {
             LinkContents
                 .select(nextUnstarted)
                 .where {
-                    (LinkContents.status eq ContentStatus.PENDING) and
+                    LinkContents.isPending() and
                         LinkContents.startedAt.isNull() and
                         (LinkContents.nextAttemptAt greater javaNow)
                 }.single()[nextUnstarted]
@@ -183,7 +171,7 @@ class DbLinkContentRepository : LinkContentRepository {
             LinkContents
                 .select(earliestStarted)
                 .where {
-                    (LinkContents.status eq ContentStatus.PENDING) and
+                    LinkContents.isPending() and
                         LinkContents.startedAt.isNotNull() and
                         (LinkContents.startedAt greater (now - staleAfter).toJavaInstant())
                 }.single()[earliestStarted]
@@ -215,7 +203,7 @@ class DbLinkContentRepository : LinkContentRepository {
         staleAfter: Duration,
         now: Instant,
     ): Op<Boolean> =
-        (LinkContents.status eq ContentStatus.PENDING) and
+        LinkContents.isPending() and
             (LinkContents.startedAt.isNull() or (LinkContents.startedAt less (now - staleAfter).toJavaInstant()))
 
     private fun isAfter(keyset: DueKeyset): Op<Boolean> {

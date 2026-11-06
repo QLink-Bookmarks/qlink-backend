@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalUuidApi::class)
-
 package com.qlink.linkcontent.domain
 
 import com.qlink.common.error.ErrorCode
@@ -12,8 +10,6 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 private const val ELLIPSIS = "…"
 
@@ -23,8 +19,6 @@ class LinkContent(
     val sourceUrl: String,
     val status: ContentStatus,
     val priority: ContentPriority,
-    val generation: Int = 0,
-    val claimToken: Uuid? = null,
     val claimCount: Int = 0,
     val attempt: Int = 0,
     val startedAt: Instant? = null,
@@ -39,14 +33,6 @@ class LinkContent(
 ) {
     val contentLength: Int?
         get() = page?.text?.length
-
-    val fence: ClaimFence
-        get() =
-            ClaimFence(
-                id = id.requirePresent(ErrorCode.LINK_CONTENT_NOT_SAVED),
-                generation = generation,
-                claimToken = claimToken.requirePresent(ErrorCode.LINK_CONTENT_NOT_CLAIMED),
-            )
 
     init {
         if (status == ContentStatus.COLLECTED) {
@@ -64,7 +50,6 @@ class LinkContent(
     ): LinkContent =
         copy(
             status = ContentStatus.COLLECTED,
-            claimToken = null,
             startedAt = null,
             failureCode = null,
             page = page,
@@ -86,7 +71,6 @@ class LinkContent(
             code.isRetryable && attempt + 1 < MAX_ATTEMPTS -> {
                 copy(
                     status = ContentStatus.PENDING,
-                    claimToken = null,
                     attempt = attempt + 1,
                     startedAt = null,
                     nextAttemptAt = now + retryDelay(retryAfterSeconds),
@@ -106,7 +90,6 @@ class LinkContent(
     fun release(now: Instant): LinkContent =
         copy(
             status = ContentStatus.PENDING,
-            claimToken = null,
             startedAt = null,
             nextAttemptAt = now + RELEASE_DELAY,
         )
@@ -123,7 +106,6 @@ class LinkContent(
             sourceUrl = sourceUrl,
             status = ContentStatus.PENDING,
             priority = priority,
-            generation = generation + 1,
             nextAttemptAt = now,
             createdAt = createdAt,
             updatedAt = updatedAt,
@@ -136,7 +118,6 @@ class LinkContent(
     ): LinkContent =
         copy(
             status = status,
-            claimToken = null,
             attempt = attempt,
             startedAt = null,
             failureCode = code,
@@ -144,27 +125,27 @@ class LinkContent(
 
     private fun retryDelay(retryAfterSeconds: Int?): Duration {
         val backoff = BACKOFF[attempt.coerceAtMost(BACKOFF.lastIndex)]
-        val retryAfter = (retryAfterSeconds ?: 0).coerceIn(0, RETRY_AFTER_MAX.inWholeSeconds.toInt()).seconds
+        val retryAfter = clampRetryAfter(retryAfterSeconds ?: 0).seconds
         return maxOf(backoff, retryAfter)
     }
 
     private fun validateCollected() {
         val text = page.requirePresent(ErrorCode.LINK_CONTENT_PAGE_REQUIRED).text
-        (contentHash != null).requireTrue(ErrorCode.LINK_CONTENT_HASH_REQUIRED)
-        (collectedAt != null).requireTrue(ErrorCode.LINK_CONTENT_COLLECTED_AT_REQUIRED)
+        contentHash.requirePresent(ErrorCode.LINK_CONTENT_HASH_REQUIRED)
+        collectedAt.requirePresent(ErrorCode.LINK_CONTENT_COLLECTED_AT_REQUIRED)
 
-        val normalizedLength = text.collapseWhitespace().length
+        val built = buildExcerpt(text)
         when (excerpt) {
             null -> {
-                (buildExcerpt(text) == null).requireTrue(ErrorCode.LINK_CONTENT_EXCERPT_REQUIRED)
+                (built == null).requireTrue(ErrorCode.LINK_CONTENT_EXCERPT_REQUIRED)
             }
 
             else -> {
                 excerpt.endsWith(ELLIPSIS).requireTrue(ErrorCode.LINK_CONTENT_EXCERPT_SUFFIX_INVALID)
-                (excerpt.length <= EXCERPT_MAX_CHARS + ELLIPSIS.length).requireTrue(ErrorCode.LINK_CONTENT_EXCERPT_OVER_MAX)
-                (excerpt.length - ELLIPSIS.length <= excerptBudget(normalizedLength))
+                (excerpt.length <= EXCERPT_MAX_LENGTH).requireTrue(ErrorCode.LINK_CONTENT_EXCERPT_OVER_MAX)
+                (excerpt.length - ELLIPSIS.length <= excerptBudget(text.collapseWhitespace().length))
                     .requireTrue(ErrorCode.LINK_CONTENT_EXCERPT_OVER_BUDGET)
-                (buildExcerpt(text) != null).requireTrue(ErrorCode.LINK_CONTENT_EXCERPT_NOT_ALLOWED)
+                (built != null).requireTrue(ErrorCode.LINK_CONTENT_EXCERPT_NOT_ALLOWED)
             }
         }
     }
@@ -176,7 +157,6 @@ class LinkContent(
 
     private fun copy(
         status: ContentStatus = this.status,
-        claimToken: Uuid? = this.claimToken,
         attempt: Int = this.attempt,
         startedAt: Instant? = this.startedAt,
         nextAttemptAt: Instant = this.nextAttemptAt,
@@ -192,8 +172,6 @@ class LinkContent(
             sourceUrl = sourceUrl,
             status = status,
             priority = priority,
-            generation = generation,
-            claimToken = claimToken,
             claimCount = claimCount,
             attempt = attempt,
             startedAt = startedAt,
@@ -211,6 +189,7 @@ class LinkContent(
         const val MAX_ATTEMPTS = 3
         const val MAX_CLAIMS = 6
         const val EXCERPT_MAX_CHARS = 100
+        const val EXCERPT_MAX_LENGTH = EXCERPT_MAX_CHARS + ELLIPSIS.length
         private const val EXCERPT_SHORT_NUMERATOR = 3
         private const val EXCERPT_SHORT_DENOMINATOR = 10
         val BACKOFF: List<Duration> = listOf(2.minutes, 15.minutes)
@@ -231,6 +210,8 @@ class LinkContent(
                 priority = priority,
                 nextAttemptAt = now,
             )
+
+        fun clampRetryAfter(seconds: Int): Int = seconds.coerceIn(0, RETRY_AFTER_MAX.inWholeSeconds.toInt())
 
         private fun buildExcerpt(text: String): String? {
             val normalized = text.collapseWhitespace()

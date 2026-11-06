@@ -26,6 +26,9 @@ enum class ContentFailureCode(
     UNKNOWN,
     ;
 
+    val isRateLimited: Boolean
+        get() = this == UPSTREAM_RATE_LIMITED
+
     companion object {
         fun from(raw: String?): ContentFailureCode = entries.firstOrNull { it.name == raw } ?: UNKNOWN
     }

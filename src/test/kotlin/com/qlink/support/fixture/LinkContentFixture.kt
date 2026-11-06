@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalUuidApi::class)
-
 package com.qlink.support.fixture
 
 import com.qlink.common.text.sha256Hex
@@ -10,9 +8,9 @@ import com.qlink.linkcontent.domain.ContentFailureCode
 import com.qlink.linkcontent.domain.ContentPriority
 import com.qlink.linkcontent.domain.ContentStatus
 import com.qlink.linkcontent.domain.LinkContent
+import com.qlink.linkcontent.repository.LinkContentRepository
+import kotlin.time.Clock
 import kotlin.time.Instant
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 object LinkContentFixture {
     fun randomPriority(): ContentPriority = ContentPriority.entries.random()
@@ -27,7 +25,7 @@ object LinkContentFixture {
         publishedAt: Instant? = RandomFixture.randomPastInstant(),
         canonicalUrl: String? = RandomFixture.randomUrl(),
         finalUrl: String? = RandomFixture.randomUrl(),
-        language: String? = "ko",
+        language: String? = RandomFixture.randomLanguage(),
         isTruncated: Boolean = false,
     ): CollectedPage =
         CollectedPage(
@@ -56,12 +54,10 @@ object LinkContentFixture {
         )
 
     fun createClaimedContentOf(
-        linkId: Long = RandomFixture.randomId(),
+        linkId: Long,
         id: Long = RandomFixture.randomId(),
         sourceUrl: String = RandomFixture.randomUrl(),
         priority: ContentPriority = randomPriority(),
-        generation: Int = RandomFixture.randomInt(0, 5),
-        claimToken: Uuid = Uuid.random(),
         claimCount: Int = RandomFixture.randomInt(1, LinkContent.MAX_CLAIMS),
         attempt: Int = 0,
         startedAt: Instant = RandomFixture.randomPastInstant(),
@@ -73,8 +69,6 @@ object LinkContentFixture {
             sourceUrl = sourceUrl,
             status = ContentStatus.PENDING,
             priority = priority,
-            generation = generation,
-            claimToken = claimToken,
             claimCount = claimCount,
             attempt = attempt,
             startedAt = startedAt,
@@ -82,14 +76,13 @@ object LinkContentFixture {
         )
 
     fun createCollectedContentOf(
-        linkId: Long = RandomFixture.randomId(),
+        linkId: Long,
         id: Long = RandomFixture.randomId(),
         sourceUrl: String = RandomFixture.randomUrl(),
         text: String = randomBodyText(),
-        generation: Int = RandomFixture.randomInt(0, 5),
         collectedAt: Instant = RandomFixture.randomPastInstant(),
     ): LinkContent =
-        createClaimedContentOf(linkId = linkId, id = id, sourceUrl = sourceUrl, generation = generation)
+        createClaimedContentOf(linkId = linkId, id = id, sourceUrl = sourceUrl)
             .complete(page = createCollectedPage(text = text), now = collectedAt)
 
     fun createContentWithExcerpt(
@@ -112,6 +105,19 @@ object LinkContentFixture {
             collectedAt = collectedAt,
         )
 
+    suspend fun insertCollected(
+        repository: LinkContentRepository,
+        linkId: Long,
+        sourceUrl: String,
+    ): LinkContent {
+        val now = Clock.System.now()
+        repository.insertAll(listOf(createPendingContentOf(linkId = linkId, sourceUrl = sourceUrl, nextAttemptAt = now)))
+        val pending = repository.findByLinkId(linkId)!!
+        val claimed = repository.claim(contentId = pending.id!!, staleAfter = LinkContent.STALE_AFTER, now = now)!!
+        repository.updateCollectResult(claimed.complete(page = createCollectedPage(), now = now))
+        return repository.findByLinkId(linkId)!!
+    }
+
     fun collectedResult(
         text: String = randomBodyText(),
         title: String? = RandomFixture.randomSentenceWithMax(100),
@@ -122,7 +128,7 @@ object LinkContentFixture {
                 text = text,
                 title = title,
                 finalUrl = finalUrl,
-                language = "ko",
+                language = RandomFixture.randomLanguage(),
             ),
         )
 

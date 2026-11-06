@@ -43,6 +43,14 @@ class ContentFailureCodeTest :
                 }
             }
 
+            When("UPSTREAM_RATE_LIMITED이면") {
+                val rateLimited = ContentFailureCode.entries.filter { it.isRateLimited }
+
+                Then("그 코드만 isRateLimited가 참이다") {
+                    rateLimited shouldBe listOf(ContentFailureCode.UPSTREAM_RATE_LIMITED)
+                }
+            }
+
             When("알려진 문자열이면") {
                 val code = ContentFailureCode.entries.random()
 

@@ -30,12 +30,40 @@ data class S3Config(
         ): S3Config =
             S3Config(
                 region = resolve(env, config, "AWS_S3_REGION", "aws.s3.region") ?: DEFAULT_REGION,
-                profileBucket = required(env, config, "AWS_S3_PROFILE_BUCKET", "aws.s3.profileBucket"),
-                postBucket = required(env, config, "AWS_S3_POST_BUCKET", "aws.s3.postBucket"),
-                previewBucket = required(env, config, "AWS_S3_PREVIEW_BUCKET", "aws.s3.previewBucket"),
+                profileBucket =
+                    required(
+                        env,
+                        config,
+                        "AWS_S3_PROFILE_BUCKET",
+                        "aws.s3.profileBucket",
+                        ErrorCode.CONFIG_S3_PROFILE_BUCKET_REQUIRED,
+                    ),
+                postBucket =
+                    required(
+                        env,
+                        config,
+                        "AWS_S3_POST_BUCKET",
+                        "aws.s3.postBucket",
+                        ErrorCode.CONFIG_S3_POST_BUCKET_REQUIRED,
+                    ),
+                previewBucket =
+                    required(
+                        env,
+                        config,
+                        "AWS_S3_PREVIEW_BUCKET",
+                        "aws.s3.previewBucket",
+                        ErrorCode.CONFIG_S3_PREVIEW_BUCKET_REQUIRED,
+                    ),
                 endpoint = resolve(env, config, "AWS_S3_ENDPOINT", "aws.s3.endpoint"),
                 forcePathStyle = resolve(env, config, "AWS_S3_FORCE_PATH_STYLE", "aws.s3.forcePathStyle").toBoolean(),
-                publicBaseUrl = required(env, config, "AWS_S3_PUBLIC_BASE_URL", "aws.s3.publicBaseUrl"),
+                publicBaseUrl =
+                    required(
+                        env,
+                        config,
+                        "AWS_S3_PUBLIC_BASE_URL",
+                        "aws.s3.publicBaseUrl",
+                        ErrorCode.CONFIG_S3_PUBLIC_BASE_URL_REQUIRED,
+                    ),
                 environment = (env["APP_ENV"] ?: "dev").lowercase(),
             )
 
@@ -44,7 +72,8 @@ data class S3Config(
             config: ApplicationConfig,
             envKey: String,
             yamlPath: String,
-        ): String = resolve(env, config, envKey, yamlPath).requirePresent(ErrorCode.CONFIG_S3_SETTING_REQUIRED)
+            errorCode: ErrorCode,
+        ): String = resolve(env, config, envKey, yamlPath).requirePresent(errorCode)
 
         private fun resolve(
             env: Map<String, String>,

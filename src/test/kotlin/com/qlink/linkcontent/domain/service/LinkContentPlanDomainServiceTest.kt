@@ -45,10 +45,9 @@ class LinkContentPlanDomainServiceTest :
                 val current = LinkContentFixture.createCollectedContentOf(linkId = savedLink.id!!, sourceUrl = RandomFixture.randomUrl())
                 val planned = LinkContentPlanDomainService.forUrlChange(current = current, savedLink = savedLink, now = now)
 
-                Then("같은 id로 generation이 오른 PENDING 행이다") {
+                Then("같은 id의 새 URL PENDING 행이다") {
                     planned.shouldNotBeNull()
                     planned.id shouldBe current.id
-                    planned.generation shouldBe current.generation + 1
                     planned.status shouldBe ContentStatus.PENDING
                     planned.sourceUrl shouldBe savedLink.url
                     planned.excerpt.shouldBeNull()
@@ -65,7 +64,6 @@ class LinkContentPlanDomainServiceTest :
                     planned.sourceUrl shouldBe savedLink.url
                     planned.status shouldBe ContentStatus.PENDING
                     planned.priority shouldBe ContentPriority.INTERACTIVE
-                    planned.generation shouldBe 0
                     planned.nextAttemptAt shouldBe now
                 }
             }

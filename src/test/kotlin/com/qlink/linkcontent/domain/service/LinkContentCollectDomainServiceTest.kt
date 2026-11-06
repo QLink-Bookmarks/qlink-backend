@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalUuidApi::class)
-
 package com.qlink.linkcontent.domain.service
 
 import com.qlink.linkcontent.domain.CollectAction
@@ -14,7 +12,6 @@ import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import kotlin.time.Duration.Companion.minutes
-import kotlin.uuid.ExperimentalUuidApi
 
 class LinkContentCollectDomainServiceTest :
     BehaviorSpec({
@@ -37,7 +34,7 @@ class LinkContentCollectDomainServiceTest :
                     LinkContentFixture.createClaimedContentOf(
                         linkId = link.id!!,
                         sourceUrl = link.url,
-                        claimCount = LinkContent.MAX_CLAIMS + RandomFixture.randomInt(1, 5),
+                        claimCount = LinkContent.MAX_CLAIMS + 1,
                     )
                 val preparation = LinkContentCollectDomainService.prepare(claimed = claimed, link = link, now = now)
 
@@ -57,15 +54,19 @@ class LinkContentCollectDomainServiceTest :
                     preparation.action shouldBe CollectAction.URL_CHANGED
                     val next = preparation.next.shouldNotBeNull()
                     next.status shouldBe ContentStatus.PENDING
-                    next.claimToken.shouldBeNull()
                     next.startedAt.shouldBeNull()
                     next.attempt shouldBe claimed.attempt
                     next.nextAttemptAt shouldBe now + 1.minutes
                 }
             }
 
-            When("그 외이면") {
-                val claimed = LinkContentFixture.createClaimedContentOf(linkId = link.id!!, sourceUrl = link.url)
+            When("클레임 횟수가 6이고 링크 URL이 같으면") {
+                val claimed =
+                    LinkContentFixture.createClaimedContentOf(
+                        linkId = link.id!!,
+                        sourceUrl = link.url,
+                        claimCount = LinkContent.MAX_CLAIMS,
+                    )
                 val preparation = LinkContentCollectDomainService.prepare(claimed = claimed, link = link, now = now)
 
                 Then("COLLECT이다") {
