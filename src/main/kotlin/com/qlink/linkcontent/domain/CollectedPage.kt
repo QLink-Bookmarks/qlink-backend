@@ -2,6 +2,7 @@ package com.qlink.linkcontent.domain
 
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireTrue
+import com.qlink.common.text.collapseWhitespace
 import com.qlink.common.text.takeKeepingSurrogatePairs
 import kotlin.time.Instant
 
@@ -24,7 +25,10 @@ class CollectedPage(
     val language: String? = language?.takeKeepingSurrogatePairs(MAX_LANGUAGE_LENGTH)
 
     init {
-        this.text.isNotBlank().requireTrue(ErrorCode.LINK_CONTENT_TEXT_BLANK)
+        this.text
+            .collapseWhitespace()
+            .isNotEmpty()
+            .requireTrue(ErrorCode.LINK_CONTENT_TEXT_BLANK)
     }
 
     companion object {
@@ -45,7 +49,7 @@ class CollectedPage(
             language: String?,
             isTruncated: Boolean,
         ): CollectedPage? =
-            text.takeKeepingSurrogatePairs(MAX_TEXT_LENGTH).takeIf(String::isNotBlank)?.let {
+            text.takeKeepingSurrogatePairs(MAX_TEXT_LENGTH).takeIf { it.collapseWhitespace().isNotEmpty() }?.let {
                 CollectedPage(
                     text = text,
                     title = title,
