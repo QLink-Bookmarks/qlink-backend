@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalUuidApi::class)
-
 package com.qlink.linkcontent.service
 
 import com.qlink.link.repository.LinkRepository
@@ -19,7 +17,6 @@ import io.kotest.matchers.nulls.shouldNotBeNull
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
-import kotlin.uuid.ExperimentalUuidApi
 
 class GetLinkContentTargetsServiceTest :
     BaseServiceTest({
@@ -115,6 +112,50 @@ class GetLinkContentTargetsServiceTest :
 
                 Then("그 뒤 행만 나온다") {
                     getNextTargets().map { it.contentId } shouldContainExactly expectedIds.drop(2)
+                }
+            }
+        }
+
+        Given("같은 우선순위·같은 due 시각의 행들") {
+            lateinit var now: Instant
+            lateinit var sweepStartedAt: Instant
+            lateinit var tiedIds: List<Long>
+
+            beforeEach {
+                now = dbNow()
+                sweepStartedAt = now - RandomFixture.randomInt(5, 10).minutes
+                val user = userRepository.insert(UserFixture.createRandomValidUser())
+                val dueAt = sweepStartedAt - RandomFixture.randomInt(1, 60).minutes
+                val priority = LinkContentFixture.randomPriority()
+                tiedIds =
+                    (1..3).map {
+                        val link = linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = user.id!!))
+                        linkContentRepository.insertAll(
+                            listOf(
+                                LinkContentFixture.createPendingContentOf(linkId = link.id!!, priority = priority, nextAttemptAt = dueAt),
+                            ),
+                        )
+                        linkContentRepository.findByLinkId(link.id).shouldNotBeNull().id!!
+                    }
+            }
+
+            When("읽으면") {
+                val getTargets = suspend { service.getTargets(size = 100, dueBefore = sweepStartedAt, after = null, now = now) }
+
+                Then("id 오름차순으로 나온다") {
+                    getTargets().map { it.contentId } shouldContainExactly tiedIds.sorted()
+                }
+            }
+
+            When("동률 중간 행의 keyset 뒤를 읽으면") {
+                val getNextTargets =
+                    suspend {
+                        val first = service.getTargets(size = 1, dueBefore = sweepStartedAt, after = null, now = now)
+                        service.getTargets(size = 100, dueBefore = sweepStartedAt, after = first.last().keyset, now = now)
+                    }
+
+                Then("동률 행이 빠지지 않고 나머지가 나온다") {
+                    getNextTargets().map { it.contentId } shouldContainExactly tiedIds.sorted().drop(1)
                 }
             }
         }

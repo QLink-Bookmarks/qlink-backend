@@ -226,7 +226,7 @@ class CollectLinkContentServiceTest :
             }
 
             When("429이고 Retry-After가 있으면") {
-                val retryAfterSeconds = RandomFixture.randomInt(121, 2_000)
+                val retryAfterSeconds = RandomFixture.randomInt(901, 2_000)
                 val collect =
                     suspend {
                         client.enqueue(
@@ -430,6 +430,31 @@ class CollectLinkContentServiceTest :
                 }
             }
 
+            When("호출 중 URL이 바뀌고 429를 받으면") {
+                val retryAfterSeconds = RandomFixture.randomInt(1, 900)
+                val collect =
+                    suspend {
+                        client.reset()
+                        client.enqueue(
+                            LinkContentFixture.failedResult(
+                                code = ContentFailureCode.UPSTREAM_RATE_LIMITED,
+                                upstreamStatus = 429,
+                                retryAfterSeconds = retryAfterSeconds,
+                            ),
+                        )
+                        client.onInvoke = { resetForUrl(linkId = link.id!!, url = RandomFixture.randomUrl(), now = now) }
+                        service.collect(contentId = content.id!!, now = now)
+                    }
+
+                Then("저장은 버려져 SKIPPED이지만 결과에 호스트와 쿨다운 초가 담긴다") {
+                    val result = collect()
+
+                    result.outcome shouldBe CollectOutcome.SKIPPED
+                    result.host shouldBe (link.url.hostOrNull() ?: link.url)
+                    result.cooldownSeconds shouldBe retryAfterSeconds
+                }
+            }
+
             When("호출 중 A→B→A로 URL이 두 번 바뀌면") {
                 val otherUrl = RandomFixture.randomUrl()
                 val collect =
@@ -476,6 +501,30 @@ class CollectLinkContentServiceTest :
                     val actual = linkContentRepository.findById(content.id!!).shouldNotBeNull()
                     actual.status shouldBe ContentStatus.COLLECTED
                     actual.page?.text shouldBe reclaimedText
+                    actual.claimCount shouldBe content.claimCount + 2
+                }
+            }
+
+            When("같은 URL로 stale 재클레임된 뒤 먼저 저장한 실행이 PENDING이면") {
+                val collect =
+                    suspend {
+                        client.reset()
+                        client.enqueue(LinkContentExtraction.Throttled)
+                        client.onInvoke = {
+                            val reclaimedAt = now + LinkContent.STALE_AFTER + RandomFixture.randomInt(1, 60).minutes
+                            linkContentRepository
+                                .claim(contentId = content.id!!, staleAfter = LinkContent.STALE_AFTER, now = reclaimedAt)
+                                .shouldNotBeNull()
+                        }
+                        service.collect(contentId = content.id!!, now = now)
+                    }
+
+                Then("결과가 저장돼도 claimCount는 재클레임 값 그대로다") {
+                    val result = collect()
+
+                    result.outcome shouldBe CollectOutcome.RELEASED_THROTTLED
+                    val actual = linkContentRepository.findById(content.id!!).shouldNotBeNull()
+                    actual.status shouldBe ContentStatus.PENDING
                     actual.claimCount shouldBe content.claimCount + 2
                 }
             }

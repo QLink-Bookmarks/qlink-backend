@@ -47,7 +47,9 @@ class CollectLinkContentService(
                 deadlineMs = LAMBDA_DEADLINE_MS,
             )
         val next = content.applyExtraction(extraction = extraction, now = now)
-        if (!tx.required { linkContentRepository.updateCollectResult(next) }) return SKIPPED
+        if (!tx.required { linkContentRepository.updateCollectResult(next) }) {
+            return SKIPPED.copy(host = extraction.rateLimitedHost(content), cooldownSeconds = extraction.cooldownSeconds())
+        }
 
         return CollectResult(
             status = next.status,

@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalUuidApi::class)
-
 package com.qlink.linkcontent.service
 
 import com.qlink.link.repository.LinkRepository
@@ -16,7 +14,6 @@ import com.qlink.user.repository.UserRepository
 import io.kotest.matchers.shouldBe
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
-import kotlin.uuid.ExperimentalUuidApi
 
 class GetLinkContentScheduleServiceTest :
     BaseServiceTest({

@@ -26,6 +26,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import org.slf4j.Logger
 import java.sql.SQLException
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
@@ -59,6 +60,7 @@ class LinkContentWorker(
     private var sweepCursor: DueKeyset? = null
     private var sweepProcessed: Long = 0
     private var sweepSkipped: Long = 0
+    private val sweepErroredIds = mutableSetOf<Long>()
     private var timer: Job? = null
     private var pausedUntil: Instant? = null
 
@@ -149,21 +151,23 @@ class LinkContentWorker(
         val now = clock.now()
         return getTargetsService
             .getTargets(size = config.workerBatchSize, dueBefore = now, after = null, now = now)
-            .filter { it.keyset.priority == ContentPriority.INTERACTIVE }
+            .filter { it.keyset.priority == ContentPriority.INTERACTIVE && it.contentId !in sweepErroredIds }
     }
 
     private suspend fun finishSweep() {
         val processed = sweepProcessed
         val skipped = sweepSkipped
+        val hasErrors = sweepErroredIds.isNotEmpty()
         sweepStartedAt = null
         sweepCursor = null
         sweepProcessed = 0
         sweepSkipped = 0
+        sweepErroredIds.clear()
         val schedule = refreshGauges()
         val cooldownEndsAt = hosts.earliestCooldownEnd(clock.now())
 
         when {
-            schedule.due > 0 && (processed > 0 || skipped == 0L) -> signal.wake()
+            schedule.due > 0 && !hasErrors && (processed > 0 || skipped == 0L) -> signal.wake()
             processed == 0L && cooldownEndsAt != null -> scheduleWake(cooldownEndsAt)
             else -> listOfNotNull(schedule.nextRunnableAt, cooldownEndsAt).minOrNull()?.let(::scheduleWake)
         }
@@ -174,6 +178,7 @@ class LinkContentWorker(
         val (cooled, open) = targets.partition { hosts.isCooling(host = it.host, now = now) }
         val processed = AtomicLong(0)
         val skipped = AtomicLong(cooled.size.toLong())
+        val errored = ConcurrentHashMap.newKeySet<Long>()
         val isInterrupted = AtomicBoolean(false)
         val groups = Channel<List<LinkContentTargetQuery>>(Channel.UNLIMITED)
         open.groupBy { it.host }.values.forEach { groups.trySend(it) }
@@ -191,7 +196,7 @@ class LinkContentWorker(
                             }
                             hosts.awaitTurn(target.host)
                             val outcome = collect(target)
-                            processed.incrementAndGet()
+                            if (outcome == null) errored += target.contentId else processed.incrementAndGet()
                             if (outcome in INTERRUPTING_OUTCOMES) isInterrupted.set(true)
                         }
                     }
@@ -200,6 +205,7 @@ class LinkContentWorker(
         }
         sweepProcessed += processed.get()
         sweepSkipped += skipped.get()
+        sweepErroredIds += errored
         return isInterrupted.get()
     }
 
