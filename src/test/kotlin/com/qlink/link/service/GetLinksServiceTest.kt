@@ -105,8 +105,8 @@ class GetLinksServiceTest :
             val titleOnly = insertLink(hours = titleOnlyHours, title = SEARCH_KEYWORD)
             val memoOnly = insertLink(hours = memoOnlyHours, memo = "메모 $SEARCH_KEYWORD 메모")
             val titleAndBody = insertLink(hours = titleAndBodyHours, title = "$SEARCH_KEYWORD 둘 다")
-            val bodyOnly = insertLink(hours = bodyOnlyHours)
             val shortBodyOnly = insertLink(hours = shortBodyOnlyHours)
+            val bodyOnly = insertLink(hours = bodyOnlyHours)
             val nearMiss = if (withNearMiss) insertLink(hours = 5, title = SEARCH_KEYWORD.take(3)) else null
             val longBody = bodyTextWith(keyword = SEARCH_KEYWORD, before = 40, after = 300)
             val shortBody = bodyTextWith(keyword = SEARCH_KEYWORD, before = 20, after = 26)
@@ -1142,6 +1142,66 @@ class GetLinksServiceTest :
             }
         }
 
+        Given("대소문자만 다른 제목의 링크들") {
+            var ownerId = 0L
+            lateinit var lowerTitled: Link
+            lateinit var upperTitled: Link
+
+            beforeTest {
+                val owner = userRepository.insert(UserFixture.createRandomValidUser())
+                ownerId = owner.id!!
+
+                suspend fun insertLink(title: String): Link =
+                    linkRepository.insert(
+                        LinkFixture.createRandomLinkOf(
+                            ownerId = owner.id!!,
+                            title = title,
+                            url = "https://example.com/${RandomFixture.randomId()}",
+                            summary = null,
+                            memo = null,
+                            tags = emptyList(),
+                        ),
+                    )
+
+                lowerTitled = insertLink(title = "$CASE_KEYWORD 정리")
+                upperTitled = insertLink(title = "${CASE_KEYWORD.uppercase()} 정리")
+            }
+
+            When("소문자 검색어로 찾으면") {
+                val ids = listOf(lowerTitled.id!!, upperTitled.id!!)
+                val response =
+                    getLinksService.getLinks(
+                        loginId = ownerId,
+                        query = CASE_KEYWORD,
+                        folderId = null,
+                        order = "latest",
+                        scrollRequest = ScrollRequest(),
+                    )
+
+                Then("대문자 제목도 TITLE로 일치한다") {
+                    response.contents.filter { it.id in ids }.map { it.matchedFields } shouldBe
+                        listOf(listOf(MatchedField.TITLE), listOf(MatchedField.TITLE))
+                }
+            }
+
+            When("similar로 찾으면") {
+                val lowerId = lowerTitled.id!!
+                val upperId = upperTitled.id!!
+                val response =
+                    getLinksService.getLinks(
+                        loginId = ownerId,
+                        query = CASE_KEYWORD,
+                        folderId = null,
+                        order = "similar",
+                        scrollRequest = ScrollRequest(),
+                    )
+
+                Then("두 제목의 점수가 같아 id 역순이다") {
+                    response.contents.map { it.id } shouldBe listOf(upperId, lowerId)
+                }
+            }
+        }
+
         Given("필드 경계를 가로질러서만 이어지는 검색어") {
             var ownerId = 0L
             lateinit var crossing: Link
@@ -1355,6 +1415,8 @@ private fun createCursor(
 ): String = Base64CursorCodec.encode(LinkSearchCursor(order = order, value = value))
 
 private const val SEARCH_KEYWORD = "뷁햏쀍뷁"
+
+private const val CASE_KEYWORD = "kotlin뷁햏"
 
 private fun bodyTextWith(
     keyword: String,

@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalUuidApi::class)
-
 package com.qlink.link.service
 
 import com.qlink.ai.domain.AiProvider
@@ -44,7 +42,6 @@ import kotlinx.serialization.json.Json
 import java.time.LocalTime
 import kotlin.time.Clock
 import kotlin.time.toKotlinInstant
-import kotlin.uuid.ExperimentalUuidApi
 
 class GetLinkDetailServiceTest :
     BaseServiceTest({

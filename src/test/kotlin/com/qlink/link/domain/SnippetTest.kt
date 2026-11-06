@@ -22,19 +22,26 @@ private fun Snippet.highlightedTexts(): List<String> = highlights.map { text.sub
 
 class SnippetTest :
     BehaviorSpec({
-        Given("100자 이상 본문에서 서버가 자른 창") {
+        Given("100자 본문에서 서버가 자른 창") {
             val before = filler(Snippet.CONTEXT_BEFORE)
             val source = before + KEYWORD + filler(Snippet.SOURCE_MAX_CODE_POINTS - Snippet.CONTEXT_BEFORE - KEYWORD.length)
-            val bodyLength = RandomFixture.randomInt(200, 100_000)
+            val bodyLength = 100
 
             When("앞뒤가 잘렸으면") {
                 val snippet = Snippet.of(source = source, headCut = true, tailCut = true, keyword = KEYWORD, bodyLength = bodyLength)
 
-                Then("양끝에 말줄임이 붙고 보이는 글자가 100 이하다") {
-                    snippet.text shouldStartWith ELLIPSIS
-                    snippet.text shouldEndWith ELLIPSIS
-                    snippet.visibleText().length shouldBeLessThanOrEqual 100
+                Then("창을 자르지 않고 양끝에 말줄임이 붙는다") {
+                    snippet.text shouldBe ELLIPSIS + source + ELLIPSIS
                     snippet.text.length shouldBeLessThanOrEqual Snippet.MAX_TEXT_LENGTH
+                }
+            }
+
+            When("본문이 99자이면") {
+                val snippet = Snippet.of(source = source, headCut = true, tailCut = true, keyword = KEYWORD, bodyLength = 99)
+
+                Then("보이는 글자가 29자이고 일치어를 가운데 둔다") {
+                    snippet.visibleText().length shouldBe 99 * 3 / 10
+                    snippet.text shouldBe ELLIPSIS + source.substring(3, 32) + ELLIPSIS
                 }
             }
 
