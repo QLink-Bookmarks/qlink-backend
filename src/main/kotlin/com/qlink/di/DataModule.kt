@@ -69,7 +69,7 @@ fun dataModule(
 
         Flyway
             .configure()
-            .configuration(mapOf(POSTGRESQL_TRANSACTIONAL_LOCK to "false"))
+            .configuration(mapOf("flyway.postgresql.transactional.lock" to "false"))
             .dataSource(get<DataSource>())
             .schemas(flywayConfig.schema)
             .createSchemas(true)
@@ -77,5 +77,3 @@ fun dataModule(
             .load()
     }
 }
-
-private const val POSTGRESQL_TRANSACTIONAL_LOCK = "flyway.postgresql.transactional.lock"

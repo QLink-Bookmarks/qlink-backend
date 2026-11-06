@@ -1,7 +1,5 @@
 package com.qlink.link.domain
 
-import com.qlink.common.error.ErrorCode
-import com.qlink.common.error.requireTrue
 import com.qlink.common.text.takeKeepingSurrogatePairs
 
 private const val ELLIPSIS = "…"
@@ -10,13 +8,6 @@ class Snippet private constructor(
     val text: String,
     val highlights: List<Highlight>,
 ) {
-    init {
-        (text.length <= MAX_TEXT_LENGTH).requireTrue(ErrorCode.LINK_SNIPPET_OVER_MAX)
-        highlights
-            .all { it.start in 0 until it.end && it.end <= text.length }
-            .requireTrue(ErrorCode.LINK_SNIPPET_HIGHLIGHTS_INVALID)
-    }
-
     data class Highlight(
         val start: Int,
         val end: Int,

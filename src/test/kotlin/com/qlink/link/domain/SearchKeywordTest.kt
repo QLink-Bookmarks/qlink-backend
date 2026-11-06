@@ -26,6 +26,22 @@ class SearchKeywordTest :
                 }
             }
 
+            When("NFD로 두 코드포인트인 한 글자이면") {
+                val keyword = SearchKeyword.of(Normalizer.normalize("가", Normalizer.Form.NFD))
+
+                Then("NFC 뒤 한 글자라 본문을 포함하지 않는다") {
+                    keyword.includesBody shouldBe false
+                }
+            }
+
+            When("UTF-16 두 유닛인 이모지 한 글자이면") {
+                val keyword = SearchKeyword.of(RandomFixture.randomEmoji())
+
+                Then("코드포인트 하나라 본문을 포함하지 않는다") {
+                    keyword.includesBody shouldBe false
+                }
+            }
+
             When("정규화 길이가 2이면") {
                 val keyword = SearchKeyword.of(" 가나 ")
 

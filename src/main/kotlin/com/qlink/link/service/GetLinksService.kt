@@ -3,7 +3,6 @@ package com.qlink.link.service
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireFalse
-import com.qlink.common.error.requirePresent
 import com.qlink.common.scroll.DEFAULT_SCROLL_SIZE
 import com.qlink.common.scroll.ScrollRequest
 import com.qlink.common.scroll.ScrollResponse
@@ -183,14 +182,14 @@ class GetLinksService(
         )
 
     private fun SearchLinksQuery.toSnippetResponse(keyword: SearchKeyword): SnippetResponse? =
-        snippetSource?.let { source ->
+        snippet?.let { query ->
             val snippet =
                 Snippet.of(
-                    source = source,
-                    headCut = snippetHeadCut,
-                    tailCut = snippetTailCut,
+                    source = query.source,
+                    headCut = query.headCut,
+                    tailCut = query.tailCut,
                     keyword = keyword.value,
-                    bodyLength = snippetBodyLength.requirePresent(ErrorCode.LINK_SNIPPET_BODY_LENGTH_REQUIRED),
+                    bodyLength = query.bodyLength,
                 )
             SnippetResponse(
                 text = snippet.text,

@@ -147,21 +147,35 @@ class SnippetTest :
             }
         }
 
-        Given("최종 문자열에 들어가지 않는 긴 검색어") {
-            val keyword = "검".repeat(120)
-            val source = filler(Snippet.CONTEXT_BEFORE) + keyword.take(Snippet.SOURCE_MAX_CODE_POINTS - Snippet.CONTEXT_BEFORE)
+        Given("스스로 겹칠 수 있는 검색어") {
+            val keyword = "aa"
+            val source = "aaa" + digits(5)
 
             When("스니펫을 만들면") {
-                val snippet = Snippet.of(source = source, headCut = true, tailCut = true, keyword = keyword, bodyLength = 500)
+                val snippet = Snippet.of(source = source, headCut = false, tailCut = false, keyword = keyword, bodyLength = 500)
 
-                Then("범위가 비어 있다") {
+                Then("겹치는 위치를 다시 세지 않는다") {
+                    snippet.highlights shouldContainExactly listOf(Snippet.Highlight(start = 0, end = 2))
+                }
+            }
+        }
+
+        Given("원문 창에는 있지만 100 유닛 절단 뒤에 오는 검색어") {
+            val emojis = "😀".repeat(48)
+            val source = emojis + KEYWORD + filler(Snippet.SOURCE_MAX_CODE_POINTS - 48 - KEYWORD.length)
+
+            When("스니펫을 만들면") {
+                val snippet = Snippet.of(source = source, headCut = false, tailCut = true, keyword = KEYWORD, bodyLength = 500)
+
+                Then("최종 문자열에 검색어가 없어 범위가 비어 있다") {
+                    snippet.text shouldBe emojis + KEYWORD.take(3) + ELLIPSIS
                     snippet.highlights.shouldBeEmpty()
                 }
             }
         }
 
-        Given("_·%가 든 검색어") {
-            val keyword = "50%_off"
+        Given("_·%·.가 든 검색어") {
+            val keyword = "50%_o.f"
             val decoy = "50xxoff"
             val before = filler(5)
             val source = before + keyword + decoy + filler(10)

@@ -10,7 +10,6 @@ import com.qlink.common.search.coalesceText
 import com.qlink.common.search.doubleLiteral
 import com.qlink.common.search.greatestInt
 import com.qlink.common.search.intLiteral
-import com.qlink.common.search.leastDouble
 import com.qlink.common.search.likeQuery
 import com.qlink.common.search.longLiteral
 import com.qlink.common.search.lowerText
@@ -33,7 +32,6 @@ import com.qlink.link.repository.table.fromDomain
 import com.qlink.link.repository.table.fromDomainForInsert
 import com.qlink.link.repository.table.refreshUpdatedAt
 import com.qlink.link.repository.table.toLinkDomain
-import com.qlink.linkcontent.domain.ContentStatus
 import com.qlink.linkcontent.repository.table.LinkContents
 import org.jetbrains.exposed.v1.core.Case
 import org.jetbrains.exposed.v1.core.ColumnSet
@@ -201,10 +199,10 @@ class DbLinkRepository : LinkRepository {
         val hasContent = boolOf(LinkContents.id.isNotNull()).alias("has_content")
         val contentExcerpt =
             Case()
-                .When(LinkContents.status eq ContentStatus.COLLECTED, LinkContents.excerpt)
+                .When(LinkContents.isCollected(), LinkContents.excerpt)
                 .Else(Op.nullOp())
                 .alias("content_excerpt")
-        val isContentPending = boolOf(LinkContents.status eq ContentStatus.PENDING).alias("is_content_pending")
+        val isContentPending = boolOf(LinkContents.isPending()).alias("is_content_pending")
 
         return joined
             .select(
@@ -282,16 +280,7 @@ class DbLinkRepository : LinkRepository {
                 keyword = keyword.value,
             )
 
-        return page.map { row ->
-            snippets[row.id]?.let { snippet ->
-                row.copy(
-                    snippetSource = snippet.source,
-                    snippetHeadCut = snippet.headCut,
-                    snippetTailCut = snippet.tailCut,
-                    snippetBodyLength = snippet.bodyLength,
-                )
-            } ?: row
-        }
+        return page.map { row -> row.copy(snippet = snippets[row.id]) }
     }
 
     override suspend fun update(link: Link): Link =
@@ -517,10 +506,8 @@ class DbLinkRepository : LinkRepository {
                 contentScore =
                     if (order == LinkSearchOrder.SIMILAR && keyword.includesBody) {
                         Case()
-                            .When(
-                                contentMatched,
-                                leastDouble(similarity(lowerText(LinkContents.contentText), keyword.value), doubleLiteral(1.0)),
-                            ).Else(doubleLiteral(0.0))
+                            .When(contentMatched, similarity(LinkContents.contentText, keyword.value))
+                            .Else(doubleLiteral(0.0))
                     } else {
                         doubleLiteral(0.0)
                     },
@@ -564,7 +551,7 @@ class DbLinkRepository : LinkRepository {
                 booleanLiteral(true).alias("content_hit"),
             ).where {
                 accessible and
-                    (LinkContents.status eq ContentStatus.COLLECTED) and
+                    LinkContents.isCollected() and
                     (lowerText(LinkContents.contentText) like pattern)
             }
 
@@ -633,7 +620,7 @@ class DbLinkRepository : LinkRepository {
             .select(LinkContents.linkId, LinkContents.contentLength, source, headCut, tailCut)
             .where {
                 (LinkContents.linkId inList linkIds) and
-                    (LinkContents.status eq ContentStatus.COLLECTED) and
+                    LinkContents.isCollected() and
                     GreaterOp(position, intLiteral(0))
             }.mapNotNull { row ->
                 row[LinkContents.contentLength]?.let { bodyLength ->
@@ -690,7 +677,7 @@ class DbLinkRepository : LinkRepository {
             joinType = JoinType.LEFT,
             additionalConstraint = {
                 (LinkContents.linkId eq Links.id) and
-                    (LinkContents.status eq ContentStatus.COLLECTED)
+                    LinkContents.isCollected()
             },
         )
 
@@ -907,6 +894,7 @@ class DbLinkRepository : LinkRepository {
             memoMatched = this[columns.memoMatchedAlias],
             contentMatched = this[columns.contentMatchedAlias],
             contentScore = this[columns.contentScoreAlias],
+            snippet = null,
         )
 
     private fun ResultRow.toLinkDetailQuery(
@@ -954,7 +942,7 @@ private val METADATA_FIELDS: List<Expression<*>> = listOf(Links.title, Links.url
 private fun similarity(
     field: Expression<*>,
     keyword: String,
-): ExpressionWithColumnType<Double> = bigmSimilarity(field, keyword).castTo(DoubleColumnType())
+): ExpressionWithColumnType<Double> = bigmSimilarity(lowerText(field), keyword).castTo(DoubleColumnType())
 
 private fun matches(
     field: Expression<*>,

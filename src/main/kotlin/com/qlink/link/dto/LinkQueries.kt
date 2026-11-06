@@ -41,10 +41,7 @@ data class SearchLinksQuery(
     val memoMatched: Boolean,
     val contentMatched: Boolean,
     val contentScore: Double,
-    val snippetSource: String? = null,
-    val snippetHeadCut: Boolean = false,
-    val snippetTailCut: Boolean = false,
-    val snippetBodyLength: Int? = null,
+    val snippet: LinkSnippetQuery?,
 )
 
 data class LinkSnippetQuery(

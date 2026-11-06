@@ -15,6 +15,7 @@ import com.qlink.foldermember.repository.FolderMemberRepository
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.domain.MatchedField
+import com.qlink.link.domain.Snippet
 import com.qlink.link.dto.LinkSearchCursor
 import com.qlink.link.dto.LinkSearchCursorValue
 import com.qlink.link.dto.LinkSearchOrder
@@ -71,6 +72,100 @@ class GetLinksServiceTest :
                 .findAllByProviderId(provider.id!!)
                 .firstOrNull()
                 ?: availableModelRepository.insert(AiFixture.createRandomAvailableModelOf(providerId = provider.id))
+        }
+
+        suspend fun insertContentSearchFixture(
+            titleOnlyHours: Int = 1,
+            memoOnlyHours: Int = 3,
+            titleAndBodyHours: Int = 0,
+            bodyOnlyHours: Int = 4,
+            shortBodyOnlyHours: Int = 2,
+            withNearMiss: Boolean = false,
+        ): ContentSearchFixture {
+            val owner = userRepository.insert(UserFixture.createRandomValidUser())
+            val base = RandomFixture.randomPastInstant()
+
+            suspend fun insertLink(
+                hours: Int,
+                title: String = RandomFixture.randomSentenceWithMax(30),
+                memo: String? = null,
+            ): Link =
+                linkRepository.insert(
+                    LinkFixture.createRandomLinkOf(
+                        ownerId = owner.id!!,
+                        title = title,
+                        memo = memo,
+                        summary = null,
+                        tags = emptyList(),
+                        url = "https://example.com/${RandomFixture.randomId()}",
+                        createdAt = base + hours.hours,
+                    ),
+                )
+
+            val titleOnly = insertLink(hours = titleOnlyHours, title = SEARCH_KEYWORD)
+            val memoOnly = insertLink(hours = memoOnlyHours, memo = "메모 $SEARCH_KEYWORD 메모")
+            val titleAndBody = insertLink(hours = titleAndBodyHours, title = "$SEARCH_KEYWORD 둘 다")
+            val bodyOnly = insertLink(hours = bodyOnlyHours)
+            val shortBodyOnly = insertLink(hours = shortBodyOnlyHours)
+            val nearMiss = if (withNearMiss) insertLink(hours = 5, title = SEARCH_KEYWORD.take(3)) else null
+            val longBody = bodyTextWith(keyword = SEARCH_KEYWORD, before = 40, after = 300)
+            val shortBody = bodyTextWith(keyword = SEARCH_KEYWORD, before = 20, after = 26)
+            linkContentRepository.insertAll(
+                listOfNotNull(
+                    LinkContentFixture.createCollectedContentOf(linkId = bodyOnly.id!!, text = longBody),
+                    LinkContentFixture.createCollectedContentOf(linkId = shortBodyOnly.id!!, text = shortBody),
+                    LinkContentFixture.createCollectedContentOf(
+                        linkId = titleAndBody.id!!,
+                        text = bodyTextWith(keyword = SEARCH_KEYWORD, before = 30, after = 200),
+                    ),
+                    nearMiss?.let {
+                        LinkContentFixture.createCollectedContentOf(
+                            linkId = it.id!!,
+                            text = bodyTextWith(keyword = SEARCH_KEYWORD, before = 40, after = 300),
+                        )
+                    },
+                ),
+            )
+            return ContentSearchFixture(
+                ownerId = owner.id!!,
+                titleOnly = titleOnly.id!!,
+                memoOnly = memoOnly.id!!,
+                titleAndBody = titleAndBody.id!!,
+                bodyOnly = bodyOnly.id!!,
+                shortBodyOnly = shortBodyOnly.id!!,
+                nearMiss = nearMiss?.id,
+                bodyOnlyText = longBody,
+                shortBodyLength = shortBody.length,
+            )
+        }
+
+        suspend fun search(
+            ownerId: Long,
+            query: String?,
+            order: String = "latest",
+            cursor: String? = null,
+            size: Int = 20,
+        ) = getLinksService.getLinks(
+            loginId = ownerId,
+            query = query,
+            folderId = null,
+            order = order,
+            scrollRequest = ScrollRequest(cursor = cursor, size = size),
+        )
+
+        suspend fun allPages(
+            ownerId: Long,
+            order: String,
+            size: Int = 2,
+        ): List<List<Long>> {
+            val pages = mutableListOf<List<Long>>()
+            var cursor: String? = null
+            do {
+                val page = search(ownerId = ownerId, query = SEARCH_KEYWORD, order = order, cursor = cursor, size = size)
+                pages += page.contents.map { it.id }
+                cursor = page.nextCursor
+            } while (cursor != null)
+            return pages
         }
 
         Given("링크 검색 서비스 테스트") {
@@ -846,81 +941,7 @@ class GetLinksServiceTest :
             lateinit var fixture: ContentSearchFixture
 
             beforeTest {
-                val owner = userRepository.insert(UserFixture.createRandomValidUser())
-                val base = RandomFixture.randomPastInstant()
-
-                suspend fun insertLink(
-                    hours: Int,
-                    title: String = RandomFixture.randomSentenceWithMax(30),
-                    memo: String? = null,
-                ): Link =
-                    linkRepository.insert(
-                        LinkFixture.createRandomLinkOf(
-                            ownerId = owner.id!!,
-                            title = title,
-                            memo = memo,
-                            summary = null,
-                            tags = emptyList(),
-                            url = "https://example.com/${RandomFixture.randomId()}",
-                            createdAt = base + hours.hours,
-                        ),
-                    )
-
-                val titleOnly = insertLink(hours = 1, title = SEARCH_KEYWORD)
-                val memoOnly = insertLink(hours = 3, memo = "메모 $SEARCH_KEYWORD 메모")
-                val titleAndBody = insertLink(hours = 0, title = "$SEARCH_KEYWORD 둘 다")
-                val bodyOnly = insertLink(hours = 4)
-                val shortBodyOnly = insertLink(hours = 2)
-                val longBody = bodyTextWith(keyword = SEARCH_KEYWORD, before = 40, after = 300)
-                val shortBody = bodyTextWith(keyword = SEARCH_KEYWORD, before = 20, after = 26)
-                linkContentRepository.insertAll(
-                    listOf(
-                        LinkContentFixture.createCollectedContentOf(linkId = bodyOnly.id!!, text = longBody),
-                        LinkContentFixture.createCollectedContentOf(linkId = shortBodyOnly.id!!, text = shortBody),
-                        LinkContentFixture.createCollectedContentOf(
-                            linkId = titleAndBody.id!!,
-                            text = bodyTextWith(keyword = SEARCH_KEYWORD, before = 30, after = 200),
-                        ),
-                    ),
-                )
-                fixture =
-                    ContentSearchFixture(
-                        ownerId = owner.id!!,
-                        titleOnly = titleOnly.id!!,
-                        memoOnly = memoOnly.id!!,
-                        titleAndBody = titleAndBody.id!!,
-                        bodyOnly = bodyOnly.id!!,
-                        shortBodyOnly = shortBodyOnly.id!!,
-                        shortBodyLength = shortBody.length,
-                    )
-            }
-
-            suspend fun search(
-                ownerId: Long,
-                query: String?,
-                order: String = "latest",
-                cursor: String? = null,
-                size: Int = 20,
-            ) = getLinksService.getLinks(
-                loginId = ownerId,
-                query = query,
-                folderId = null,
-                order = order,
-                scrollRequest = ScrollRequest(cursor = cursor, size = size),
-            )
-
-            suspend fun allPages(
-                ownerId: Long,
-                order: String,
-            ): List<List<Long>> {
-                val pages = mutableListOf<List<Long>>()
-                var cursor: String? = null
-                do {
-                    val page = search(ownerId = ownerId, query = SEARCH_KEYWORD, order = order, cursor = cursor, size = 2)
-                    pages += page.contents.map { it.id }
-                    cursor = page.nextCursor
-                } while (cursor != null)
-                return pages
+                fixture = insertContentSearchFixture()
             }
 
             When("검색하면") {
@@ -939,7 +960,7 @@ class GetLinksServiceTest :
                 val links = fixture
                 val item = search(ownerId = links.ownerId, query = SEARCH_KEYWORD).contents.single { it.id == links.bodyOnly }
 
-                Then("matchedFields가 [CONTENT]이고 contentSnippet.text가 100 유닛 이하이며 강조 범위가 유효하다") {
+                Then("matchedFields가 [CONTENT]이고 contentSnippet.text가 일치 앞 15자부터 자른 100 유닛 이하 창이며 강조 범위가 유효하다") {
                     item.matchedFields shouldBe listOf(MatchedField.CONTENT)
                     val snippet = item.contentSnippet.shouldNotBeNull()
                     snippet.text.length shouldBeLessThanOrEqual 100
@@ -949,6 +970,13 @@ class GetLinksServiceTest :
                         snippet.text.substring(range.start, range.end) shouldBe SEARCH_KEYWORD
                     }
                     snippet.highlights.zipWithNext().forEach { (left, right) -> (left.end <= right.start) shouldBe true }
+                    snippet.text shouldBe
+                        "…" +
+                        links.bodyOnlyText.substring(
+                            40 - Snippet.CONTEXT_BEFORE,
+                            40 - Snippet.CONTEXT_BEFORE + Snippet.SOURCE_MAX_CODE_POINTS,
+                        ) +
+                        "…"
                 }
             }
 
@@ -1017,7 +1045,7 @@ class GetLinksServiceTest :
                 val links = fixture
                 val pages = allPages(ownerId = links.ownerId, order = "latest")
 
-                Then("메타 묶음 경계와 동률을 건너뛰지 않고 이어진다") {
+                Then("메타 묶음 경계를 건너뛰지 않고 이어진다") {
                     pages shouldBe
                         listOf(
                             listOf(links.memoOnly, links.titleOnly),
@@ -1060,6 +1088,60 @@ class GetLinksServiceTest :
             }
         }
 
+        Given("본문만 일치하고 제목이 검색어 일부와 겹치는 링크가 더 있을 때") {
+            lateinit var fixture: ContentSearchFixture
+
+            beforeTest {
+                fixture = insertContentSearchFixture(withNearMiss = true)
+            }
+
+            When("similar 정렬로 검색하면") {
+                val links = fixture
+                val pages = allPages(ownerId = links.ownerId, order = "similar")
+
+                Then("제목 점수가 높아도 본문만 일치하면 메타 일치 묶음 뒤에 온다") {
+                    pages.flatten() shouldBe
+                        listOf(
+                            links.titleOnly,
+                            links.titleAndBody,
+                            links.memoOnly,
+                            links.nearMiss,
+                            links.shortBodyOnly,
+                            links.bodyOnly,
+                        )
+                }
+            }
+        }
+
+        Given("메타 묶음 안과 묶음 경계 양쪽에 createdAt이 같은 링크들") {
+            lateinit var fixture: ContentSearchFixture
+
+            beforeTest {
+                fixture =
+                    insertContentSearchFixture(
+                        titleOnlyHours = 3,
+                        memoOnlyHours = 3,
+                        titleAndBodyHours = 2,
+                        bodyOnlyHours = 2,
+                        shortBodyOnlyHours = 1,
+                    )
+            }
+
+            When("latest로 한 개씩, 두 개씩 끝까지 이어 읽으면") {
+                val links = fixture
+                val bySize =
+                    listOf(1, 2).associateWith { size ->
+                        allPages(ownerId = links.ownerId, order = "latest", size = size).flatten()
+                    }
+
+                Then("동률을 id로 나눠 누락·중복 없이 메타 묶음 다음 본문 묶음 순서로 이어진다") {
+                    bySize.values.forEach { ids ->
+                        ids shouldBe listOf(links.memoOnly, links.titleOnly, links.titleAndBody, links.bodyOnly, links.shortBodyOnly)
+                    }
+                }
+            }
+        }
+
         Given("필드 경계를 가로질러서만 이어지는 검색어") {
             var ownerId = 0L
             lateinit var crossing: Link
@@ -1097,15 +1179,16 @@ class GetLinksServiceTest :
             }
         }
 
-        Given("_·%·\\가 든 제목과 그 글자 자리에 다른 글자가 든 제목") {
+        Given("_·%·\\가 든 제목·본문과 그 글자 자리에 다른 글자가 든 제목·본문") {
             var ownerId = 0L
             lateinit var titles: Map<String, Long>
+            lateinit var bodies: Map<String, Long>
 
             beforeTest {
                 val owner = userRepository.insert(UserFixture.createRandomValidUser())
                 ownerId = owner.id!!
                 titles =
-                    listOf("뷁a_b", "뷁axb", "뷁50%", "뷁50x", "뷁c\\d", "뷁cxd").associateWith { title ->
+                    listOf("뷁a_b", "뷁axb", "뷁50%", "뷁50x", "뷁c\\d", "뷁cd").associateWith { title ->
                         linkRepository
                             .insert(
                                 LinkFixture.createRandomLinkOf(
@@ -1118,10 +1201,33 @@ class GetLinksServiceTest :
                                 ),
                             ).id!!
                     }
+                bodies =
+                    listOf("뷁a_b", "뷁axb").associateWith { word ->
+                        val link =
+                            linkRepository.insert(
+                                LinkFixture.createRandomLinkOf(
+                                    ownerId = owner.id!!,
+                                    url = "https://example.com/${RandomFixture.randomId()}",
+                                    summary = null,
+                                    memo = null,
+                                    tags = emptyList(),
+                                ),
+                            )
+                        linkContentRepository.insertAll(
+                            listOf(
+                                LinkContentFixture.createCollectedContentOf(
+                                    linkId = link.id!!,
+                                    text = bodyTextWith(keyword = word, before = 10, after = 200),
+                                ),
+                            ),
+                        )
+                        link.id!!
+                    }
             }
 
             When("검색어에 _·%·\\가 있으면") {
                 val ids = titles
+                val contentIds = bodies
                 val results =
                     listOf("뷁a_b", "뷁50%", "뷁c\\d").associateWith { query ->
                         getLinksService
@@ -1132,15 +1238,19 @@ class GetLinksServiceTest :
                                 order = "latest",
                                 scrollRequest = ScrollRequest(),
                             ).contents
-                            .map { it.id }
+                            .associate { it.id to it.matchedFields }
                     }
 
                 Then("그 글자가 실제로 든 링크만 나온다") {
                     results shouldBe
                         mapOf(
-                            "뷁a_b" to listOf(ids.getValue("뷁a_b")),
-                            "뷁50%" to listOf(ids.getValue("뷁50%")),
-                            "뷁c\\d" to listOf(ids.getValue("뷁c\\d")),
+                            "뷁a_b" to
+                                mapOf(
+                                    ids.getValue("뷁a_b") to listOf(MatchedField.TITLE),
+                                    contentIds.getValue("뷁a_b") to listOf(MatchedField.CONTENT),
+                                ),
+                            "뷁50%" to mapOf(ids.getValue("뷁50%") to listOf(MatchedField.TITLE)),
+                            "뷁c\\d" to mapOf(ids.getValue("뷁c\\d") to listOf(MatchedField.TITLE)),
                         )
                 }
             }
@@ -1259,5 +1369,7 @@ private class ContentSearchFixture(
     val titleAndBody: Long,
     val bodyOnly: Long,
     val shortBodyOnly: Long,
+    val nearMiss: Long?,
+    val bodyOnlyText: String,
     val shortBodyLength: Int,
 )

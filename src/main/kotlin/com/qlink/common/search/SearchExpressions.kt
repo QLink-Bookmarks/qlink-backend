@@ -111,14 +111,3 @@ fun greatestInt(
         first,
         second,
     )
-
-fun leastDouble(
-    first: Expression<Double>,
-    second: Expression<Double>,
-): CustomFunction<Double> =
-    CustomFunction(
-        functionName = "LEAST",
-        columnType = DoubleColumnType(),
-        first,
-        second,
-    )
