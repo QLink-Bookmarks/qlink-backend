@@ -92,11 +92,15 @@ private fun ResultRow.toCollectedPageOrNull(): CollectedPage? =
     }
 
 fun UpdateBuilder<*>.fromDomain(content: LinkContent) {
-    val page = content.page
     this[LinkContents.sourceUrl] = content.sourceUrl
-    this[LinkContents.status] = content.status
     this[LinkContents.priority] = content.priority.value.toShort()
     this[LinkContents.claimCount] = content.claimCount.toShort()
+    fromCollectResult(content)
+}
+
+fun UpdateBuilder<*>.fromCollectResult(content: LinkContent) {
+    val page = content.page
+    this[LinkContents.status] = content.status
     this[LinkContents.attempt] = content.attempt.toShort()
     this[LinkContents.startedAt] = content.startedAt?.toJavaInstant()
     this[LinkContents.nextAttemptAt] = content.nextAttemptAt.toJavaInstant()

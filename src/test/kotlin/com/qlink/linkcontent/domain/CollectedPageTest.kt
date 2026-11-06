@@ -14,7 +14,7 @@ class CollectedPageTest :
     BehaviorSpec({
         Given("Lambda 추출 결과로 페이지를 만들 때") {
             When("본문이 비어 있거나 공백뿐이면") {
-                val creates = listOf("", " \n\t  ").map { text -> { LinkContentFixture.createCollectedPage(text = text) } }
+                val creates = listOf("", " \n\t  ", "\u0085").map { text -> { LinkContentFixture.createCollectedPage(text = text) } }
 
                 Then("생성이 거부된다") {
                     creates.forEach { create ->
@@ -72,7 +72,7 @@ class CollectedPageTest :
                 )
 
             When("본문이 비어 있거나 공백뿐이면") {
-                val pages = listOf("", " \n\t  ").map(::pageOrNull)
+                val pages = listOf("", " \n\t  ", "\u0085").map(::pageOrNull)
 
                 Then("null이다") {
                     pages.forEach { it.shouldBeNull() }
