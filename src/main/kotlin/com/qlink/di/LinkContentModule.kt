@@ -1,6 +1,7 @@
 package com.qlink.di
 
 import com.qlink.config.LinkContentConfig
+import com.qlink.config.MonitoringConfig
 import com.qlink.config.WorkerConfig
 import com.qlink.linkcontent.client.LambdaLinkContentSyncClient
 import com.qlink.linkcontent.client.LinkContentSyncClient
@@ -63,6 +64,7 @@ fun linkContentModule(config: ApplicationConfig) =
                 config = get(),
                 pollInterval = get<WorkerConfig>().pollInterval,
                 meterRegistry = get<PrometheusMeterRegistry>(),
+                traceIdLength = get<MonitoringConfig>().httpLogging.traceIdLength,
                 log = LoggerFactory.getLogger(LinkContentWorker::class.java),
             )
         }

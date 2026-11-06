@@ -14,4 +14,4 @@ linkContent:
   lambdaFunction: alink-link-content-prod:live
 worker:
   linkContent:
-    enabled: false
+    enabled: true
