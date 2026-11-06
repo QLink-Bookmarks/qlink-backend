@@ -18,6 +18,7 @@ imageioWebp = "3.15.3"
 expoServerSdk = "3.1.6"
 firebaseAdmin = "9.9.0"
 ktor = "3.4.0"
+coroutines = "1.11.0"
 
 [libraries]
 exposed-core = { module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed" }
@@ -33,6 +34,7 @@ koin-loggerSlf4j = { module = "io.insert-koin:koin-logger-slf4j", version.ref = 
 kotest-assertions-core = { module = "io.kotest:kotest-assertions-core-jvm", version.ref = "kotest" }
 kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5-jvm", version.ref = "kotest" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+kotlinx-coroutines-slf4j = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-slf4j", version.ref = "coroutines" }
 micrometer-registryPrometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "prometheus" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
 ktor-openapi = { module = "io.github.smiley4:ktor-openapi", version.ref = "openapi" }

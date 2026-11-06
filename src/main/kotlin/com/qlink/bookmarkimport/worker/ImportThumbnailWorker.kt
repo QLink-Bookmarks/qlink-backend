@@ -5,6 +5,7 @@ import com.qlink.bookmarkimport.dto.ImportThumbnailTargetQuery
 import com.qlink.bookmarkimport.service.CountImportThumbnailTargetsService
 import com.qlink.bookmarkimport.service.FillImportThumbnailService
 import com.qlink.bookmarkimport.service.GetImportThumbnailTargetsService
+import com.qlink.common.logging.traceContext
 import com.qlink.common.text.hostOrNull
 import com.qlink.config.WorkerConfig
 import io.micrometer.core.instrument.Counter
@@ -20,10 +21,12 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.slf4j.Logger
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
+import kotlin.time.TimeSource
 
 class ImportThumbnailWorker(
     private val signal: ImportThumbnailSignal,
@@ -32,6 +35,7 @@ class ImportThumbnailWorker(
     private val fillService: FillImportThumbnailService,
     private val config: WorkerConfig,
     private val meterRegistry: MeterRegistry,
+    private val traceIdLength: Int,
     private val log: Logger,
 ) {
     private val dispatcher = Dispatchers.IO.limitedParallelism(config.importThumbnailParallelism, DISPATCHER_NAME)
@@ -40,6 +44,7 @@ class ImportThumbnailWorker(
     private val pending = AtomicLong(0).also { meterRegistry.gauge(PENDING_METRIC, it) }
 
     fun start() {
+        log.info("[IMPORT_THUMBNAIL] Starting import thumbnail worker")
         scope.launch(CoroutineName("$DISPATCHER_NAME-poller")) {
             while (isActive) {
                 signal.wake()
@@ -49,28 +54,41 @@ class ImportThumbnailWorker(
         scope.launch(CoroutineName("$DISPATCHER_NAME-scanner")) {
             while (isActive) {
                 signal.await()
-                try {
-                    drain()
-                } catch (error: CancellationException) {
-                    throw error
-                } catch (error: Exception) {
-                    log.warn("[IMPORT_THUMBNAIL] Failed to drain thumbnail targets", error)
+                withContext(traceContext(traceIdLength)) {
+                    try {
+                        drain()
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (error: Exception) {
+                        log.warn("[IMPORT_THUMBNAIL] Failed to drain thumbnail targets", error)
+                    }
                 }
             }
         }
     }
 
     fun stop() {
+        log.info("[IMPORT_THUMBNAIL] Stopping import thumbnail worker")
         scope.cancel()
     }
 
     private suspend fun drain() {
+        val started = TimeSource.Monotonic.markNow()
+        var targetCount = 0
         do {
             refreshPending()
             val targets = getTargetsService.getTargets(config.importThumbnailBatchSize)
+            targetCount += targets.size
             val isSettled = targets.isNotEmpty() && process(targets)
         } while (isSettled)
         refreshPending()
+        if (targetCount > 0) {
+            log.info(
+                "[IMPORT_THUMBNAIL] Drain has been finished. targets={}, durationMs={}",
+                targetCount,
+                started.elapsedNow().inWholeMilliseconds,
+            )
+        }
     }
 
     private suspend fun process(targets: List<ImportThumbnailTargetQuery>): Boolean {

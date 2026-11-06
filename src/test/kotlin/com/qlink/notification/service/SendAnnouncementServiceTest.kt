@@ -17,6 +17,7 @@ import com.qlink.user.repository.UserRepository
 import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
+import org.slf4j.LoggerFactory
 
 private class RecordingSender(
     override val platform: DevicePlatform,
@@ -49,6 +50,7 @@ class SendAnnouncementServiceTest :
                             notificationRepository = notificationRepository,
                             deviceTokenRepository = deviceTokenRepository,
                             senderRouter = PushNotificationSenderRouter(listOf(sender)),
+                            log = LoggerFactory.getLogger(SendAnnouncementService::class.java),
                         )
 
                     val withDevice = userRepository.insert(UserFixture.createRandomValidUser())

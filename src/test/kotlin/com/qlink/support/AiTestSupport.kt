@@ -103,6 +103,7 @@ fun aiTestModule() =
                         aiSummaryParallelism = 1,
                     ),
                 meterRegistry = SimpleMeterRegistry(),
+                traceIdLength = ServiceTestEnvironment.TRACE_ID_LENGTH,
                 log = LoggerFactory.getLogger(AiSummaryWorker::class.java),
             )
         }

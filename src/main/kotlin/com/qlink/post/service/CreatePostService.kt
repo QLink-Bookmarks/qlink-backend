@@ -12,16 +12,15 @@ import com.qlink.post.dto.CreatePostRequest
 import com.qlink.post.dto.CreatePostResponse
 import com.qlink.post.repository.PostRepository
 import com.qlink.user.repository.UserRepository
-import org.slf4j.LoggerFactory
+import org.slf4j.Logger
 
 class CreatePostService(
     private val tx: TransactionRunner,
     private val postRepository: PostRepository,
     private val userRepository: UserRepository,
     private val sendAnnouncementService: SendAnnouncementService,
+    private val log: Logger,
 ) {
-    private val log = LoggerFactory.getLogger(CreatePostService::class.java)
-
     suspend fun createPost(
         loginId: Long,
         role: Role,

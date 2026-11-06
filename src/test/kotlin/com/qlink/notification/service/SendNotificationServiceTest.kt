@@ -33,6 +33,7 @@ import org.koin.core.context.GlobalContext
 import org.koin.core.context.loadKoinModules
 import org.koin.core.context.unloadKoinModules
 import org.koin.dsl.module
+import org.slf4j.LoggerFactory
 import java.time.ZoneOffset
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
@@ -60,6 +61,7 @@ class SendNotificationServiceTest :
                         senderRouter = PushNotificationSenderRouter(listOf(fcmSender, expoSender)),
                         todoRepository = get(),
                         linkRepository = get(),
+                        log = LoggerFactory.getLogger(SendNotificationService::class.java),
                     )
                 }
             }

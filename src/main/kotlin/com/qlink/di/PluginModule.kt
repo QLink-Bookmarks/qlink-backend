@@ -18,6 +18,7 @@ import io.ktor.server.config.ApplicationConfig
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import org.koin.dsl.module
+import org.slf4j.LoggerFactory
 
 fun pluginModule(config: ApplicationConfig) =
     module {
@@ -63,7 +64,7 @@ fun pluginModule(config: ApplicationConfig) =
             )
         }
 
-        single { ApiExceptionHandler() }
+        single { ApiExceptionHandler(log = LoggerFactory.getLogger("com.qlink.api-error")) }
 
         single { SecurityConfig.from(config) }
 

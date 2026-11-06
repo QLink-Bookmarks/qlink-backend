@@ -1,5 +1,6 @@
 package com.qlink.linkcontent.worker
 
+import com.qlink.common.logging.traceContext
 import com.qlink.config.LinkContentConfig
 import com.qlink.linkcontent.domain.CollectOutcome
 import com.qlink.linkcontent.domain.ContentPriority
@@ -23,6 +24,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import org.slf4j.Logger
 import java.sql.SQLException
@@ -45,8 +47,9 @@ class LinkContentWorker(
     private val config: LinkContentConfig,
     private val pollInterval: Duration,
     private val meterRegistry: MeterRegistry,
-    private val log: Logger,
+    private val traceIdLength: Int,
     private val clock: Clock = Clock.System,
+    private val log: Logger,
 ) {
     private val dispatcher = Dispatchers.IO.limitedParallelism(config.workerParallelism, DISPATCHER_NAME)
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
@@ -69,6 +72,7 @@ class LinkContentWorker(
             log.info("[LINK_CONTENT] worker disabled")
             return
         }
+        log.info("[LINK_CONTENT] Starting link content worker")
         meterRegistry.gauge(IN_FLIGHT_METRIC, inFlight)
         meterRegistry.gauge(DUE_METRIC, due)
         meterRegistry.gauge(PENDING_METRIC, pending)
@@ -89,19 +93,22 @@ class LinkContentWorker(
                     continue
                 }
                 pausedUntil = null
-                try {
-                    drain()
-                } catch (error: CancellationException) {
-                    throw error
-                } catch (error: Exception) {
-                    log.warn("[LINK_CONTENT] Failed to drain link content targets. cause={}", error.describe())
-                    pause()
+                withContext(traceContext(traceIdLength)) {
+                    try {
+                        drain()
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (error: Exception) {
+                        log.warn("[LINK_CONTENT] Failed to drain link content targets. cause={}", error.describe())
+                        pause()
+                    }
                 }
             }
         }
     }
 
     fun stop() {
+        if (config.workerEnabled) log.info("[LINK_CONTENT] Stopping link content worker")
         scope.cancel()
     }
 

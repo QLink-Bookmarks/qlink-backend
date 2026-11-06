@@ -10,7 +10,7 @@ import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
-import org.slf4j.LoggerFactory
+import org.slf4j.Logger
 import java.util.Base64
 import java.util.UUID
 import kotlin.time.TimeSource
@@ -20,8 +20,8 @@ class LambdaLinkPreviewSyncClient(
     private val lambdaClient: LambdaClient,
     private val config: LinkPreviewConfig,
     private val meterRegistry: MeterRegistry,
+    private val log: Logger,
 ) : LinkPreviewSyncClient {
-    private val log = LoggerFactory.getLogger(LambdaLinkPreviewSyncClient::class.java)
     private val json = Json { ignoreUnknownKeys = true }
 
     override suspend fun extract(

@@ -12,6 +12,7 @@ import com.qlink.auth.client.AuthResourceClientRouter
 import com.qlink.auth.client.GoogleAuthResourceClient
 import com.qlink.auth.client.KakaoAuthResourceClient
 import com.qlink.auth.client.NaverAuthResourceClient
+import com.qlink.auth.client.OidcIdTokenVerifier
 import com.qlink.common.crypto.ApiKeyCipher
 import com.qlink.common.error.ErrorCode
 import com.qlink.config.MonitoringConfig
@@ -26,153 +27,153 @@ import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import kotlinx.coroutines.channels.Channel
 import kotlinx.serialization.json.Json
 import org.koin.dsl.module
-import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-fun aiModule(
-    config: ApplicationConfig,
-    log: Logger,
-) = module {
-    single {
-        val monitoringConfig = get<MonitoringConfig>()
+fun aiModule(config: ApplicationConfig) =
+    module {
+        single {
+            val monitoringConfig = get<MonitoringConfig>()
 
-        HttpClient(CIO) {
-            expectSuccess = false
-            install(ContentNegotiation) {
-                json(
-                    Json {
-                        ignoreUnknownKeys = true
-                        encodeDefaults = true
-                    },
-                )
-            }
+            HttpClient(CIO) {
+                expectSuccess = false
+                install(ContentNegotiation) {
+                    json(
+                        Json {
+                            ignoreUnknownKeys = true
+                            encodeDefaults = true
+                        },
+                    )
+                }
 
-            install(ExternalHttpClientLogging) {
-                httpLogging = monitoringConfig.httpLogging
+                install(ExternalHttpClientLogging) {
+                    httpLogging = monitoringConfig.httpLogging
+                }
             }
         }
-    }
 
-    single {
-        val keyBase64 =
-            System
-                .getenv("AI_API_KEY_ENCRYPTION_KEY_BASE64")
-                ?.takeUnless { it.isBlank() }
-                ?: config.string("security.aiApiKeyEncryptionKeyBase64")
+        single {
+            val keyBase64 =
+                System
+                    .getenv("AI_API_KEY_ENCRYPTION_KEY_BASE64")
+                    ?.takeUnless { it.isBlank() }
+                    ?: config.string("security.aiApiKeyEncryptionKeyBase64")
 
-        ApiKeyCipher(keyBase64 = keyBase64, invalidKeyErrorCode = ErrorCode.CONFIG_AI_API_KEY_ENCRYPTION_KEY_INVALID)
-    }
+            ApiKeyCipher(keyBase64 = keyBase64, invalidKeyErrorCode = ErrorCode.CONFIG_AI_API_KEY_ENCRYPTION_KEY_INVALID)
+        }
 
-    single {
-        GeminiAiClient(
-            httpClient = get(),
-        )
-    }
+        single {
+            GeminiAiClient(
+                httpClient = get(),
+            )
+        }
 
-    single {
-        OpenAiClient(
-            httpClient = get(),
-        )
-    }
+        single {
+            OpenAiClient(
+                httpClient = get(),
+            )
+        }
 
-    single {
-        KakaoAuthResourceClient(
-            httpClient = get(),
-        )
-    }
+        single {
+            KakaoAuthResourceClient(
+                httpClient = get(),
+            )
+        }
 
-    single {
-        GoogleAuthResourceClient(
-            httpClient = get(),
-            googleConfig = get(),
-        )
-    }
+        single {
+            GoogleAuthResourceClient(
+                httpClient = get(),
+                googleConfig = get(),
+                idTokenVerifierLog = LoggerFactory.getLogger(OidcIdTokenVerifier::class.java),
+            )
+        }
 
-    single {
-        NaverAuthResourceClient(
-            httpClient = get(),
-        )
-    }
+        single {
+            NaverAuthResourceClient(
+                httpClient = get(),
+            )
+        }
 
-    single {
-        AppleAuthResourceClient(
-            httpClient = get(),
-            appleConfig = get(),
-        )
-    }
+        single {
+            AppleAuthResourceClient(
+                httpClient = get(),
+                appleConfig = get(),
+                idTokenVerifierLog = LoggerFactory.getLogger(OidcIdTokenVerifier::class.java),
+            )
+        }
 
-    single {
-        AuthResourceClientRouter(
-            clients =
-                listOf(
-                    get<KakaoAuthResourceClient>(),
-                    get<GoogleAuthResourceClient>(),
-                    get<NaverAuthResourceClient>(),
-                    get<AppleAuthResourceClient>(),
-                ),
-        )
-    }
+        single {
+            AuthResourceClientRouter(
+                clients =
+                    listOf(
+                        get<KakaoAuthResourceClient>(),
+                        get<GoogleAuthResourceClient>(),
+                        get<NaverAuthResourceClient>(),
+                        get<AppleAuthResourceClient>(),
+                    ),
+            )
+        }
 
-    single {
-        AiClientRouter(
-            clients =
-                listOf(
-                    get<GeminiAiClient>(),
-                    get<OpenAiClient>(),
-                ),
-        )
-    }
+        single {
+            AiClientRouter(
+                clients =
+                    listOf(
+                        get<GeminiAiClient>(),
+                        get<OpenAiClient>(),
+                    ),
+            )
+        }
 
-    single {
-        Channel<Long>(capacity = Channel.BUFFERED)
-    }
+        single {
+            Channel<Long>(capacity = Channel.BUFFERED)
+        }
 
-    single {
-        AiSummaryDispatcher(channel = get())
-    }
+        single {
+            AiSummaryDispatcher(channel = get())
+        }
 
-    single {
-        CompleteAiSummaryService(
-            tx = get(),
-            aiJobRepository = get(),
-            dailyUsageRepository = get(),
-            folderRepository = get(),
-            folderMemberRepository = get(),
-            linkRepository = get(),
-            todoRepository = get(),
-            scheduleTodoNotificationService = get(),
-            urlResolver = get(),
-            log = LoggerFactory.getLogger(CompleteAiSummaryService::class.java),
-        )
-    }
+        single {
+            CompleteAiSummaryService(
+                tx = get(),
+                aiJobRepository = get(),
+                dailyUsageRepository = get(),
+                folderRepository = get(),
+                folderMemberRepository = get(),
+                linkRepository = get(),
+                todoRepository = get(),
+                scheduleTodoNotificationService = get(),
+                urlResolver = get(),
+                log = LoggerFactory.getLogger(CompleteAiSummaryService::class.java),
+            )
+        }
 
-    single {
-        FailAiSummaryService(
-            tx = get(),
-            aiJobRepository = get(),
-            linkRepository = get(),
-            urlResolver = get(),
-        )
-    }
+        single {
+            FailAiSummaryService(
+                tx = get(),
+                aiJobRepository = get(),
+                linkRepository = get(),
+                urlResolver = get(),
+            )
+        }
 
-    single {
-        AiSummaryWorker(
-            tx = get(),
-            aiJobRepository = get(),
-            userProviderRepository = get(),
-            availableModelRepository = get(),
-            aiProviderRepository = get(),
-            dailyUsageRepository = get(),
-            folderRepository = get(),
-            linkRepository = get(),
-            completeAiSummaryService = get(),
-            failAiSummaryService = get(),
-            aiClientRouter = get(),
-            apiKeyCipher = get(),
-            channel = get(),
-            config = get(),
-            meterRegistry = get<PrometheusMeterRegistry>(),
-            log = log,
-        )
+        single {
+            AiSummaryWorker(
+                tx = get(),
+                aiJobRepository = get(),
+                userProviderRepository = get(),
+                availableModelRepository = get(),
+                aiProviderRepository = get(),
+                dailyUsageRepository = get(),
+                folderRepository = get(),
+                linkRepository = get(),
+                completeAiSummaryService = get(),
+                failAiSummaryService = get(),
+                aiClientRouter = get(),
+                apiKeyCipher = get(),
+                channel = get(),
+                config = get(),
+                meterRegistry = get<PrometheusMeterRegistry>(),
+                traceIdLength = get<MonitoringConfig>().httpLogging.traceIdLength,
+                log = LoggerFactory.getLogger(AiSummaryWorker::class.java),
+            )
+        }
     }
-}

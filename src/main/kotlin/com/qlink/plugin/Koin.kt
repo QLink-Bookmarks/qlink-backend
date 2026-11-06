@@ -9,6 +9,6 @@ import org.koin.logger.slf4jLogger
 fun Application.configureKoin() {
     install(Koin) {
         slf4jLogger()
-        modules(appModules(config = environment.config, log = environment.log))
+        modules(appModules(environment.config))
     }
 }

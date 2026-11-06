@@ -22,6 +22,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.shouldBeInstanceOf
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
+import org.slf4j.LoggerFactory
 import org.testcontainers.containers.localstack.LocalStackContainer
 import org.testcontainers.utility.DockerImageName
 import org.testcontainers.utility.MountableFile
@@ -113,7 +114,12 @@ class LinkPreviewLambdaIntegrationTest :
                     endpoint = localStack.endpoint.toString(),
                 )
             previewClient =
-                LambdaLinkPreviewSyncClient(lambdaClient = client, config = config, meterRegistry = meterRegistry)
+                LambdaLinkPreviewSyncClient(
+                    lambdaClient = client,
+                    config = config,
+                    meterRegistry = meterRegistry,
+                    log = LoggerFactory.getLogger(LambdaLinkPreviewSyncClient::class.java),
+                )
             service =
                 CreateLinkPreviewService(
                     tx = tx,

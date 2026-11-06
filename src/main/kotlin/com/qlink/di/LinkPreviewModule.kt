@@ -9,6 +9,7 @@ import com.qlink.bookmarkimport.service.FillImportThumbnailService
 import com.qlink.bookmarkimport.service.GetImportThumbnailTargetsService
 import com.qlink.bookmarkimport.worker.ImportThumbnailWorker
 import com.qlink.config.LinkPreviewConfig
+import com.qlink.config.MonitoringConfig
 import com.qlink.config.WorkerConfig
 import com.qlink.link.client.LambdaLinkPreviewSyncClient
 import com.qlink.link.client.LinkPreviewSyncClient
@@ -39,6 +40,7 @@ fun linkPreviewModule(config: ApplicationConfig) =
                 lambdaClient = get(),
                 config = get(),
                 meterRegistry = get<PrometheusMeterRegistry>(),
+                log = LoggerFactory.getLogger(LambdaLinkPreviewSyncClient::class.java),
             )
         }
 
@@ -74,6 +76,7 @@ fun linkPreviewModule(config: ApplicationConfig) =
                 fillService = get(),
                 config = get(),
                 meterRegistry = get<PrometheusMeterRegistry>(),
+                traceIdLength = get<MonitoringConfig>().httpLogging.traceIdLength,
                 log = LoggerFactory.getLogger(ImportThumbnailWorker::class.java),
             )
         }

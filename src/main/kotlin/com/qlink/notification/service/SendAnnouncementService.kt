@@ -9,7 +9,7 @@ import com.qlink.notification.repository.NotificationRepository
 import com.qlink.push.client.PushNotificationSendRequest
 import com.qlink.push.client.PushNotificationSenderRouter
 import com.qlink.user.repository.UserRepository
-import org.slf4j.LoggerFactory
+import org.slf4j.Logger
 import kotlin.time.Clock
 
 private const val ANNOUNCE_TITLE = "에이링크 공지사항"
@@ -31,9 +31,8 @@ class SendAnnouncementService(
     private val notificationRepository: NotificationRepository,
     private val deviceTokenRepository: DeviceTokenRepository,
     private val senderRouter: PushNotificationSenderRouter,
+    private val log: Logger,
 ) {
-    private val log = LoggerFactory.getLogger(SendAnnouncementService::class.java)
-
     suspend fun sendForPost(
         postId: Long,
         postTitle: String,
