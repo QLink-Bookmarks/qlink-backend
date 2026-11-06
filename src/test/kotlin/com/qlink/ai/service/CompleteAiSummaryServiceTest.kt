@@ -17,7 +17,6 @@ import com.qlink.image.service.PreviewImageUrlResolver
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.repository.LinkRepository
-import com.qlink.link.repository.table.Links
 import com.qlink.notification.domain.Notification
 import com.qlink.notification.domain.NotificationContext
 import com.qlink.notification.repository.NotificationRepository
@@ -31,6 +30,7 @@ import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.insertAiContext
 import com.qlink.support.koinGet
+import com.qlink.support.searchTextOf
 import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.repository.UserRepository
 import io.kotest.assertions.throwables.shouldNotThrow
@@ -40,7 +40,6 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
-import org.jetbrains.exposed.v1.jdbc.select
 import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlin.time.Clock
@@ -355,9 +354,3 @@ class CompleteAiSummaryServiceTest :
             }
         }
     })
-
-private fun searchTextOf(linkId: Long): String =
-    Links
-        .select(Links.searchText)
-        .where { Links.id eq linkId }
-        .single()[Links.searchText]

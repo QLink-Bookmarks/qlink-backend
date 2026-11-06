@@ -11,7 +11,6 @@ import com.qlink.link.dto.CopyLinkRequest
 import com.qlink.link.repository.LinkRepository
 import com.qlink.linkcontent.domain.ContentPriority
 import com.qlink.linkcontent.domain.ContentStatus
-import com.qlink.linkcontent.domain.LinkContent
 import com.qlink.linkcontent.repository.LinkContentRepository
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.FolderFixture
@@ -112,7 +111,7 @@ class CopyLinkServiceTest :
 
             When("본문이 수집된 공유 링크를 복사하면") {
                 beforeTest {
-                    insertCollectedContent(linkContentRepository, linkId = sharedLink.id!!, sourceUrl = sharedLink.url)
+                    LinkContentFixture.insertCollected(linkContentRepository, linkId = sharedLink.id!!, sourceUrl = sharedLink.url)
                 }
 
                 val copy =
@@ -345,20 +344,3 @@ class CopyLinkServiceTest :
             }
         }
     })
-
-private suspend fun insertCollectedContent(
-    linkContentRepository: LinkContentRepository,
-    linkId: Long,
-    sourceUrl: String,
-) {
-    val now = Clock.System.now()
-    linkContentRepository.insertAll(
-        listOf(LinkContentFixture.createPendingContentOf(linkId = linkId, sourceUrl = sourceUrl, nextAttemptAt = now)),
-    )
-    val pending = linkContentRepository.findByLinkId(linkId)!!
-    val claimed = linkContentRepository.claim(contentId = pending.id!!, staleAfter = LinkContent.STALE_AFTER, now = now)!!
-    linkContentRepository.updateClaimed(
-        fence = claimed.fence,
-        next = claimed.complete(page = LinkContentFixture.createCollectedPage(), now = now),
-    )
-}

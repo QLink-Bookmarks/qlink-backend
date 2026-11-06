@@ -29,9 +29,9 @@ class UpdateLinkService(
         loginId: Long,
         linkId: Long,
         request: UpdateLinkRequest,
-    ): UpdateLinkResponse {
-        val result =
-            tx.required {
+    ): UpdateLinkResponse =
+        tx
+            .required {
                 userRepository.emptyById(loginId).requireFalse(ErrorCode.LINK_OWNER_NOT_FOUND)
 
                 val link = linkRepository.findByIdForUpdate(linkId) ?: throw BusinessException(ErrorCode.LINK_NOT_FOUND)
@@ -56,31 +56,15 @@ class UpdateLinkService(
                     )
 
                 val savedLink = linkRepository.update(updatedLink)
-                val resetContent =
-                    LinkContentPlanDomainService
-                        .forUrlChange(
-                            current = linkContentRepository.findByLinkId(linkId),
-                            savedLink = savedLink,
-                            now = Clock.System.now(),
-                        )?.let { linkContentRepository.upsertForLink(it) }
+                LinkContentPlanDomainService
+                    .forUrlChange(
+                        current = linkContentRepository.findByLinkId(linkId),
+                        savedLink = savedLink,
+                        now = Clock.System.now(),
+                    )?.let { linkContentRepository.upsertForLink(it) }
 
-                UpdateLinkResult(
-                    response = savedLink.toResponse(),
-                    isContentReset = resetContent != null,
-                )
-            }
-
-        if (result.isContentReset) {
-            linkContentSignal.wake()
-        }
-
-        return result.response
-    }
-
-    private data class UpdateLinkResult(
-        val response: UpdateLinkResponse,
-        val isContentReset: Boolean,
-    )
+                savedLink.toResponse()
+            }.also { linkContentSignal.wake() }
 
     private fun Link.toResponse(): UpdateLinkResponse =
         UpdateLinkResponse(

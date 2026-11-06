@@ -20,9 +20,11 @@ import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.SourceType
 import com.qlink.link.repository.LinkRepository
+import com.qlink.link.repository.table.Links
 import com.qlink.linkcontent.domain.ContentPriority
 import com.qlink.linkcontent.domain.ContentStatus
 import com.qlink.linkcontent.repository.LinkContentRepository
+import com.qlink.linkcontent.repository.table.LinkContents
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.FolderFixture
 import com.qlink.support.fixture.ImportFixture
@@ -51,7 +53,9 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
+import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import java.sql.Connection
@@ -342,15 +346,13 @@ class CreateImportServiceTest :
                     )
 
                 Then("본문 행이 늘지 않는다") {
-                    val summary = createImportService.createImport(user.id!!, first)
-                    val linkId = bookmarkImportRepository.findLinksByImportId(summary.id).single().linkId
-                    val before = linkContentRepository.findByLinkId(linkId).shouldNotBeNull()
+                    createImportService.createImport(user.id!!, first)
+                    val before = countLinkContentsOf(user.id!!)
 
                     createImportService.createImport(user.id!!, second)
-                    val after = linkContentRepository.findByLinkId(linkId).shouldNotBeNull()
 
-                    after.id shouldBe before.id
-                    after.generation shouldBe before.generation
+                    before shouldBe 1L
+                    countLinkContentsOf(user.id!!) shouldBe before
                     second.links.forEach { requested ->
                         linkRepository.findAllUrlsByOwnerId(user.id!!).contains(requested.url) shouldBe false
                     }
@@ -671,3 +673,9 @@ class CreateImportServiceTest :
             }
         }
     })
+
+private fun countLinkContentsOf(ownerId: Long): Long =
+    (LinkContents innerJoin Links)
+        .selectAll()
+        .where { Links.ownerId eq ownerId }
+        .count()

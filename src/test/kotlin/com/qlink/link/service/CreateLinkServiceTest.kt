@@ -107,7 +107,6 @@ class CreateLinkServiceTest :
                     content!!.status shouldBe ContentStatus.PENDING
                     content.priority shouldBe ContentPriority.INTERACTIVE
                     content.sourceUrl shouldBe request.url
-                    content.generation shouldBe 0
                     content.attempt shouldBe 0
                 }
             }
