@@ -18,6 +18,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import org.slf4j.LoggerFactory
 import java.util.Date
 
 class GoogleAuthResourceClientTest :
@@ -47,6 +48,7 @@ class GoogleAuthResourceClientTest :
                         }
                     },
                 googleConfig = GoogleConfig(clientIds = clientIds),
+                idTokenVerifierLog = LoggerFactory.getLogger(OidcIdTokenVerifier::class.java),
             )
 
         Given("WEB 플랫폼 - access token으로 userinfo를 조회할 때") {

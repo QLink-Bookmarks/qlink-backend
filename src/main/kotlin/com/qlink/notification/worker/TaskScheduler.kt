@@ -2,6 +2,7 @@ package com.qlink.notification.worker
 
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
+import com.qlink.common.logging.traceContext
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.link.repository.LinkRepository
 import com.qlink.notification.domain.Notification
@@ -18,6 +19,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.slf4j.Logger
 import java.time.LocalDate
 import java.time.LocalTime
@@ -40,6 +42,7 @@ class TaskScheduler(
     private val todoRepository: TodoRepository,
     private val linkRepository: LinkRepository,
     private val sendNotificationService: SendNotificationService,
+    private val traceIdLength: Int,
     private val log: Logger,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -47,7 +50,7 @@ class TaskScheduler(
 
     fun start() {
         log.info("[TASK_SCHEDULER] Starting task scheduler")
-        scope.launch {
+        scope.launch(traceContext(traceIdLength)) {
             schedulePendingForUtcDate(utcToday())
         }
         scope.launch {
@@ -71,7 +74,7 @@ class TaskScheduler(
         cancel(notificationId)
 
         notificationJobs[notificationId] =
-            scope.launch {
+            scope.launch(traceContext(traceIdLength)) {
                 val notification =
                     tx.required {
                         val pending =
@@ -92,7 +95,9 @@ class TaskScheduler(
     private suspend fun startDailyBatch() {
         while (scope.isActive) {
             delayUntilNextDailyBatch()
-            schedulePendingForUtcDate(utcToday().plusDays(1))
+            withContext(traceContext(traceIdLength)) {
+                schedulePendingForUtcDate(utcToday().plusDays(1))
+            }
         }
     }
 
@@ -112,6 +117,7 @@ class TaskScheduler(
                 }
 
             notifications.forEach { schedule(it.id!!) }
+            log.info("[TASK_SCHEDULER] Pending notifications have been scheduled. date=$date, count=${notifications.size}")
         }.onFailure { error ->
             if (error is CancellationException) throw error
             log.warn("[TASK_SCHEDULER] Failed to schedule pending notifications. date=$date", error)

@@ -1,6 +1,8 @@
 package com.qlink.plugin
 
 import com.qlink.auth.domain.JwtPrincipal
+import com.qlink.common.logging.TRACE_ID_MDC_KEY
+import com.qlink.common.logging.newTraceId
 import com.qlink.config.MonitoringConfig
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
@@ -24,7 +26,6 @@ import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import org.koin.ktor.ext.inject
 import org.slf4j.LoggerFactory
 import org.slf4j.event.Level
-import java.util.UUID
 
 const val REQUESTER_HEADER_NAME = "Alink-Requester"
 
@@ -39,7 +40,7 @@ fun Application.configureMonitoring() {
         filter { call ->
             call.request.path().startsWith("/api")
         }
-        mdc("traceId") { call ->
+        mdc(TRACE_ID_MDC_KEY) { call ->
             call.traceId(config.httpLogging.traceIdLength)
         }
         format { call ->
@@ -89,13 +90,7 @@ private val TraceIdKey = AttributeKey<String>("TraceId")
 private fun ApplicationCall.traceId(length: Int): String {
     attributes.getOrNull(TraceIdKey)?.let { return it }
 
-    val traceId =
-        UUID
-            .randomUUID()
-            .toString()
-            .replace("-", "")
-            .take(length.coerceIn(1, 32))
-
+    val traceId = newTraceId(length)
     attributes.put(TraceIdKey, traceId)
     return traceId
 }

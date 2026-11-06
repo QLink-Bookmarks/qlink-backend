@@ -166,6 +166,7 @@ dependencies {
     implementation(ktorLibs.server.callLogging)
     implementation(ktorLibs.server.metrics.micrometer)
     implementation(libs.logback.classic)
+    implementation(libs.kotlinx.coroutines.slf4j)
     implementation(libs.micrometer.registryPrometheus)
 
     // Documentation

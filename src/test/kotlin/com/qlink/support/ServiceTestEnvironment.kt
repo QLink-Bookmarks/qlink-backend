@@ -46,6 +46,7 @@ object ServiceTestEnvironment {
     private const val SCHEMA = "qlink_local"
     private const val DRIVER_CLASS_NAME = "org.postgresql.Driver"
     private const val PUBLIC_BASE_URL = "https://images.archivelink.app"
+    const val TRACE_ID_LENGTH = 12
 
     private val container =
         ServicePostgreSQLContainer(
@@ -219,7 +220,8 @@ object ServiceTestEnvironment {
                     todoRepository = get(),
                     linkRepository = get(),
                     sendNotificationService = get(),
-                    log = LoggerFactory.getLogger("TestTaskScheduler"),
+                    traceIdLength = TRACE_ID_LENGTH,
+                    log = LoggerFactory.getLogger(TaskScheduler::class.java),
                 )
             }
         }
@@ -249,6 +251,7 @@ object ServiceTestEnvironment {
                 com.qlink.auth.client.GoogleAuthResourceClient(
                     httpClient = get<MockAuthHttpEngine>().client,
                     googleConfig = get(),
+                    idTokenVerifierLog = LoggerFactory.getLogger(com.qlink.auth.client.OidcIdTokenVerifier::class.java),
                 )
             }
 
@@ -266,6 +269,7 @@ object ServiceTestEnvironment {
                 com.qlink.auth.client.AppleAuthResourceClient(
                     httpClient = get<MockAuthHttpEngine>().client,
                     appleConfig = get(),
+                    idTokenVerifierLog = LoggerFactory.getLogger(com.qlink.auth.client.OidcIdTokenVerifier::class.java),
                 )
             }
 

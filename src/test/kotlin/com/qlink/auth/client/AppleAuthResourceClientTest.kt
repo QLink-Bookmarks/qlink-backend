@@ -18,6 +18,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import org.slf4j.LoggerFactory
 import java.util.Date
 
 class AppleAuthResourceClientTest :
@@ -45,6 +46,7 @@ class AppleAuthResourceClientTest :
                         }
                     },
                 appleConfig = AppleConfig(clientIds = clientIds),
+                idTokenVerifierLog = LoggerFactory.getLogger(OidcIdTokenVerifier::class.java),
             )
 
         Given("애플 id_token 검증 테스트") {

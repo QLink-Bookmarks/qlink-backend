@@ -11,6 +11,7 @@ import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.http.isSuccess
 import kotlinx.serialization.Serializable
+import org.slf4j.Logger
 
 /**
  * 구글은 플랫폼에 따라 클라이언트가 넘기는 토큰 종류가 다르다.
@@ -20,6 +21,7 @@ import kotlinx.serialization.Serializable
 class GoogleAuthResourceClient(
     private val httpClient: HttpClient,
     private val googleConfig: GoogleConfig,
+    idTokenVerifierLog: Logger,
 ) : AuthResourceClient {
     override val providerType: AuthProviderType = AuthProviderType.GOOGLE
 
@@ -28,6 +30,7 @@ class GoogleAuthResourceClient(
             httpClient = httpClient,
             jwksUrl = GOOGLE_CERTS_URL,
             issuers = GOOGLE_ISSUERS,
+            log = idTokenVerifierLog,
         )
 
     override suspend fun getResource(

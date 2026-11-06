@@ -10,7 +10,7 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.http.isSuccess
 import kotlinx.serialization.Serializable
-import org.slf4j.LoggerFactory
+import org.slf4j.Logger
 import java.math.BigInteger
 import java.security.KeyFactory
 import java.security.interfaces.RSAPrivateKey
@@ -26,6 +26,7 @@ class OidcIdTokenVerifier(
     private val httpClient: HttpClient,
     private val jwksUrl: String,
     private val issuers: List<String>,
+    private val log: Logger,
 ) {
     suspend fun verifyAndGetSubject(
         idToken: String,
@@ -85,10 +86,6 @@ class OidcIdTokenVerifier(
 
     private fun communicationFailed(cause: Throwable? = null): BusinessException =
         BusinessException(ErrorCode.AUTH_PROVIDER_COMMUNICATION_FAILED, cause)
-
-    private companion object {
-        val log = LoggerFactory.getLogger(OidcIdTokenVerifier::class.java)
-    }
 }
 
 private class SingleKeyProvider(

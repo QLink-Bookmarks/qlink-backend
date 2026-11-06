@@ -3,20 +3,17 @@ package com.qlink.di
 import com.qlink.config.NotificationConfig
 import com.qlink.config.S3Config
 import io.ktor.server.config.ApplicationConfig
-import org.slf4j.Logger
 
-fun appModules(
-    config: ApplicationConfig,
-    log: Logger,
-) = listOf(
-    dataModule(config),
-    transactionModule(),
-    pluginModule(config),
-    repositoryModule(),
-    notificationModule(config = NotificationConfig.from(config), log = log),
-    aiModule(config = config, log = log),
-    storageModule(config = S3Config.from(config)),
-    linkPreviewModule(config),
-    bookmarkImportModule(),
-    serviceModule(),
-)
+fun appModules(config: ApplicationConfig) =
+    listOf(
+        dataModule(config),
+        transactionModule(),
+        pluginModule(config),
+        repositoryModule(),
+        notificationModule(NotificationConfig.from(config)),
+        aiModule(config),
+        storageModule(config = S3Config.from(config)),
+        linkPreviewModule(config),
+        bookmarkImportModule(),
+        serviceModule(),
+    )

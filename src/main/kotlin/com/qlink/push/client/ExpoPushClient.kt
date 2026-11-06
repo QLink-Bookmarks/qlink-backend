@@ -15,6 +15,8 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 private const val DEFAULT_MAX_EXPO_SEND_ATTEMPTS = 10
+private const val MASKED_EXPO_PUSH_TOKEN = "ExponentPushToken[***]"
+private val EXPO_PUSH_TOKEN_PATTERN = Regex("""Expo(nent)?PushToken\[[^\]]*]""")
 
 class ExpoPushClient(
     private val httpClient: HttpClient,
@@ -116,8 +118,15 @@ private data class ExpoPushTicket(
 ) {
     fun toPushNotificationSendResult(): PushNotificationSendResult =
         when (status) {
-            "ok" -> PushNotificationSendResult.success(messageId = id)
-            else -> PushNotificationSendResult.failure(errorMessage = message ?: details?.error)
+            "ok" -> {
+                PushNotificationSendResult.success(messageId = id)
+            }
+
+            else -> {
+                PushNotificationSendResult.failure(
+                    errorMessage = details?.error ?: message?.replace(EXPO_PUSH_TOKEN_PATTERN, MASKED_EXPO_PUSH_TOKEN),
+                )
+            }
         }
 }
 

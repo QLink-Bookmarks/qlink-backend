@@ -59,6 +59,7 @@ import com.qlink.user.service.UpdateMyAgreementsService
 import com.qlink.user.service.UpdateMyProfileService
 import com.qlink.user.service.UpdateMySettingsService
 import org.koin.dsl.module
+import org.slf4j.LoggerFactory
 
 fun serviceModule() =
     module {
@@ -396,6 +397,7 @@ fun serviceModule() =
                 notificationRepository = get(),
                 deviceTokenRepository = get(),
                 senderRouter = get(),
+                log = LoggerFactory.getLogger(SendAnnouncementService::class.java),
             )
         }
 
@@ -405,6 +407,7 @@ fun serviceModule() =
                 postRepository = get(),
                 userRepository = get(),
                 sendAnnouncementService = get(),
+                log = LoggerFactory.getLogger(CreatePostService::class.java),
             )
         }
 
@@ -518,6 +521,7 @@ fun serviceModule() =
                 senderRouter = get(),
                 todoRepository = get(),
                 linkRepository = get(),
+                log = LoggerFactory.getLogger(SendNotificationService::class.java),
             )
         }
 

@@ -4,6 +4,7 @@ import com.qlink.auth.domain.AuthProviderType
 import com.qlink.auth.dto.AuthPlatform
 import com.qlink.config.AppleConfig
 import io.ktor.client.HttpClient
+import org.slf4j.Logger
 
 /**
  * 애플은 웹/네이티브 모두 클라이언트가 넘긴 id_token(JWT)을 애플 공개키(JWKS)로 검증한 뒤
@@ -12,6 +13,7 @@ import io.ktor.client.HttpClient
 class AppleAuthResourceClient(
     httpClient: HttpClient,
     private val appleConfig: AppleConfig,
+    idTokenVerifierLog: Logger,
 ) : AuthResourceClient {
     override val providerType: AuthProviderType = AuthProviderType.APPLE
 
@@ -20,6 +22,7 @@ class AppleAuthResourceClient(
             httpClient = httpClient,
             jwksUrl = APPLE_PUBLIC_KEYS_URL,
             issuers = listOf(APPLE_ISSUER),
+            log = idTokenVerifierLog,
         )
 
     override suspend fun getResource(

@@ -20,6 +20,7 @@ import com.qlink.ai.service.CompleteAiSummaryService
 import com.qlink.ai.service.copyAiStatus
 import com.qlink.auth.domain.Role
 import com.qlink.common.crypto.ApiKeyCipher
+import com.qlink.common.logging.traceContext
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.config.WorkerConfig
 import com.qlink.folder.repository.FolderRepository
@@ -40,6 +41,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.slf4j.Logger
 import java.net.URI
 import java.time.LocalDate
@@ -47,6 +49,7 @@ import java.time.ZoneOffset
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.time.Clock
+import kotlin.time.TimeSource
 
 class AiSummaryWorker(
     private val tx: TransactionRunner,
@@ -64,6 +67,7 @@ class AiSummaryWorker(
     private val urlResolver: PreviewImageUrlResolver,
     private val config: WorkerConfig,
     private val meterRegistry: MeterRegistry,
+    private val traceIdLength: Int,
     private val log: Logger,
 ) {
     private val dispatcher = Dispatchers.IO.limitedParallelism(config.aiSummaryParallelism, DISPATCHER_NAME)
@@ -72,33 +76,41 @@ class AiSummaryWorker(
     private val pending = requireNotNull(meterRegistry.gauge(PENDING_METRIC, AtomicLong(0)))
 
     fun start() {
+        log.info("[WORKER] Starting AI summary worker")
         scope.launch(CoroutineName("$DISPATCHER_NAME-consumer")) {
             for (jobId in channel) {
-                log.info("[WORKER] Job has been detected: $jobId")
-                inFlight.incrementAndGet()
-                try {
-                    catchingFailure { proceed(jobId) }
-                        .onFailure { error ->
-                            log.warn("[WORKER] Failed to process AI summary. jobId=$jobId", error)
-                            catchingFailure { fail(jobId = jobId, reason = error.failureSummary()) }
-                                .onFailure { log.warn("[WORKER] Failed to mark AI summary failed. jobId=$jobId", it) }
-                        }
-                } finally {
-                    inFlight.decrementAndGet()
+                withContext(traceContext(traceIdLength)) {
+                    val started = TimeSource.Monotonic.markNow()
+                    log.info("[WORKER] Job has been detected: $jobId")
+                    inFlight.incrementAndGet()
+                    try {
+                        catchingFailure { proceed(jobId) }
+                            .onFailure { error ->
+                                log.warn("[WORKER] Failed to process AI summary. jobId=$jobId", error)
+                                catchingFailure { fail(jobId = jobId, reason = error.failureSummary()) }
+                                    .onFailure { log.warn("[WORKER] Failed to mark AI summary failed. jobId=$jobId", it) }
+                            }
+                    } finally {
+                        inFlight.decrementAndGet()
+                    }
+                    catchingFailure { refreshPending() }
+                    log.info("[WORKER] Job has been finished. jobId=$jobId, durationMs=${started.elapsedNow().inWholeMilliseconds}")
                 }
-                catchingFailure { refreshPending() }
             }
         }
         scope.launch(CoroutineName("$DISPATCHER_NAME-recovery")) {
             while (isActive) {
-                catchingFailure { recover() }
-                    .onFailure { log.warn("[WORKER] Failed to recover AI summary jobs", it) }
+                withContext(traceContext(traceIdLength)) {
+                    catchingFailure { recover() }
+                        .onFailure { log.warn("[WORKER] Failed to recover AI summary jobs", it) }
+                }
                 delay(config.pollInterval)
             }
         }
     }
 
     fun stop() {
+        log.info("[WORKER] Stopping AI summary worker")
         scope.cancel()
     }
 
