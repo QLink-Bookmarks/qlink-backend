@@ -15,6 +15,35 @@ suspend fun <T> runWhileLinkLocked(
     holdLock: suspend () -> Unit,
     action: suspend () -> T,
 ): T =
+    runWhileLocked(
+        tx = tx,
+        table = "links",
+        holdLock = holdLock,
+        afterWaiting = {},
+        action = action,
+    )
+
+suspend fun <T> runWhileFolderLocked(
+    tx: TransactionRunner,
+    holdLock: suspend () -> Unit,
+    afterWaiting: suspend () -> Unit,
+    action: suspend () -> T,
+): T =
+    runWhileLocked(
+        tx = tx,
+        table = "folders",
+        holdLock = holdLock,
+        afterWaiting = afterWaiting,
+        action = action,
+    )
+
+private suspend fun <T> runWhileLocked(
+    tx: TransactionRunner,
+    table: String,
+    holdLock: suspend () -> Unit,
+    afterWaiting: suspend () -> Unit,
+    action: suspend () -> T,
+): T =
     coroutineScope {
         val locked = CompletableDeferred<Unit>()
         val release = CompletableDeferred<Unit>()
@@ -24,12 +53,13 @@ suspend fun <T> runWhileLinkLocked(
                     holdLock()
                     locked.complete(Unit)
                     release.await()
+                    afterWaiting()
                 }
             }
         locked.await()
         val result = async { action() }
         withTimeout(10.seconds) {
-            while (tx.readOnly { countSessionsWaitingOnLinkLock() } == 0) {
+            while (tx.readOnly { countSessionsWaitingOnLock(table) } == 0) {
                 delay(20.milliseconds)
             }
         }
@@ -38,9 +68,9 @@ suspend fun <T> runWhileLinkLocked(
         result.await()
     }
 
-private fun countSessionsWaitingOnLinkLock(): Int =
+private fun countSessionsWaitingOnLock(table: String): Int =
     TransactionManager.current().exec(
         "SELECT count(*) FROM pg_stat_activity " +
             "WHERE wait_event_type = 'Lock' AND datname = current_database() " +
-            "AND pid <> pg_backend_pid() AND query ILIKE '%links%'",
+            "AND pid <> pg_backend_pid() AND query ILIKE '%$table%'",
     ) { it.takeIf { row -> row.next() }?.getInt(1) } ?: 0

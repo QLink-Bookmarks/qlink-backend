@@ -6,6 +6,7 @@ import com.qlink.linkcontent.domain.LinkContent
 import com.qlink.linkcontent.dto.DueKeyset
 import com.qlink.linkcontent.dto.LinkContentTargetQuery
 import com.qlink.linkcontent.repository.table.LinkContents
+import com.qlink.linkcontent.repository.table.fromCollectResult
 import com.qlink.linkcontent.repository.table.fromDomain
 import com.qlink.linkcontent.repository.table.fromDomainForInsert
 import com.qlink.linkcontent.repository.table.refreshLinkContentUpdatedAt
@@ -98,7 +99,7 @@ class DbLinkContentRepository : LinkContentRepository {
                     (LinkContents.sourceUrl eq content.sourceUrl)
             },
         ) {
-            it.fromDomain(content)
+            it.fromCollectResult(content)
             it.refreshLinkContentUpdatedAt()
         } == 1
 

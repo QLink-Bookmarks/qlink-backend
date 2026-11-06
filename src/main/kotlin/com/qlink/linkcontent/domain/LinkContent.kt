@@ -105,7 +105,7 @@ class LinkContent(
             linkId = linkId,
             sourceUrl = sourceUrl,
             status = ContentStatus.PENDING,
-            priority = priority,
+            priority = ContentPriority.INTERACTIVE,
             nextAttemptAt = now,
             createdAt = createdAt,
             updatedAt = updatedAt,

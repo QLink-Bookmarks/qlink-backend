@@ -10,6 +10,7 @@ import com.qlink.link.domain.Link
 import com.qlink.link.dto.UpdateLinkRequest
 import com.qlink.link.dto.UpdateLinkResponse
 import com.qlink.link.repository.LinkRepository
+import com.qlink.linkcontent.domain.ContentPriority
 import com.qlink.linkcontent.domain.ContentStatus
 import com.qlink.linkcontent.domain.LinkContent
 import com.qlink.linkcontent.repository.LinkContentRepository
@@ -20,6 +21,7 @@ import com.qlink.support.fixture.LinkFixture
 import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
+import com.qlink.support.runWhileFolderLocked
 import com.qlink.support.runWhileLinkLocked
 import com.qlink.user.domain.User
 import com.qlink.user.repository.UserRepository
@@ -267,7 +269,7 @@ class UpdateLinkServiceTest :
                         updateLinkService.updateLink(
                             user.id!!,
                             link.id!!,
-                            sameFieldsRequestOf(link).copy(url = newUrl),
+                            LinkFixture.createUpdateLinkRequestFrom(link).copy(url = newUrl),
                         )
                     }
 
@@ -294,7 +296,7 @@ class UpdateLinkServiceTest :
                         updateLinkService.updateLink(
                             user.id!!,
                             link.id!!,
-                            sameFieldsRequestOf(link).copy(title = RandomFixture.randomSentenceWithMax(300)),
+                            LinkFixture.createUpdateLinkRequestFrom(link).copy(title = RandomFixture.randomSentenceWithMax(300)),
                         )
                     }
 
@@ -308,6 +310,46 @@ class UpdateLinkServiceTest :
                     actual.sourceUrl shouldBe link.url
                     actual.excerpt shouldBe content.excerpt
                     actual.contentHash shouldBe content.contentHash
+                }
+            }
+        }
+
+        Given("가져오기 대기(BULK) 본문 행이 있는 링크") {
+            lateinit var user: User
+            lateinit var link: Link
+
+            beforeTest {
+                user = userRepository.insert(UserFixture.createRandomValidUser())
+                link = linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = user.id!!))
+                linkContentRepository.insertAll(
+                    listOf(
+                        LinkContentFixture.createPendingContentOf(
+                            linkId = link.id!!,
+                            sourceUrl = link.url,
+                            priority = ContentPriority.BULK,
+                        ),
+                    ),
+                )
+            }
+
+            When("URL을 바꾸면") {
+                val newUrl = RandomFixture.randomUrl()
+                val update =
+                    suspend {
+                        updateLinkService.updateLink(
+                            user.id!!,
+                            link.id!!,
+                            LinkFixture.createUpdateLinkRequestFrom(link).copy(url = newUrl),
+                        )
+                    }
+
+                Then("행이 새 URL의 INTERACTIVE가 된다") {
+                    update()
+                    val actual = linkContentRepository.findByLinkId(link.id!!)
+
+                    actual shouldNotBe null
+                    actual!!.sourceUrl shouldBe newUrl
+                    actual.priority shouldBe ContentPriority.INTERACTIVE
                 }
             }
         }
@@ -328,7 +370,7 @@ class UpdateLinkServiceTest :
                         updateLinkService.updateLink(
                             user.id!!,
                             link.id!!,
-                            sameFieldsRequestOf(link).copy(url = newUrl),
+                            LinkFixture.createUpdateLinkRequestFrom(link).copy(url = newUrl),
                         )
                     }
 
@@ -367,7 +409,7 @@ class UpdateLinkServiceTest :
                                             updateLinkService.updateLink(
                                                 owner.id!!,
                                                 link.id!!,
-                                                sameFieldsRequestOf(link).copy(title = newTitle),
+                                                LinkFixture.createUpdateLinkRequestFrom(link).copy(title = newTitle),
                                             )
                                         },
                                     )
@@ -386,21 +428,51 @@ class UpdateLinkServiceTest :
                 }
             }
         }
-    })
 
-private fun sameFieldsRequestOf(link: Link): UpdateLinkRequest =
-    UpdateLinkRequest(
-        folderId = link.folderId,
-        url = link.url,
-        title = link.title,
-        summary = link.summary,
-        memo = link.memo,
-        tags = link.tags,
-        thumbnailUrl = link.thumbnailUrl,
-        faviconUrl = link.faviconUrl,
-        isVideo = link.isVideo,
-        sourceType = link.sourceType,
-    )
+        Given("다른 트랜잭션이 폴더를 잠근 뒤 링크를 잠그고 즐겨찾기를 쓰는 중인 커밋된 링크") {
+            When("링크를 그 폴더로 수정하면") {
+                val updateDuringFolderLock =
+                    suspend {
+                        CoroutineScope(Dispatchers.IO)
+                            .async {
+                                val (folder, link) =
+                                    tx.required {
+                                        val owner = userRepository.insert(UserFixture.createRandomValidUser())
+                                        folderRepository.insert(FolderFixture.createValidUnsharedFolder(owner.id!!)) to
+                                            linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = owner.id!!, favoriteAt = null))
+                                    }
+                                try {
+                                    runWhileFolderLocked(
+                                        tx = tx,
+                                        holdLock = { folderRepository.findAllByIdsForUpdate(listOf(folder.id!!)) },
+                                        afterWaiting = {
+                                            linkRepository.findByIdForUpdate(link.id!!)
+                                            linkRepository.updateFavorite(linkId = link.id!!, favoriteAt = Clock.System.now())
+                                        },
+                                        action = {
+                                            updateLinkService.updateLink(
+                                                link.ownerId,
+                                                link.id!!,
+                                                LinkFixture.createUpdateLinkRequestFrom(link).copy(folderId = folder.id),
+                                            )
+                                        },
+                                    )
+                                    folder to tx.readOnly { linkRepository.findById(link.id!!)!! }
+                                } finally {
+                                    tx.required { userRepository.deleteById(link.ownerId) }
+                                }
+                            }.await()
+                    }
+
+                Then("폴더 잠금을 먼저 기다려 교착 없이 즐겨찾기를 지키고 폴더를 옮긴다") {
+                    val (folder, actual) = updateDuringFolderLock()
+
+                    actual.folderId shouldBe folder.id
+                    actual.favoriteAt.shouldNotBeNull()
+                }
+            }
+        }
+    })
 
 private data class UpdateResult(
     val link: Link,

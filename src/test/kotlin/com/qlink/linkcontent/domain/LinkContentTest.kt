@@ -364,13 +364,14 @@ class LinkContentTest :
                 }
             }
 
-            When("클레임된 행을 새 URL로 초기화하면") {
-                val claimed = LinkContentFixture.createClaimedContentOf(linkId = RandomFixture.randomId())
+            When("클레임된 BULK 행을 새 URL로 초기화하면") {
+                val claimed = LinkContentFixture.createClaimedContentOf(linkId = RandomFixture.randomId(), priority = ContentPriority.BULK)
                 val reset = claimed.resetForUrl(sourceUrl = newUrl, now = now)
 
-                Then("startedAt이 비고 claimCount가 0이다") {
+                Then("startedAt이 비고 claimCount가 0이며 INTERACTIVE가 된다") {
                     reset.startedAt.shouldBeNull()
                     reset.claimCount shouldBe 0
+                    reset.priority shouldBe ContentPriority.INTERACTIVE
                 }
             }
 

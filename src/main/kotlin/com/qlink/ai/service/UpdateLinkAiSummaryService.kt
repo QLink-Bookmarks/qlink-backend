@@ -64,6 +64,7 @@ class UpdateLinkAiSummaryService(
                         .findById(request.modelId)
                         ?.takeIf { it.providerId == userProvider.providerId }
                         ?: throw BusinessException(ErrorCode.AI_MODEL_NOT_FOUND)
+                request.folderId?.let { folderRepository.findAllByIdsForKeyShare(listOf(it)) }
                 val fixedFolder = request.folderId?.let { findWritableFolder(loginId, it) }
                 val now = Clock.System.now()
                 val link =

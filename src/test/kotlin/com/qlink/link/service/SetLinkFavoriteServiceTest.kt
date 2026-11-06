@@ -12,6 +12,7 @@ import com.qlink.support.koinGet
 import com.qlink.support.searchTextOf
 import com.qlink.user.domain.User
 import com.qlink.user.repository.UserRepository
+import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
@@ -66,7 +67,9 @@ class SetLinkFavoriteServiceTest :
 
                 Then("favoriteAt만 바뀌고 links.url·search_text는 그대로다") {
                     val searchTextBefore = searchTextOf(link.id!!)
-                    setFavorite()
+                    shouldNotThrow<BusinessException> {
+                        setFavorite()
+                    }
                     val actual = linkRepository.findById(link.id!!)
 
                     actual!!.favoriteAt.shouldNotBeNull()

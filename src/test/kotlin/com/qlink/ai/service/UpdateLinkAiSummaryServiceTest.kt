@@ -373,6 +373,45 @@ class UpdateLinkAiSummaryServiceTest :
             }
         }
 
+        Given("가져오기 대기(BULK) 본문 행이 있는 기존 링크와 AI 제공자") {
+            lateinit var user: User
+            lateinit var link: Link
+
+            beforeTest {
+                user = userRepository.insert(UserFixture.createRandomValidUser())
+                link = linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = user.id!!))
+                linkContentRepository.insertAll(
+                    listOf(
+                        LinkContentFixture.createPendingContentOf(
+                            linkId = link.id!!,
+                            sourceUrl = link.url,
+                            priority = ContentPriority.BULK,
+                        ),
+                    ),
+                )
+            }
+
+            When("기존 링크를 다른 URL로 요청하면") {
+                Then("행이 새 URL의 INTERACTIVE가 된다") {
+                    val (userProvider, model) = insertAiContext(userId = user.id!!)
+                    val request =
+                        AiSummaryRequest(
+                            id = link.id!!,
+                            userProviderId = userProvider.id!!,
+                            modelId = model.id!!,
+                            url = RandomFixture.randomUrl(),
+                        )
+                    service.updateLinkAiSummary(user.id!!, request)
+                    withTimeout(1_000) { commandChannel.receive() }
+                    val actual = linkContentRepository.findByLinkId(link.id!!)
+
+                    actual shouldNotBe null
+                    actual!!.sourceUrl shouldBe request.url
+                    actual.priority shouldBe ContentPriority.INTERACTIVE
+                }
+            }
+        }
+
         Given("다른 사람이 소유한 링크") {
             lateinit var requester: User
             lateinit var otherLink: Link

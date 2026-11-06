@@ -29,7 +29,7 @@ class LinkContentCollectDomainServiceTest :
                 }
             }
 
-            When("클레임 횟수가 6을 넘으면") {
+            When("클레임 횟수가 7(MAX_CLAIMS + 1)이면") {
                 val claimed =
                     LinkContentFixture.createClaimedContentOf(
                         linkId = link.id!!,
@@ -60,7 +60,7 @@ class LinkContentCollectDomainServiceTest :
                 }
             }
 
-            When("클레임 횟수가 6이고 링크 URL이 같으면") {
+            When("클레임 횟수가 6(MAX_CLAIMS)이고 링크 URL이 같으면") {
                 val claimed =
                     LinkContentFixture.createClaimedContentOf(
                         linkId = link.id!!,
