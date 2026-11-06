@@ -38,18 +38,6 @@ class ImagePurposeTest :
                     ImagePurpose.LINK_PREVIEW to "preview",
                 )
 
-            When("파비콘의 직접 업로드 키를 만들면") {
-                val create = {
-                    ImagePurpose.FAVICON.newObjectKey(environment = "dev", type = ImageType.entries.random())
-                }
-
-                Then("파일 업로드를 지원하지 않는 목적 예외를 반환한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.IMAGE_UPLOAD_PURPOSE_UNSUPPORTED.message) {
-                        create()
-                    }
-                }
-            }
-
             When("dev·prod에서 세 파일 목적의 키를 만들면") {
                 val type = ImageType.entries.random()
                 val keys =
@@ -62,6 +50,22 @@ class ImagePurposeTest :
                 Then("환경·목적 접두어와 실제 형식의 확장자를 가진 루트 키를 반환한다") {
                     keys.forEach { (environment, kind, key) ->
                         key shouldMatch Regex("^$environment-$kind-[0-9a-f]{32}\\.${type.extension}$")
+                    }
+                }
+            }
+        }
+
+        Given("파일 업로드를 지원하지 않는 목적의 객체 키를 만들 때") {
+            val environment = RandomFixture.randomPreviewEnvironment()
+
+            When("파비콘의 직접 업로드 키를 만들면") {
+                val create = {
+                    ImagePurpose.FAVICON.newObjectKey(environment = environment, type = ImageType.entries.random())
+                }
+
+                Then("파일 업로드를 지원하지 않는 목적 예외를 반환한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.IMAGE_UPLOAD_PURPOSE_UNSUPPORTED.message) {
+                        create()
                     }
                 }
             }

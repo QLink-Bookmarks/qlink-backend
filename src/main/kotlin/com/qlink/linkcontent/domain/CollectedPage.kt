@@ -33,5 +33,30 @@ class CollectedPage(
         const val MAX_SITE_NAME_LENGTH = 200
         const val MAX_AUTHOR_LENGTH = 200
         const val MAX_LANGUAGE_LENGTH = 16
+
+        fun ofOrNull(
+            text: String,
+            title: String?,
+            siteName: String?,
+            author: String?,
+            publishedAt: Instant?,
+            canonicalUrl: String?,
+            finalUrl: String?,
+            language: String?,
+            isTruncated: Boolean,
+        ): CollectedPage? =
+            text.takeKeepingSurrogatePairs(MAX_TEXT_LENGTH).takeIf(String::isNotBlank)?.let {
+                CollectedPage(
+                    text = text,
+                    title = title,
+                    siteName = siteName,
+                    author = author,
+                    publishedAt = publishedAt,
+                    canonicalUrl = canonicalUrl,
+                    finalUrl = finalUrl,
+                    language = language,
+                    isTruncated = isTruncated,
+                )
+            }
     }
 }

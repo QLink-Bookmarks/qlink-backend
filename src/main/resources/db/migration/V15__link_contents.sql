@@ -7,8 +7,6 @@ CREATE TABLE link_contents (
     source_url TEXT NOT NULL,
     status VARCHAR(20) NOT NULL,
     priority SMALLINT NOT NULL DEFAULT 0,
-    generation INT NOT NULL DEFAULT 0,
-    claim_token UUID,
     claim_count SMALLINT NOT NULL DEFAULT 0,
     attempt SMALLINT NOT NULL DEFAULT 0,
     started_at TIMESTAMP,
@@ -31,6 +29,8 @@ CREATE TABLE link_contents (
     updated_at TIMESTAMP NOT NULL DEFAULT now(),
     CONSTRAINT link_contents_link_id_unique UNIQUE (link_id),
     CONSTRAINT link_contents_status_check CHECK (status IN ('PENDING', 'COLLECTED', 'FAILED', 'BLOCKED')),
+    CONSTRAINT link_contents_priority_check CHECK (priority IN (0, 1)),
+    CONSTRAINT link_contents_count_check CHECK (attempt >= 0 AND claim_count >= 0),
     CONSTRAINT link_contents_text_length_check CHECK (content_text IS NULL OR char_length(content_text) <= 100000),
     CONSTRAINT link_contents_excerpt_check CHECK (excerpt IS NULL OR (char_length(excerpt) BETWEEN 2 AND 101 AND right(excerpt, 1) = '…')),
     CONSTRAINT link_contents_state_check CHECK (

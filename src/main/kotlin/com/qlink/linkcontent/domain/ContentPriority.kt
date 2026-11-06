@@ -1,5 +1,8 @@
 package com.qlink.linkcontent.domain
 
+import com.qlink.common.error.BusinessException
+import com.qlink.common.error.ErrorCode
+
 enum class ContentPriority(
     val value: Int,
 ) {
@@ -8,6 +11,8 @@ enum class ContentPriority(
     ;
 
     companion object {
-        fun from(value: Int): ContentPriority = entries.first { it.value == value }
+        fun from(value: Int): ContentPriority =
+            entries.firstOrNull { it.value == value }
+                ?: throw BusinessException(ErrorCode.LINK_CONTENT_PRIORITY_NOT_SUPPORTED)
     }
 }
