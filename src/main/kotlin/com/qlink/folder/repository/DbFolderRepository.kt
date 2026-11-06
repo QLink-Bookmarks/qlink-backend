@@ -36,6 +36,7 @@ import org.jetbrains.exposed.v1.core.less
 import org.jetbrains.exposed.v1.core.like
 import org.jetbrains.exposed.v1.core.neq
 import org.jetbrains.exposed.v1.core.or
+import org.jetbrains.exposed.v1.core.vendors.ForUpdateOption
 import org.jetbrains.exposed.v1.jdbc.andWhere
 import org.jetbrains.exposed.v1.jdbc.batchInsert
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
@@ -68,6 +69,14 @@ class DbFolderRepository : FolderRepository {
             .where { Folders.id inList ids.distinct().sorted() }
             .orderBy(Folders.id to SortOrder.ASC)
             .forUpdate()
+            .map { it.toFolderDomain() }
+
+    override suspend fun findAllByIdsForKeyShare(ids: List<Long>): List<Folder> =
+        Folders
+            .selectAll()
+            .where { Folders.id inList ids.distinct().sorted() }
+            .orderBy(Folders.id to SortOrder.ASC)
+            .forUpdate(ForUpdateOption.PostgreSQL.ForKeyShare)
             .map { it.toFolderDomain() }
 
     override suspend fun findAllByOwnerId(ownerId: Long): List<Folder> =

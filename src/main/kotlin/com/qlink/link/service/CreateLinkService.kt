@@ -11,6 +11,10 @@ import com.qlink.link.dto.CreateLinkRequest
 import com.qlink.link.dto.CreateLinkResponse
 import com.qlink.link.dto.CreateLinkTodoRequest
 import com.qlink.link.repository.LinkRepository
+import com.qlink.linkcontent.domain.ContentPriority
+import com.qlink.linkcontent.domain.LinkContent
+import com.qlink.linkcontent.repository.LinkContentRepository
+import com.qlink.linkcontent.worker.LinkContentSignal
 import com.qlink.notification.service.ScheduleTodoNotificationService
 import com.qlink.todo.domain.Todo
 import com.qlink.todo.repository.TodoRepository
@@ -25,6 +29,8 @@ class CreateLinkService(
     private val folderAccessValidator: FolderAccessValidator,
     private val scheduleTodoNotificationService: ScheduleTodoNotificationService,
     private val urlResolver: PreviewImageUrlResolver,
+    private val linkContentRepository: LinkContentRepository,
+    private val linkContentSignal: LinkContentSignal,
 ) {
     suspend fun createLink(
         loginId: Long,
@@ -54,6 +60,16 @@ class CreateLinkService(
                     )
 
                 val createdLink = linkRepository.insert(link)
+                linkContentRepository.insertAll(
+                    listOf(
+                        LinkContent.create(
+                            linkId = createdLink.id!!,
+                            sourceUrl = createdLink.url,
+                            priority = ContentPriority.INTERACTIVE,
+                            now = Clock.System.now(),
+                        ),
+                    ),
+                )
 
                 val createdTodos =
                     request.todos.map { todoRequest ->
@@ -71,6 +87,7 @@ class CreateLinkService(
                 )
             }
 
+        linkContentSignal.wake()
         result.createdTodos.forEach { scheduleTodoNotificationService.createForTodo(it) }
 
         return result.response

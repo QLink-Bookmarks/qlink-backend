@@ -18,5 +18,6 @@ fun appModules(
     storageModule(config = S3Config.from(config)),
     linkPreviewModule(config),
     bookmarkImportModule(),
+    linkContentModule(config),
     serviceModule(),
 )

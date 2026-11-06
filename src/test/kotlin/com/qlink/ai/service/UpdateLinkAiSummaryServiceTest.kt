@@ -14,8 +14,13 @@ import com.qlink.image.service.PreviewImageUrlResolver
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.repository.LinkRepository
+import com.qlink.linkcontent.domain.ContentPriority
+import com.qlink.linkcontent.domain.ContentStatus
+import com.qlink.linkcontent.domain.LinkContent
+import com.qlink.linkcontent.repository.LinkContentRepository
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.FolderFixture
+import com.qlink.support.fixture.LinkContentFixture
 import com.qlink.support.fixture.LinkFixture
 import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.UserFixture
@@ -26,6 +31,7 @@ import com.qlink.user.repository.UserRepository
 import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.withTimeout
 
@@ -41,6 +47,7 @@ class UpdateLinkAiSummaryServiceTest :
         val userProviderRepository = koinGet<UserProviderRepository>()
         val aiJobRepository = koinGet<AiJobRepository>()
         val commandChannel = koinGet<Channel<Long>>()
+        val linkContentRepository = koinGet<LinkContentRepository>()
 
         suspend fun insertAiContext(
             userId: Long,
@@ -281,6 +288,126 @@ class UpdateLinkAiSummaryServiceTest :
                     shouldThrowWithMessage<BusinessException>(ErrorCode.AI_USER_PROVIDER_NOT_FOUND.message) {
                         update()
                     }
+                }
+            }
+
+            When("새 링크로 요청하면") {
+                Then("새 링크의 PENDING·INTERACTIVE 행이 있다") {
+                    val (userProvider, model) = insertAiContext(userId = user.id!!)
+                    val request =
+                        AiSummaryRequest(
+                            userProviderId = userProvider.id!!,
+                            modelId = model.id!!,
+                            url = RandomFixture.randomUrl(),
+                        )
+                    val response = service.updateLinkAiSummary(user.id!!, request)
+                    withTimeout(1_000) { commandChannel.receive() }
+                    val actual = linkContentRepository.findByLinkId(response.id)
+
+                    actual shouldNotBe null
+                    actual!!.status shouldBe ContentStatus.PENDING
+                    actual.priority shouldBe ContentPriority.INTERACTIVE
+                    actual.sourceUrl shouldBe request.url
+                }
+            }
+        }
+
+        Given("본문 행이 있는 기존 링크와 AI 제공자") {
+            lateinit var user: User
+            lateinit var link: Link
+            lateinit var content: LinkContent
+
+            beforeTest {
+                user = userRepository.insert(UserFixture.createRandomValidUser())
+                link = linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = user.id!!))
+                content = LinkContentFixture.insertCollected(linkContentRepository, linkId = link.id!!, sourceUrl = link.url)
+            }
+
+            When("기존 링크를 다른 URL로 요청하면") {
+                Then("행이 같은 id로 새 URL의 PENDING이 되고 본문·발췌가 비어 있다") {
+                    val (userProvider, model) = insertAiContext(userId = user.id!!)
+                    val request =
+                        AiSummaryRequest(
+                            id = link.id!!,
+                            userProviderId = userProvider.id!!,
+                            modelId = model.id!!,
+                            url = RandomFixture.randomUrl(),
+                        )
+                    service.updateLinkAiSummary(user.id!!, request)
+                    withTimeout(1_000) { commandChannel.receive() }
+                    val actual = linkContentRepository.findByLinkId(link.id!!)
+
+                    actual shouldNotBe null
+                    actual!!.id shouldBe content.id
+                    actual.status shouldBe ContentStatus.PENDING
+                    actual.sourceUrl shouldBe request.url
+                    actual.page shouldBe null
+                    actual.excerpt shouldBe null
+                    actual.contentHash shouldBe null
+                    actual.collectedAt shouldBe null
+                }
+            }
+
+            When("기존 링크를 같은 URL로 요청하면") {
+                Then("행이 그대로다") {
+                    val (userProvider, model) = insertAiContext(userId = user.id!!)
+                    val request =
+                        AiSummaryRequest(
+                            id = link.id!!,
+                            userProviderId = userProvider.id!!,
+                            modelId = model.id!!,
+                            url = link.url,
+                        )
+                    service.updateLinkAiSummary(user.id!!, request)
+                    withTimeout(1_000) { commandChannel.receive() }
+                    val actual = linkContentRepository.findByLinkId(link.id!!)
+
+                    actual shouldNotBe null
+                    actual!!.id shouldBe content.id
+                    actual.status shouldBe ContentStatus.COLLECTED
+                    actual.sourceUrl shouldBe link.url
+                    actual.excerpt shouldBe content.excerpt
+                    actual.nextAttemptAt shouldBe content.nextAttemptAt
+                    actual.updatedAt shouldBe content.updatedAt
+                }
+            }
+        }
+
+        Given("가져오기 대기(BULK) 본문 행이 있는 기존 링크와 AI 제공자") {
+            lateinit var user: User
+            lateinit var link: Link
+
+            beforeTest {
+                user = userRepository.insert(UserFixture.createRandomValidUser())
+                link = linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = user.id!!))
+                linkContentRepository.insertAll(
+                    listOf(
+                        LinkContentFixture.createPendingContentOf(
+                            linkId = link.id!!,
+                            sourceUrl = link.url,
+                            priority = ContentPriority.BULK,
+                        ),
+                    ),
+                )
+            }
+
+            When("기존 링크를 다른 URL로 요청하면") {
+                Then("행이 새 URL의 INTERACTIVE가 된다") {
+                    val (userProvider, model) = insertAiContext(userId = user.id!!)
+                    val request =
+                        AiSummaryRequest(
+                            id = link.id!!,
+                            userProviderId = userProvider.id!!,
+                            modelId = model.id!!,
+                            url = RandomFixture.randomUrl(),
+                        )
+                    service.updateLinkAiSummary(user.id!!, request)
+                    withTimeout(1_000) { commandChannel.receive() }
+                    val actual = linkContentRepository.findByLinkId(link.id!!)
+
+                    actual shouldNotBe null
+                    actual!!.sourceUrl shouldBe request.url
+                    actual.priority shouldBe ContentPriority.INTERACTIVE
                 }
             }
         }

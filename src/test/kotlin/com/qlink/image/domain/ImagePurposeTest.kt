@@ -54,4 +54,20 @@ class ImagePurposeTest :
                 }
             }
         }
+
+        Given("파일 업로드를 지원하지 않는 목적의 객체 키를 만들 때") {
+            val environment = RandomFixture.randomPreviewEnvironment()
+
+            When("파비콘의 직접 업로드 키를 만들면") {
+                val create = {
+                    ImagePurpose.FAVICON.newObjectKey(environment = environment, type = ImageType.entries.random())
+                }
+
+                Then("파일 업로드를 지원하지 않는 목적 예외를 반환한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.IMAGE_UPLOAD_PURPOSE_UNSUPPORTED.message) {
+                        create()
+                    }
+                }
+            }
+        }
     })

@@ -32,6 +32,24 @@ data class SearchLinksQuery(
     val tagsScore: Double,
     val summaryScore: Double,
     val memoScore: Double,
+    val contentExcerpt: String?,
+    val isMetadataMatched: Boolean,
+    val titleMatched: Boolean,
+    val urlMatched: Boolean,
+    val tagsMatched: Boolean,
+    val summaryMatched: Boolean,
+    val memoMatched: Boolean,
+    val contentMatched: Boolean,
+    val contentScore: Double,
+    val snippet: LinkSnippetQuery?,
+)
+
+data class LinkSnippetQuery(
+    val linkId: Long,
+    val source: String,
+    val headCut: Boolean,
+    val tailCut: Boolean,
+    val bodyLength: Int,
 )
 
 data class LinkDetailQuery(
@@ -56,6 +74,9 @@ data class LinkDetailQuery(
     val workModel: String?,
     val createdAt: Instant,
     val favoriteAt: Instant?,
+    val hasContent: Boolean,
+    val contentExcerpt: String?,
+    val isContentPending: Boolean,
 )
 
 typealias LinkSearchOrder = SearchOrder
@@ -73,4 +94,6 @@ data class LinkSearchCursorValue(
     val tagsScore: Double? = null,
     val summaryScore: Double? = null,
     val memoScore: Double? = null,
+    val isMetadataMatched: Boolean? = null,
+    val contentScore: Double? = null,
 )

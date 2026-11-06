@@ -117,6 +117,20 @@ object LinkFixture {
             sourceType = SourceType.entries[Random.nextInt(SourceType.entries.size)],
         )
 
+    fun createUpdateLinkRequestFrom(link: Link): UpdateLinkRequest =
+        UpdateLinkRequest(
+            folderId = link.folderId,
+            url = link.url,
+            title = link.title,
+            summary = link.summary,
+            memo = link.memo,
+            tags = link.tags,
+            thumbnailUrl = link.thumbnailUrl,
+            faviconUrl = link.faviconUrl,
+            isVideo = link.isVideo,
+            sourceType = link.sourceType,
+        )
+
     fun createPatchLinkRequest(
         folderId: Long? = null,
         memo: String? = null,

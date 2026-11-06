@@ -30,6 +30,7 @@ import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.insertAiContext
 import com.qlink.support.koinGet
+import com.qlink.support.searchTextOf
 import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.repository.UserRepository
 import io.kotest.assertions.throwables.shouldNotThrow
@@ -117,6 +118,7 @@ class CompleteAiSummaryServiceTest :
                 val actual = linkRepository.findById(link.id!!)!!
                 actual.id shouldBe link.id
                 actual.ownerId shouldBe link.ownerId
+                actual.url shouldBe link.url
                 actual.folderId shouldBe folderId
                 actual.title shouldBe completion.response.title
                 actual.summary shouldBe completion.response.summary
@@ -125,6 +127,16 @@ class CompleteAiSummaryServiceTest :
                 actual.thumbnailUrl shouldBe link.thumbnailUrl
                 actual.status shouldBe LinkStatus.A
                 actual.workModelId shouldBe completion.responseModelId
+                searchTextOf(link.id!!) shouldBe
+                    listOf(
+                        completion.response.title,
+                        link.url,
+                        completion.response.tags
+                            .distinct()
+                            .joinToString(" "),
+                        completion.response.summary,
+                        link.memo.orEmpty(),
+                    ).joinToString(" ")
                 val job = jobRepository.findById(completion.snapshot.jobId)!!
                 job.status shouldBe AiJobStatus.C
                 job.response shouldBe completion.response.rawResponse

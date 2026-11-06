@@ -9,9 +9,13 @@ import com.qlink.link.domain.Link
 import com.qlink.link.domain.SourceType
 import com.qlink.link.dto.CopyLinkRequest
 import com.qlink.link.repository.LinkRepository
+import com.qlink.linkcontent.domain.ContentPriority
+import com.qlink.linkcontent.domain.ContentStatus
+import com.qlink.linkcontent.repository.LinkContentRepository
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.FolderFixture
 import com.qlink.support.fixture.FolderMemberFixture
+import com.qlink.support.fixture.LinkContentFixture
 import com.qlink.support.fixture.LinkFixture
 import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.UserFixture
@@ -30,6 +34,7 @@ class CopyLinkServiceTest :
         val folderRepository = koinGet<FolderRepository>()
         val folderMemberRepository = koinGet<FolderMemberRepository>()
         val linkRepository = koinGet<LinkRepository>()
+        val linkContentRepository = koinGet<LinkContentRepository>()
 
         Given("공유 폴더 링크 복사 서비스 테스트") {
             lateinit var owner: User
@@ -101,6 +106,36 @@ class CopyLinkServiceTest :
                     copied.sourceType shouldBe SourceType.COPY
                     copied.memo shouldBe null
                     copied.favoriteAt shouldBe null
+                }
+            }
+
+            When("본문이 수집된 공유 링크를 복사하면") {
+                beforeTest {
+                    LinkContentFixture.insertCollected(linkContentRepository, linkId = sharedLink.id!!, sourceUrl = sharedLink.url)
+                }
+
+                val copy =
+                    suspend {
+                        copyLinkService.copyLink(
+                            loginId = member.id!!,
+                            linkId = sharedLink.id!!,
+                            request = CopyLinkRequest(fromFolderId = sharedFolder.id!!, toFolderId = personalFolder.id!!),
+                        )
+                    }
+
+                Then("복사된 링크에 새 PENDING 행이 생기고 원본 행의 본문은 복사되지 않는다") {
+                    val response = copy()
+                    val copiedContent = linkContentRepository.findByLinkId(response.id)
+                    val originalContent = linkContentRepository.findByLinkId(sharedLink.id!!)
+
+                    copiedContent shouldNotBe null
+                    copiedContent!!.id shouldNotBe originalContent!!.id
+                    copiedContent.status shouldBe ContentStatus.PENDING
+                    copiedContent.priority shouldBe ContentPriority.INTERACTIVE
+                    copiedContent.sourceUrl shouldBe sharedLink.url
+                    copiedContent.page shouldBe null
+                    copiedContent.excerpt shouldBe null
+                    originalContent.status shouldBe ContentStatus.COLLECTED
                 }
             }
 

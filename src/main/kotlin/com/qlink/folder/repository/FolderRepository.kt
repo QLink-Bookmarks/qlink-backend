@@ -13,6 +13,8 @@ interface FolderRepository {
 
     suspend fun findAllByIdsForUpdate(ids: List<Long>): List<Folder>
 
+    suspend fun findAllByIdsForKeyShare(ids: List<Long>): List<Folder>
+
     suspend fun findAllByOwnerId(ownerId: Long): List<Folder>
 
     suspend fun findCreatedAtById(id: Long): Instant?

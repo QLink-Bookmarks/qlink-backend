@@ -9,8 +9,10 @@ import com.qlink.support.fixture.LinkFixture
 import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
+import com.qlink.support.searchTextOf
 import com.qlink.user.domain.User
 import com.qlink.user.repository.UserRepository
+import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
@@ -48,6 +50,33 @@ class SetLinkFavoriteServiceTest :
                     actual.thumbnailUrl shouldBe link.thumbnailUrl
                     actual.faviconUrl shouldBe link.faviconUrl
                     actual.isVideo shouldBe link.isVideo
+                }
+            }
+
+            When("즐겨찾기를 바꾸면") {
+                lateinit var link: Link
+
+                beforeTest {
+                    link = linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = user.id!!, favoriteAt = null))
+                }
+
+                val setFavorite =
+                    suspend {
+                        setLinkFavoriteService.setFavorite(user.id!!, link.id!!, true)
+                    }
+
+                Then("favoriteAt만 바뀌고 links.url·search_text는 그대로다") {
+                    val searchTextBefore = searchTextOf(link.id!!)
+                    shouldNotThrow<BusinessException> {
+                        setFavorite()
+                    }
+                    val actual = linkRepository.findById(link.id!!)
+
+                    actual!!.favoriteAt.shouldNotBeNull()
+                    actual.url shouldBe link.url
+                    actual.title shouldBe link.title
+                    actual.tags shouldBe link.tags
+                    searchTextOf(link.id!!) shouldBe searchTextBefore
                 }
             }
 

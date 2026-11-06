@@ -4,7 +4,6 @@ import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireFalse
 import com.qlink.common.transaction.TransactionRunner
-import com.qlink.folder.domain.FolderDeleteOption
 import com.qlink.folder.domain.FolderDeletionOptions
 import com.qlink.folder.domain.service.FolderDeleteTargetDomainService
 import com.qlink.folder.domain.service.FolderDeletionDomainService
@@ -56,8 +55,7 @@ class DeleteFolderService(
                     folders[folderId]
                         ?: return@required FolderDeletionResult(cancelNotificationIds = emptyList())
                 source.validateOwner(loginId)
-                if (options.option == FolderDeleteOption.MOVE) {
-                    val targetId = options.targetFolderId ?: error("MOVE options must include a target folder")
+                options.targetFolderId?.let { targetId ->
                     source.validateMoveTarget(targetId)
                     val target = folders[targetId] ?: throw BusinessException(ErrorCode.FOLDER_DELETE_TARGET_NOT_FOUND)
                     val member =

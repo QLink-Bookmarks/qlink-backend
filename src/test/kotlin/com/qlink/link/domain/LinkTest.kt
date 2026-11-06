@@ -670,6 +670,27 @@ class LinkTest :
                 }
             }
         }
+
+        Given("링크") {
+            val link = LinkFixture.createRandomLinkOf(ownerId = RandomFixture.randomId())
+
+            When("같은 URL과 비교하면") {
+                val hasUrl = link.hasUrl(link.url)
+
+                Then("참이다") {
+                    hasUrl shouldBe true
+                }
+            }
+
+            When("다른 URL과 비교하면") {
+                val hasUrl = link.hasUrl("${link.url}/${RandomFixture.randomId()}")
+
+                Then("거짓이다") {
+                    hasUrl shouldBe false
+                }
+            }
+        }
+
         Given("링크 소유자와 AI 시작 시점의 folderId") {
             val ownerId = RandomFixture.randomId()
             val startedFolderId = RandomFixture.randomLong(1, Long.MAX_VALUE - 1)

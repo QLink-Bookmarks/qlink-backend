@@ -313,6 +313,8 @@ fun serviceModule() =
                 folderAccessValidator = get(),
                 scheduleTodoNotificationService = get(),
                 urlResolver = get(),
+                linkContentRepository = get(),
+                linkContentSignal = get(),
             )
         }
 
@@ -338,8 +340,11 @@ fun serviceModule() =
                 tx = get(),
                 linkRepository = get(),
                 userRepository = get(),
+                folderRepository = get(),
                 folderAccessValidator = get(),
                 urlResolver = get(),
+                linkContentRepository = get(),
+                linkContentSignal = get(),
             )
         }
 
@@ -349,6 +354,7 @@ fun serviceModule() =
                 linkRepository = get(),
                 todoRepository = get(),
                 userRepository = get(),
+                folderRepository = get(),
                 folderAccessValidator = get(),
                 scheduleTodoNotificationService = get(),
                 urlResolver = get(),
@@ -378,6 +384,8 @@ fun serviceModule() =
                 folderRepository = get(),
                 folderMemberRepository = get(),
                 linkRepository = get(),
+                linkContentRepository = get(),
+                linkContentSignal = get(),
             )
         }
 
@@ -451,6 +459,8 @@ fun serviceModule() =
                 aiJobRepository = get(),
                 dispatcher = get(),
                 urlResolver = get(),
+                linkContentRepository = get(),
+                linkContentSignal = get(),
             )
         }
 
@@ -548,6 +558,8 @@ fun serviceModule() =
                 linkRepository = get(),
                 bookmarkImportRepository = get(),
                 importThumbnailSignal = get(),
+                linkContentRepository = get(),
+                linkContentSignal = get(),
             )
         }
 

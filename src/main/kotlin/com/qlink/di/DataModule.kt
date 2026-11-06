@@ -69,6 +69,7 @@ fun dataModule(
 
         Flyway
             .configure()
+            .configuration(mapOf("flyway.postgresql.transactional.lock" to "false"))
             .dataSource(get<DataSource>())
             .schemas(flywayConfig.schema)
             .createSchemas(true)

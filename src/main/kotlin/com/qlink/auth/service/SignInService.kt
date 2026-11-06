@@ -8,6 +8,8 @@ import com.qlink.auth.dto.SignInRequest
 import com.qlink.auth.dto.SignInResponse
 import com.qlink.auth.repository.AuthProviderRepository
 import com.qlink.auth.repository.RefreshTokenRepository
+import com.qlink.common.error.ErrorCode
+import com.qlink.common.error.requirePresent
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.user.domain.User
 import com.qlink.user.repository.UserRepository
@@ -44,7 +46,7 @@ class SignInService(
                         providerId = resource.providerId,
                     )
                 } else {
-                    requireNotNull(userRepository.findById(authProvider.userId))
+                    userRepository.findById(authProvider.userId).requirePresent(ErrorCode.AUTH_SIGN_IN_USER_MISSING)
                 }
 
             issueTokenResponse(user)
@@ -63,7 +65,7 @@ class SignInService(
                     nickname = generatedName.nickname,
                 ),
             )
-        val userId = requireNotNull(user.id)
+        val userId = user.id.requirePresent(ErrorCode.AUTH_SIGN_IN_USER_ID_REQUIRED)
 
         authProviderRepository.insert(
             AuthProvider(
@@ -77,7 +79,7 @@ class SignInService(
     }
 
     private suspend fun issueTokenResponse(user: User): SignInResponse {
-        val userId = requireNotNull(user.id)
+        val userId = user.id.requirePresent(ErrorCode.AUTH_SIGN_IN_USER_ID_REQUIRED)
         val now = Clock.System.now()
         val expiredAt = authTokenService.refreshTokenExpiredAt(now)
         val refreshToken = authTokenService.issueRefreshToken(userId = userId)

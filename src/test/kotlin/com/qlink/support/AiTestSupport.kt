@@ -15,10 +15,12 @@ import com.qlink.ai.repository.AiProviderRepository
 import com.qlink.ai.repository.AvailableModelRepository
 import com.qlink.ai.repository.UserProviderRepository
 import com.qlink.ai.service.CompleteAiSummaryService
+import com.qlink.ai.service.FailAiSummaryService
 import com.qlink.ai.worker.AiSummaryDispatcher
 import com.qlink.ai.worker.AiSummaryWorker
 import com.qlink.auth.domain.Role
 import com.qlink.common.crypto.ApiKeyCipher
+import com.qlink.common.error.ErrorCode
 import com.qlink.config.WorkerConfig
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import kotlinx.coroutines.channels.Channel
@@ -29,7 +31,10 @@ import kotlin.time.Duration.Companion.minutes
 fun aiTestModule() =
     module {
         single {
-            ApiKeyCipher(keyBase64 = TEST_AI_API_KEY_ENCRYPTION_KEY_BASE64)
+            ApiKeyCipher(
+                keyBase64 = TEST_AI_API_KEY_ENCRYPTION_KEY_BASE64,
+                invalidKeyErrorCode = ErrorCode.CONFIG_AI_API_KEY_ENCRYPTION_KEY_INVALID,
+            )
         }
 
         single {
@@ -66,6 +71,15 @@ fun aiTestModule() =
         }
 
         single {
+            FailAiSummaryService(
+                tx = get(),
+                aiJobRepository = get(),
+                linkRepository = get(),
+                urlResolver = get(),
+            )
+        }
+
+        single {
             AiSummaryWorker(
                 tx = get(),
                 aiJobRepository = get(),
@@ -76,10 +90,10 @@ fun aiTestModule() =
                 folderRepository = get(),
                 linkRepository = get(),
                 completeAiSummaryService = get(),
+                failAiSummaryService = get(),
                 aiClientRouter = get(),
                 apiKeyCipher = get(),
                 channel = get(),
-                urlResolver = get(),
                 config =
                     WorkerConfig(
                         pollInterval = 10.minutes,
@@ -169,7 +183,11 @@ suspend fun insertAiContext(
                 userId = userId,
                 providerId = provider.id,
                 userRole = role,
-                apiKey = ApiKeyCipher(TEST_AI_API_KEY_ENCRYPTION_KEY_BASE64).encrypt("api-key"),
+                apiKey =
+                    ApiKeyCipher(
+                        keyBase64 = TEST_AI_API_KEY_ENCRYPTION_KEY_BASE64,
+                        invalidKeyErrorCode = ErrorCode.CONFIG_AI_API_KEY_ENCRYPTION_KEY_INVALID,
+                    ).encrypt("api-key"),
             ),
         )
 
