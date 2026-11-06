@@ -2,6 +2,7 @@ package com.qlink.linkcontent.worker
 
 import com.qlink.config.LinkContentConfig
 import com.qlink.linkcontent.domain.CollectOutcome
+import com.qlink.linkcontent.domain.ContentPriority
 import com.qlink.linkcontent.dto.DueKeyset
 import com.qlink.linkcontent.dto.LinkContentScheduleQuery
 import com.qlink.linkcontent.dto.LinkContentTargetQuery
@@ -28,10 +29,8 @@ import java.sql.SQLException
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
-import kotlin.random.Random
 import kotlin.time.Clock
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
@@ -50,13 +49,16 @@ class LinkContentWorker(
 ) {
     private val dispatcher = Dispatchers.IO.limitedParallelism(config.workerParallelism, DISPATCHER_NAME)
     private val scope = CoroutineScope(SupervisorJob() + dispatcher)
-    private val hosts = HostGate(minInterval = config.hostMinInterval, clock = clock)
+    private val hosts = LinkContentHostGate(minInterval = config.hostMinInterval, clock = clock)
     private val inFlight = AtomicInteger(0)
     private val due = AtomicLong(0)
     private val pending = AtomicLong(0)
-    private val oldestDueAge = AtomicLong(0)
+    private val oldestDueAgeSeconds = AtomicLong(0)
 
-    private var sweep: Sweep? = null
+    private var sweepStartedAt: Instant? = null
+    private var sweepCursor: DueKeyset? = null
+    private var sweepProcessed: Long = 0
+    private var sweepSkipped: Long = 0
     private var timer: Job? = null
     private var pausedUntil: Instant? = null
 
@@ -68,7 +70,7 @@ class LinkContentWorker(
         meterRegistry.gauge(IN_FLIGHT_METRIC, inFlight)
         meterRegistry.gauge(DUE_METRIC, due)
         meterRegistry.gauge(PENDING_METRIC, pending)
-        meterRegistry.gauge(OLDEST_DUE_AGE_METRIC, oldestDueAge)
+        meterRegistry.gauge(OLDEST_DUE_AGE_METRIC, oldestDueAgeSeconds)
 
         scope.launch(CoroutineName("$DISPATCHER_NAME-poller")) {
             while (isActive) {
@@ -102,26 +104,28 @@ class LinkContentWorker(
     }
 
     private suspend fun drain() {
-        val current = sweep ?: Sweep(startedAt = clock.now()).also { sweep = it }
+        val startedAt = sweepStartedAt ?: clock.now().also { sweepStartedAt = it }
         var pages = 0
         var isInterrupted = false
         var isEnd = false
 
         while (pages < config.workerMaxPages && !isInterrupted && !isEnd) {
-            val targets =
-                getTargetsService.getTargets(
-                    size = config.workerBatchSize,
-                    dueBefore = current.startedAt,
-                    after = current.cursor,
-                    now = clock.now(),
-                )
-            pages++
-            val page = process(targets)
-            current.processed += page.processed
-            current.skipped += page.skipped
-            isInterrupted = page.isInterrupted
-            isEnd = targets.size < config.workerBatchSize
-            if (!isInterrupted) targets.lastOrNull()?.let { current.cursor = it.keyset }
+            if (sweepCursor?.priority == ContentPriority.BULK) {
+                isInterrupted = process(dueInteractiveTargets())
+            }
+            if (!isInterrupted) {
+                val targets =
+                    getTargetsService.getTargets(
+                        size = config.workerBatchSize,
+                        dueBefore = startedAt,
+                        after = sweepCursor,
+                        now = clock.now(),
+                    )
+                pages++
+                isInterrupted = process(targets)
+                isEnd = targets.size < config.workerBatchSize
+                if (!isInterrupted) targets.lastOrNull()?.let { sweepCursor = it.keyset }
+            }
         }
 
         when {
@@ -131,7 +135,7 @@ class LinkContentWorker(
             }
 
             isEnd -> {
-                finishSweep(current)
+                finishSweep()
             }
 
             else -> {
@@ -141,19 +145,31 @@ class LinkContentWorker(
         }
     }
 
-    private suspend fun finishSweep(finished: Sweep) {
-        sweep = null
+    private suspend fun dueInteractiveTargets(): List<LinkContentTargetQuery> {
+        val now = clock.now()
+        return getTargetsService
+            .getTargets(size = config.workerBatchSize, dueBefore = now, after = null, now = now)
+            .filter { it.keyset.priority == ContentPriority.INTERACTIVE }
+    }
+
+    private suspend fun finishSweep() {
+        val processed = sweepProcessed
+        val skipped = sweepSkipped
+        sweepStartedAt = null
+        sweepCursor = null
+        sweepProcessed = 0
+        sweepSkipped = 0
         val schedule = refreshGauges()
         val cooldownEndsAt = hosts.earliestCooldownEnd(clock.now())
 
         when {
-            schedule.due > 0 && (finished.processed > 0 || finished.skipped == 0L) -> signal.wake()
-            finished.processed == 0L && cooldownEndsAt != null -> scheduleWake(cooldownEndsAt)
+            schedule.due > 0 && (processed > 0 || skipped == 0L) -> signal.wake()
+            processed == 0L && cooldownEndsAt != null -> scheduleWake(cooldownEndsAt)
             else -> listOfNotNull(schedule.nextRunnableAt, cooldownEndsAt).minOrNull()?.let(::scheduleWake)
         }
     }
 
-    private suspend fun process(targets: List<LinkContentTargetQuery>): Page {
+    private suspend fun process(targets: List<LinkContentTargetQuery>): Boolean {
         val now = clock.now()
         val (cooled, open) = targets.partition { hosts.isCooling(host = it.host, now = now) }
         val processed = AtomicLong(0)
@@ -176,13 +192,15 @@ class LinkContentWorker(
                             hosts.awaitTurn(target.host)
                             val outcome = collect(target)
                             processed.incrementAndGet()
-                            if (outcome == null || outcome in INTERRUPTING_OUTCOMES) isInterrupted.set(true)
+                            if (outcome in INTERRUPTING_OUTCOMES) isInterrupted.set(true)
                         }
                     }
                 }
             }
         }
-        return Page(processed = processed.get(), skipped = skipped.get(), isInterrupted = isInterrupted.get())
+        sweepProcessed += processed.get()
+        sweepSkipped += skipped.get()
+        return isInterrupted.get()
     }
 
     private suspend fun collect(target: LinkContentTargetQuery): CollectOutcome? {
@@ -209,7 +227,7 @@ class LinkContentWorker(
             val cooldown = result.cooldownSeconds?.takeIf { it > 0 }?.seconds ?: config.hostCooldown
             hosts.cool(host = host, until = clock.now() + cooldown)
         }
-        val outcome = result?.outcome?.name ?: OUTCOME_ERROR
+        val outcome = result?.outcome?.name?.lowercase() ?: OUTCOME_ERROR
         Counter
             .builder(RESULT_METRIC)
             .tag("outcome", outcome)
@@ -230,7 +248,7 @@ class LinkContentWorker(
         val schedule = getScheduleService.getSchedule(clock.now())
         due.set(schedule.due)
         pending.set(schedule.pending)
-        oldestDueAge.set(schedule.oldestDueAgeSeconds ?: 0)
+        oldestDueAgeSeconds.set(schedule.oldestDueAge?.inWholeSeconds ?: 0)
         return schedule
     }
 
@@ -258,72 +276,6 @@ class LinkContentWorker(
             }
     }
 
-    private class Sweep(
-        val startedAt: Instant,
-    ) {
-        var cursor: DueKeyset? = null
-        var processed: Long = 0
-        var skipped: Long = 0
-    }
-
-    private data class Page(
-        val processed: Long,
-        val skipped: Long,
-        val isInterrupted: Boolean,
-    )
-
-    private class HostGate(
-        private val minInterval: Duration,
-        private val clock: Clock,
-    ) {
-        private val cooldowns = HashMap<String, Instant>()
-        private val nextAllowed = LinkedHashMap<String, Instant>()
-
-        @Synchronized
-        fun isCooling(
-            host: String,
-            now: Instant,
-        ): Boolean {
-            val until = cooldowns[host] ?: return false
-            if (until > now) return true
-            cooldowns.remove(host)
-            return false
-        }
-
-        @Synchronized
-        fun cool(
-            host: String,
-            until: Instant,
-        ) {
-            if (host !in cooldowns && cooldowns.size >= MAX_HOSTS) {
-                cooldowns.minByOrNull { it.value }?.let { cooldowns.remove(it.key) }
-            }
-            cooldowns[host] = maxOf(until, cooldowns[host] ?: until)
-        }
-
-        @Synchronized
-        fun earliestCooldownEnd(now: Instant): Instant? {
-            cooldowns.entries.removeIf { it.value <= now }
-            return cooldowns.values.minOrNull()
-        }
-
-        suspend fun awaitTurn(host: String) {
-            val wait = reserve(host)
-            if (wait.isPositive()) delay(wait)
-        }
-
-        @Synchronized
-        private fun reserve(host: String): Duration {
-            val now = clock.now()
-            val at = maxOf(now, nextAllowed.remove(host) ?: now)
-            if (nextAllowed.size >= MAX_HOSTS) nextAllowed.remove(nextAllowed.keys.first())
-            nextAllowed[host] = at + minInterval + jitter()
-            return at - now
-        }
-
-        private fun jitter(): Duration = Random.nextLong(0, minInterval.inWholeMilliseconds / 2 + 1).milliseconds
-    }
-
     private companion object {
         const val DISPATCHER_NAME = "link-content-worker"
         const val IN_FLIGHT_METRIC = "link_content_in_flight"
@@ -331,8 +283,7 @@ class LinkContentWorker(
         const val PENDING_METRIC = "link_content_pending"
         const val OLDEST_DUE_AGE_METRIC = "link_content_oldest_due_age_seconds"
         const val RESULT_METRIC = "link_content_results"
-        const val OUTCOME_ERROR = "ERROR"
-        const val MAX_HOSTS = 200
+        const val OUTCOME_ERROR = "error"
         val MIN_TIMER_DELAY = 1.seconds
         val INTERRUPT_DELAY = 1.minutes
         val INTERRUPTING_OUTCOMES = setOf(CollectOutcome.RELEASED_THROTTLED, CollectOutcome.RELEASED_ERROR)

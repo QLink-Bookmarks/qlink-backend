@@ -78,7 +78,7 @@ class GetLinkContentScheduleServiceTest :
                     schedule.pending shouldBe 5
                     schedule.nextRunnableAt shouldBe
                         minOf(now + nextUnstartedInMinutes.minutes, now - runningForMinutes.minutes + LinkContent.STALE_AFTER)
-                    schedule.oldestDueAgeSeconds shouldBe oldestDueAgeMinutes.minutes.inWholeSeconds
+                    schedule.oldestDueAge shouldBe oldestDueAgeMinutes.minutes
                 }
             }
         }

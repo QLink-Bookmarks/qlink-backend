@@ -16,7 +16,7 @@ class GetLinkContentScheduleService(
                 due = linkContentRepository.countDue(staleAfter = LinkContent.STALE_AFTER, now = now),
                 pending = linkContentRepository.countPending(),
                 nextRunnableAt = linkContentRepository.nextRunnableAt(staleAfter = LinkContent.STALE_AFTER, now = now),
-                oldestDueAgeSeconds = linkContentRepository.oldestDueAge(staleAfter = LinkContent.STALE_AFTER, now = now)?.inWholeSeconds,
+                oldestDueAge = linkContentRepository.oldestDueAge(staleAfter = LinkContent.STALE_AFTER, now = now),
             )
         }
 }

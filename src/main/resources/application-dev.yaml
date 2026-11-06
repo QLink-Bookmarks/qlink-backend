@@ -13,5 +13,4 @@ linkContent:
   lambdaFunction: alink-link-content-dev:live
 worker:
   linkContent:
-    # U0 Lambda가 이 환경에 배포되고 서버 태스크 역할에 InvokeFunction 권한이 붙은 뒤 true로 바꾼다.
     enabled: false

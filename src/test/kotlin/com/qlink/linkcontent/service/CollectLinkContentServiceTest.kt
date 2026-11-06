@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalUuidApi::class)
-
 package com.qlink.linkcontent.service
 
 import com.qlink.common.text.hostOrNull
@@ -24,11 +22,9 @@ import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
-import kotlin.uuid.ExperimentalUuidApi
 
 class CollectLinkContentServiceTest :
     BaseServiceTest({
@@ -101,7 +97,6 @@ class CollectLinkContentServiceTest :
                     actual.page?.text shouldBe text
                     actual.collectedAt shouldBe now
                     actual.excerpt shouldBe text.take(LinkContent.EXCERPT_MAX_CHARS) + "…"
-                    actual.claimToken.shouldBeNull()
                     linkRepository.findById(link.id!!)?.updatedAt shouldBe before.updatedAt
                     client.calls shouldBe listOf(link.url)
                 }
@@ -160,6 +155,24 @@ class CollectLinkContentServiceTest :
                 }
             }
 
+            When("공백뿐인 본문을 돌려주면") {
+                val collect =
+                    suspend {
+                        client.enqueue(LinkContentFixture.collectedResult(text = " \n\t "))
+                        service.collect(contentId = content.id!!, now = now)
+                    }
+
+                Then("행이 FAILED(CONTENT_EMPTY)이다") {
+                    val result = collect()
+
+                    result.outcome shouldBe CollectOutcome.FAILED
+                    val actual = linkContentRepository.findById(content.id!!).shouldNotBeNull()
+                    actual.status shouldBe ContentStatus.FAILED
+                    actual.failureCode shouldBe ContentFailureCode.CONTENT_EMPTY
+                    actual.page.shouldBeNull()
+                }
+            }
+
             When("3자 본문을 돌려주면") {
                 val text = LinkContentFixture.randomBodyText(length = 3)
                 val collect =
@@ -192,7 +205,7 @@ class CollectLinkContentServiceTest :
             }
 
             When("재시도 가능한 실패이면") {
-                val code = listOf(ContentFailureCode.FETCH_TIMEOUT, ContentFailureCode.UPSTREAM_SERVER_ERROR).random()
+                val code = ContentFailureCode.entries.filter { it.isRetryable && !it.isRateLimited }.random()
                 val collect =
                     suspend {
                         client.enqueue(LinkContentFixture.failedResult(code = code))
@@ -207,7 +220,6 @@ class CollectLinkContentServiceTest :
                     actual.status shouldBe ContentStatus.PENDING
                     actual.attempt shouldBe 1
                     actual.nextAttemptAt shouldBe now + LinkContent.BACKOFF.first()
-                    actual.claimToken.shouldBeNull()
                     actual.startedAt.shouldBeNull()
                     result.host.shouldBeNull()
                 }
@@ -270,7 +282,6 @@ class CollectLinkContentServiceTest :
                     val actual = linkContentRepository.findById(content.id!!).shouldNotBeNull()
                     actual.status shouldBe ContentStatus.PENDING
                     actual.attempt shouldBe content.attempt
-                    actual.claimToken.shouldBeNull()
                     actual.nextAttemptAt shouldBe now + LinkContent.RELEASE_DELAY
                 }
             }
@@ -331,17 +342,55 @@ class CollectLinkContentServiceTest :
             }
         }
 
+        Given("다른 실행이 stale 전에 클레임한 행") {
+            lateinit var now: Instant
+            lateinit var content: LinkContent
+
+            beforeEach {
+                client.reset()
+                now = dbNow()
+                val link = insertLink()
+                linkContentRepository.insertAll(
+                    listOf(
+                        LinkContentFixture.createClaimedContentOf(
+                            linkId = link.id!!,
+                            sourceUrl = link.url,
+                            startedAt = now - RandomFixture.randomInt(1, 9).minutes,
+                            nextAttemptAt = now - LinkContent.STALE_AFTER,
+                        ),
+                    ),
+                )
+                content = linkContentRepository.findByLinkId(link.id).shouldNotBeNull()
+            }
+
+            When("수집하면") {
+                val collect = suspend { service.collect(contentId = content.id!!, now = now) }
+
+                Then("클레임에 실패해 SKIPPED이고 클라이언트를 부르지 않으며 claimCount가 그대로다") {
+                    val result = collect()
+
+                    result.outcome shouldBe CollectOutcome.SKIPPED
+                    client.calls.shouldBeEmpty()
+                    val actual = linkContentRepository.findById(content.id!!).shouldNotBeNull()
+                    actual.claimCount shouldBe content.claimCount
+                    actual.startedAt shouldBe content.startedAt
+                }
+            }
+        }
+
         Given("가짜 클라이언트의 호출 중 훅으로 끼어드는 변경") {
             lateinit var now: Instant
             lateinit var link: Link
             lateinit var content: LinkContent
+            lateinit var text: String
 
             beforeEach {
                 client.reset()
                 now = dbNow()
                 link = insertLink()
                 content = insertDueContentOf(link = link, now = now)
-                client.enqueue(LinkContentFixture.collectedResult())
+                text = LinkContentFixture.randomBodyText()
+                client.enqueue(LinkContentFixture.collectedResult(text = text))
             }
 
             When("호출 중 링크가 삭제되면") {
@@ -359,7 +408,7 @@ class CollectLinkContentServiceTest :
                 }
             }
 
-            When("호출 중 URL reset으로 generation이 오르면") {
+            When("호출 중 URL이 바뀌면") {
                 val newUrl = RandomFixture.randomUrl()
                 val collect =
                     suspend {
@@ -367,16 +416,17 @@ class CollectLinkContentServiceTest :
                         service.collect(contentId = content.id!!, now = now)
                     }
 
-                Then("이전 실행의 완료가 버려지고 행은 새 generation의 PENDING이다") {
+                Then("이전 실행의 완료가 버려지고 행은 새 URL의 PENDING이다") {
                     val result = collect()
 
                     result.outcome shouldBe CollectOutcome.SKIPPED
                     val actual = linkContentRepository.findById(content.id!!).shouldNotBeNull()
                     actual.status shouldBe ContentStatus.PENDING
-                    actual.generation shouldBe content.generation + 1
                     actual.sourceUrl shouldBe newUrl
                     actual.page.shouldBeNull()
                     actual.excerpt.shouldBeNull()
+                    actual.startedAt.shouldBeNull()
+                    actual.claimCount shouldBe 0
                 }
             }
 
@@ -391,42 +441,41 @@ class CollectLinkContentServiceTest :
                         service.collect(contentId = content.id!!, now = now)
                     }
 
-                Then("첫 실행의 완료가 버려진다") {
+                Then("첫 실행이 수집한 A의 본문이 저장된다") {
+                    val result = collect()
+
+                    result.outcome shouldBe CollectOutcome.COLLECTED
+                    val actual = linkContentRepository.findById(content.id!!).shouldNotBeNull()
+                    actual.status shouldBe ContentStatus.COLLECTED
+                    actual.sourceUrl shouldBe link.url
+                    actual.page?.text shouldBe text
+                }
+            }
+
+            When("같은 URL로 stale 재클레임된 실행이 먼저 저장하면") {
+                val reclaimedText = LinkContentFixture.randomBodyText()
+                val collect =
+                    suspend {
+                        client.onInvoke = {
+                            val reclaimedAt = now + LinkContent.STALE_AFTER + RandomFixture.randomInt(1, 60).minutes
+                            val reclaimed =
+                                linkContentRepository
+                                    .claim(contentId = content.id!!, staleAfter = LinkContent.STALE_AFTER, now = reclaimedAt)
+                                    .shouldNotBeNull()
+                            linkContentRepository.updateCollectResult(
+                                reclaimed.complete(page = LinkContentFixture.createCollectedPage(text = reclaimedText), now = reclaimedAt),
+                            )
+                        }
+                        service.collect(contentId = content.id!!, now = now)
+                    }
+
+                Then("먼저 저장한 실행이 이기고 나중 저장은 행이 PENDING이 아니라 버려진다") {
                     val result = collect()
 
                     result.outcome shouldBe CollectOutcome.SKIPPED
                     val actual = linkContentRepository.findById(content.id!!).shouldNotBeNull()
-                    actual.status shouldBe ContentStatus.PENDING
-                    actual.generation shouldBe content.generation + 2
-                    actual.sourceUrl shouldBe link.url
-                    actual.page.shouldBeNull()
-                }
-            }
-
-            When("호출 중 stale 기준 시각이 지나 다른 실행이 재클레임하면") {
-                val collect =
-                    suspend {
-                        var reclaimedToken: Any? = null
-                        client.onInvoke = {
-                            val reclaimedAt = now + LinkContent.STALE_AFTER + RandomFixture.randomInt(1, 60).minutes
-                            reclaimedToken =
-                                linkContentRepository
-                                    .claim(contentId = content.id!!, staleAfter = LinkContent.STALE_AFTER, now = reclaimedAt)
-                                    .shouldNotBeNull()
-                                    .claimToken
-                        }
-                        service.collect(contentId = content.id!!, now = now) to reclaimedToken
-                    }
-
-                Then("이전 실행의 완료는 토큰이 달라 버려진다") {
-                    val (result, reclaimedToken) = collect()
-
-                    result.outcome shouldBe CollectOutcome.SKIPPED
-                    val actual = linkContentRepository.findById(content.id!!).shouldNotBeNull()
-                    actual.status shouldBe ContentStatus.PENDING
-                    actual.page.shouldBeNull()
-                    actual.claimToken shouldNotBe null
-                    actual.claimToken shouldBe reclaimedToken
+                    actual.status shouldBe ContentStatus.COLLECTED
+                    actual.page?.text shouldBe reclaimedText
                     actual.claimCount shouldBe content.claimCount + 2
                 }
             }
@@ -452,7 +501,6 @@ class CollectLinkContentServiceTest :
                     result.outcome shouldBe CollectOutcome.URL_CHANGED
                     val actual = linkContentRepository.findById(content.id!!).shouldNotBeNull()
                     actual.status shouldBe ContentStatus.PENDING
-                    actual.claimToken.shouldBeNull()
                     actual.nextAttemptAt shouldBe now + LinkContent.RELEASE_DELAY
                     client.calls.shouldBeEmpty()
                 }

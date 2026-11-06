@@ -18,3 +18,13 @@ data class CollectResult(
     val host: String? = null,
     val cooldownSeconds: Int? = null,
 )
+
+sealed interface CollectStart {
+    data class Collect(
+        val content: LinkContent,
+    ) : CollectStart
+
+    data class Done(
+        val result: CollectResult,
+    ) : CollectStart
+}

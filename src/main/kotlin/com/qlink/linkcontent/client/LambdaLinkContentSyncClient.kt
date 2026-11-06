@@ -3,6 +3,7 @@ package com.qlink.linkcontent.client
 import aws.sdk.kotlin.services.lambda.LambdaClient
 import aws.sdk.kotlin.services.lambda.model.InvokeRequest
 import aws.sdk.kotlin.services.lambda.model.TooManyRequestsException
+import aws.sdk.kotlin.services.lambda.withConfig
 import com.qlink.config.LinkContentConfig
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
@@ -20,6 +21,11 @@ class LambdaLinkContentSyncClient(
     private val meterRegistry: MeterRegistry,
 ) : LinkContentSyncClient {
     private val log = LoggerFactory.getLogger(LambdaLinkContentSyncClient::class.java)
+    private val contentLambdaClient =
+        lambdaClient.withConfig {
+            retryStrategy { maxAttempts = 1 }
+            httpClient { socketReadTimeout = config.invokeTimeout }
+        }
     private val json = Json { ignoreUnknownKeys = true }
 
     override suspend fun extract(
@@ -75,7 +81,7 @@ class LambdaLinkContentSyncClient(
     ): LinkContentExtraction {
         val payload = json.encodeToString(LinkContentLambdaRequest(url = url, traceId = traceId, deadlineMs = deadlineMs))
         val response =
-            lambdaClient.invoke(
+            contentLambdaClient.invoke(
                 InvokeRequest {
                     functionName = config.functionName
                     this.payload = payload.encodeToByteArray()

@@ -14,6 +14,7 @@ import com.qlink.linkcontent.domain.ContentStatus
 import com.qlink.linkcontent.domain.LinkContent
 import com.qlink.linkcontent.domain.service.LinkContentCollectDomainService
 import com.qlink.linkcontent.dto.CollectResult
+import com.qlink.linkcontent.dto.CollectStart
 import com.qlink.linkcontent.repository.LinkContentRepository
 import java.util.UUID
 import kotlin.time.Instant
@@ -33,20 +34,20 @@ class CollectLinkContentService(
         now: Instant,
     ): CollectResult {
         val content =
-            when (val prepared = tx.required { prepare(contentId = contentId, now = now) }) {
+            when (val start = tx.required { prepare(contentId = contentId, now = now) }) {
                 null -> return SKIPPED
-                is Prepared.Done -> return prepared.result
-                is Prepared.Collect -> prepared.content
+                is CollectStart.Done -> return start.result
+                is CollectStart.Collect -> start.content
             }
 
         val extraction =
             contentClient.extract(
                 url = content.sourceUrl,
-                traceId = UUID.randomUUID().toString(),
+                traceId = "lc-$contentId-${UUID.randomUUID()}",
                 deadlineMs = LAMBDA_DEADLINE_MS,
             )
         val next = content.applyExtraction(extraction = extraction, now = now)
-        if (!tx.required { linkContentRepository.updateClaimed(fence = content.fence, next = next) }) return SKIPPED
+        if (!tx.required { linkContentRepository.updateCollectResult(next) }) return SKIPPED
 
         return CollectResult(
             status = next.status,
@@ -59,38 +60,35 @@ class CollectLinkContentService(
     private suspend fun prepare(
         contentId: Long,
         now: Instant,
-    ): Prepared? {
+    ): CollectStart? {
         val claimed = linkContentRepository.claim(contentId = contentId, staleAfter = LinkContent.STALE_AFTER, now = now) ?: return null
         val link = linkRepository.findById(claimed.linkId)
         val preparation = LinkContentCollectDomainService.prepare(claimed = claimed, link = link, now = now)
 
         return when (preparation.action) {
             CollectAction.COLLECT -> {
-                Prepared.Collect(content = claimed)
+                CollectStart.Collect(content = claimed)
             }
 
             CollectAction.LINK_GONE -> {
-                Prepared.Done(CollectResult(status = null, outcome = CollectOutcome.LINK_GONE))
+                CollectStart.Done(CollectResult(status = null, outcome = CollectOutcome.LINK_GONE))
             }
 
             CollectAction.GIVE_UP -> {
-                Prepared.Done(save(claimed = claimed, next = preparation.next, outcome = CollectOutcome.GIVE_UP))
+                CollectStart.Done(save(next = preparation.next, outcome = CollectOutcome.GIVE_UP))
             }
 
             CollectAction.URL_CHANGED -> {
-                Prepared.Done(
-                    save(claimed = claimed, next = preparation.next, outcome = CollectOutcome.URL_CHANGED),
-                )
+                CollectStart.Done(save(next = preparation.next, outcome = CollectOutcome.URL_CHANGED))
             }
         }
     }
 
     private suspend fun save(
-        claimed: LinkContent,
         next: LinkContent?,
         outcome: CollectOutcome,
     ): CollectResult =
-        if (next != null && linkContentRepository.updateClaimed(fence = claimed.fence, next = next)) {
+        if (next != null && linkContentRepository.updateCollectResult(next)) {
             CollectResult(status = next.status, outcome = outcome)
         } else {
             SKIPPED
@@ -122,19 +120,17 @@ class CollectLinkContentService(
         }
 
     private fun LinkContentResult.toPageOrNull(): CollectedPage? =
-        text.takeIf(String::isNotBlank)?.let {
-            CollectedPage(
-                text = it,
-                title = title,
-                siteName = siteName,
-                author = author,
-                publishedAt = publishedAt,
-                canonicalUrl = canonicalUrl,
-                finalUrl = finalUrl,
-                language = language,
-                isTruncated = isTruncated,
-            )
-        }
+        CollectedPage.ofOrNull(
+            text = text,
+            title = title,
+            siteName = siteName,
+            author = author,
+            publishedAt = publishedAt,
+            canonicalUrl = canonicalUrl,
+            finalUrl = finalUrl,
+            language = language,
+            isTruncated = isTruncated,
+        )
 
     private fun outcomeOf(
         extraction: LinkContentExtraction,
@@ -159,8 +155,7 @@ class CollectLinkContentService(
             }
         }
 
-    private fun LinkContentExtraction.isRateLimited(): Boolean =
-        this is LinkContentExtraction.Failed && code == ContentFailureCode.UPSTREAM_RATE_LIMITED
+    private fun LinkContentExtraction.isRateLimited(): Boolean = this is LinkContentExtraction.Failed && code.isRateLimited
 
     private fun LinkContentExtraction.rateLimitedHost(content: LinkContent): String? =
         if (isRateLimited()) content.sourceUrl.hostOrNull() ?: content.sourceUrl else null
@@ -169,15 +164,5 @@ class CollectLinkContentService(
         (this as? LinkContentExtraction.Failed)
             ?.takeIf { isRateLimited() }
             ?.retryAfterSeconds
-            ?.coerceIn(0, LinkContent.RETRY_AFTER_MAX.inWholeSeconds.toInt())
-
-    private sealed interface Prepared {
-        data class Collect(
-            val content: LinkContent,
-        ) : Prepared
-
-        data class Done(
-            val result: CollectResult,
-        ) : Prepared
-    }
+            ?.let(LinkContent::clampRetryAfter)
 }

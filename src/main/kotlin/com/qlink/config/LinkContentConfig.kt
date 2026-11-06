@@ -36,8 +36,7 @@ data class LinkContentConfig(
             env: Map<String, String> = System.getenv(),
         ): LinkContentConfig =
             LinkContentConfig(
-                functionName =
-                    env["LINK_CONTENT_LAMBDA_FUNCTION"]?.takeIf(String::isNotBlank) ?: config.string("linkContent.lambdaFunction"),
+                functionName = env["LINK_CONTENT_LAMBDA_FUNCTION"] ?: config.string("linkContent.lambdaFunction"),
                 invokeTimeout = config.int("linkContent.invokeTimeoutSeconds").seconds,
                 workerEnabled = config.boolean("worker.linkContent.enabled"),
                 workerConcurrency = config.int("worker.linkContent.concurrency"),
