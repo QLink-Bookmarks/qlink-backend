@@ -6,6 +6,8 @@ import com.qlink.support.fixture.LinkContentFixture
 import com.qlink.support.fixture.RandomFixture
 import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.core.spec.style.BehaviorSpec
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 
 class CollectedPageTest :
@@ -51,6 +53,46 @@ class CollectedPageTest :
                     page.title shouldBe title.take(CollectedPage.MAX_TITLE_LENGTH)
                     page.siteName shouldBe siteName.take(CollectedPage.MAX_SITE_NAME_LENGTH)
                     page.author shouldBe author.take(CollectedPage.MAX_AUTHOR_LENGTH)
+                }
+            }
+        }
+
+        Given("빈 본문일 수 있는 추출 결과로 페이지를 만들 때") {
+            fun pageOrNull(text: String): CollectedPage? =
+                CollectedPage.ofOrNull(
+                    text = text,
+                    title = null,
+                    siteName = null,
+                    author = null,
+                    publishedAt = null,
+                    canonicalUrl = null,
+                    finalUrl = null,
+                    language = null,
+                    isTruncated = false,
+                )
+
+            When("본문이 비어 있거나 공백뿐이면") {
+                val pages = listOf("", " \n\t  ").map(::pageOrNull)
+
+                Then("null이다") {
+                    pages.forEach { it.shouldBeNull() }
+                }
+            }
+
+            When("100,000자 안의 본문이 공백뿐이고 그 뒤에 글자가 있으면") {
+                val page = pageOrNull(" ".repeat(CollectedPage.MAX_TEXT_LENGTH) + LinkContentFixture.randomBodyText(1))
+
+                Then("잘린 본문이 공백뿐이라 null이다") {
+                    page.shouldBeNull()
+                }
+            }
+
+            When("본문이 있으면") {
+                val text = LinkContentFixture.randomBodyText()
+                val page = pageOrNull(text)
+
+                Then("그 본문의 페이지다") {
+                    page.shouldNotBeNull().text shouldBe text
                 }
             }
         }

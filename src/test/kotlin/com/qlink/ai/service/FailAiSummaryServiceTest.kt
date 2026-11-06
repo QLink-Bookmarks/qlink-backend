@@ -11,7 +11,6 @@ import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.repository.LinkRepository
-import com.qlink.link.repository.table.Links
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.AiFixture
 import com.qlink.support.fixture.FolderFixture
@@ -20,13 +19,13 @@ import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.insertAiContext
 import com.qlink.support.koinGet
+import com.qlink.support.searchTextOf
+import com.qlink.support.truncatedToSecond
 import com.qlink.user.repository.UserRepository
 import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.core.test.TestType
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.string.shouldStartWith
-import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.jdbc.select
+import java.net.URI
 import kotlin.time.Clock
 
 class FailAiSummaryServiceTest :
@@ -69,7 +68,8 @@ class FailAiSummaryServiceTest :
 
             When("실패를 저장하면") {
                 val reason = RandomFixture.randomSentenceWithMax(200)
-                val fail = suspend { service.fail(jobId = job.id!!, reason = reason, now = Clock.System.now()) }
+                val now = Clock.System.now()
+                val fail = suspend { service.fail(jobId = job.id!!, reason = reason, now = now) }
 
                 Then("작업이 실패 상태가 되고 링크의 제목·요약·상태만 바뀌며 links.url·folder_id는 그대로다") {
                     shouldNotThrow<BusinessException> { fail() }
@@ -77,7 +77,8 @@ class FailAiSummaryServiceTest :
                     val actual = linkRepository.findById(link.id!!)!!
 
                     actualJob.status shouldBe AiJobStatus.F
-                    actual.title shouldStartWith "AI 생성 실패 - "
+                    actualJob.completedAt.truncatedToSecond() shouldBe now.truncatedToSecond()
+                    actual.title shouldBe "AI 생성 실패 - ${URI(link.url).host}"
                     actual.summary shouldBe reason
                     actual.status shouldBe LinkStatus.F
                     actual.url shouldBe link.url
@@ -91,7 +92,14 @@ class FailAiSummaryServiceTest :
             }
 
             When("작업이 없으면") {
-                val fail = suspend { service.fail(jobId = RandomFixture.randomId(), reason = "reason", now = Clock.System.now()) }
+                val fail =
+                    suspend {
+                        service.fail(
+                            jobId = RandomFixture.randomId(),
+                            reason = RandomFixture.randomSentenceWithMax(200),
+                            now = Clock.System.now(),
+                        )
+                    }
 
                 Then("아무것도 바꾸지 않고 끝난다") {
                     shouldNotThrow<BusinessException> { fail() }
@@ -111,7 +119,10 @@ class FailAiSummaryServiceTest :
                     linkRepository.deleteById(link.id!!)
                 }
 
-                val fail = suspend { service.fail(jobId = job.id!!, reason = "reason", now = Clock.System.now()) }
+                val fail =
+                    suspend {
+                        service.fail(jobId = job.id!!, reason = RandomFixture.randomSentenceWithMax(200), now = Clock.System.now())
+                    }
 
                 Then("아무것도 바꾸지 않고 끝난다") {
                     shouldNotThrow<BusinessException> { fail() }
@@ -122,9 +133,3 @@ class FailAiSummaryServiceTest :
             }
         }
     })
-
-private fun searchTextOf(linkId: Long): String =
-    Links
-        .select(Links.searchText)
-        .where { Links.id eq linkId }
-        .single()[Links.searchText]

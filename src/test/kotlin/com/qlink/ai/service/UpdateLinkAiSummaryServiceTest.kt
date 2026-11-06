@@ -290,21 +290,6 @@ class UpdateLinkAiSummaryServiceTest :
                     }
                 }
             }
-        }
-
-        Given("본문 행이 있는 기존 링크와 AI 제공자") {
-            lateinit var user: User
-            lateinit var link: Link
-            lateinit var content: LinkContent
-
-            beforeTest {
-                user = userRepository.insert(UserFixture.createRandomValidUser())
-                link = linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = user.id!!))
-                linkContentRepository.insertAll(
-                    listOf(LinkContentFixture.createPendingContentOf(linkId = link.id!!, sourceUrl = link.url)),
-                )
-                content = linkContentRepository.findByLinkId(link.id!!)!!
-            }
 
             When("새 링크로 요청하면") {
                 Then("새 링크의 PENDING·INTERACTIVE 행이 있다") {
@@ -323,12 +308,23 @@ class UpdateLinkAiSummaryServiceTest :
                     actual!!.status shouldBe ContentStatus.PENDING
                     actual.priority shouldBe ContentPriority.INTERACTIVE
                     actual.sourceUrl shouldBe request.url
-                    actual.generation shouldBe 0
                 }
+            }
+        }
+
+        Given("본문 행이 있는 기존 링크와 AI 제공자") {
+            lateinit var user: User
+            lateinit var link: Link
+            lateinit var content: LinkContent
+
+            beforeTest {
+                user = userRepository.insert(UserFixture.createRandomValidUser())
+                link = linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = user.id!!))
+                content = LinkContentFixture.insertCollected(linkContentRepository, linkId = link.id!!, sourceUrl = link.url)
             }
 
             When("기존 링크를 다른 URL로 요청하면") {
-                Then("행이 generation이 오른 PENDING으로 초기화된다") {
+                Then("행이 같은 id로 새 URL의 PENDING이 되고 본문·발췌가 비어 있다") {
                     val (userProvider, model) = insertAiContext(userId = user.id!!)
                     val request =
                         AiSummaryRequest(
@@ -343,9 +339,12 @@ class UpdateLinkAiSummaryServiceTest :
 
                     actual shouldNotBe null
                     actual!!.id shouldBe content.id
-                    actual.generation shouldBe content.generation + 1
                     actual.status shouldBe ContentStatus.PENDING
                     actual.sourceUrl shouldBe request.url
+                    actual.page shouldBe null
+                    actual.excerpt shouldBe null
+                    actual.contentHash shouldBe null
+                    actual.collectedAt shouldBe null
                 }
             }
 
@@ -365,8 +364,9 @@ class UpdateLinkAiSummaryServiceTest :
 
                     actual shouldNotBe null
                     actual!!.id shouldBe content.id
-                    actual.generation shouldBe content.generation
+                    actual.status shouldBe ContentStatus.COLLECTED
                     actual.sourceUrl shouldBe link.url
+                    actual.excerpt shouldBe content.excerpt
                     actual.nextAttemptAt shouldBe content.nextAttemptAt
                     actual.updatedAt shouldBe content.updatedAt
                 }

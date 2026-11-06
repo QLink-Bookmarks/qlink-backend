@@ -46,7 +46,7 @@ class SignInService(
                         providerId = resource.providerId,
                     )
                 } else {
-                    userRepository.findById(authProvider.userId).requirePresent(ErrorCode.AUTH_SIGN_IN_USER_NOT_FOUND)
+                    userRepository.findById(authProvider.userId).requirePresent(ErrorCode.AUTH_SIGN_IN_USER_MISSING)
                 }
 
             issueTokenResponse(user)

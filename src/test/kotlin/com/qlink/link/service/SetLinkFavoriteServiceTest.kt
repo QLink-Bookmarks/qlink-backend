@@ -4,19 +4,17 @@ import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.link.domain.Link
 import com.qlink.link.repository.LinkRepository
-import com.qlink.link.repository.table.Links
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.LinkFixture
 import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
+import com.qlink.support.searchTextOf
 import com.qlink.user.domain.User
 import com.qlink.user.repository.UserRepository
 import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
-import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.jdbc.select
 
 class SetLinkFavoriteServiceTest :
     BaseServiceTest({
@@ -169,9 +167,3 @@ class SetLinkFavoriteServiceTest :
             }
         }
     })
-
-private fun searchTextOf(linkId: Long): String =
-    Links
-        .select(Links.searchText)
-        .where { Links.id eq linkId }
-        .single()[Links.searchText]

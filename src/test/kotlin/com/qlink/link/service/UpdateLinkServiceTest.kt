@@ -20,23 +20,17 @@ import com.qlink.support.fixture.LinkFixture
 import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
+import com.qlink.support.runWhileLinkLocked
 import com.qlink.user.domain.User
 import com.qlink.user.repository.UserRepository
 import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.withTimeout
-import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.seconds
 
 class UpdateLinkServiceTest :
     BaseServiceTest({
@@ -263,7 +257,7 @@ class UpdateLinkServiceTest :
             beforeTest {
                 user = userRepository.insert(UserFixture.createRandomValidUser())
                 link = linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = user.id!!))
-                content = insertCollectedContent(linkContentRepository, linkId = link.id!!, sourceUrl = link.url)
+                content = LinkContentFixture.insertCollected(linkContentRepository, linkId = link.id!!, sourceUrl = link.url)
             }
 
             When("URL을 바꾸면") {
@@ -277,13 +271,12 @@ class UpdateLinkServiceTest :
                         )
                     }
 
-                Then("행이 같은 id로 generation이 오른 PENDING이 되고 본문·발췌가 비어 있다") {
+                Then("행이 같은 id로 새 URL의 PENDING이 되고 본문·발췌가 비어 있다") {
                     update()
                     val actual = linkContentRepository.findByLinkId(link.id!!)
 
                     actual shouldNotBe null
                     actual!!.id shouldBe content.id
-                    actual.generation shouldBe content.generation + 1
                     actual.status shouldBe ContentStatus.PENDING
                     actual.sourceUrl shouldBe newUrl
                     actual.page shouldBe null
@@ -311,7 +304,6 @@ class UpdateLinkServiceTest :
 
                     actual shouldNotBe null
                     actual!!.id shouldBe content.id
-                    actual.generation shouldBe content.generation
                     actual.status shouldBe ContentStatus.COLLECTED
                     actual.sourceUrl shouldBe link.url
                     actual.excerpt shouldBe content.excerpt
@@ -347,7 +339,6 @@ class UpdateLinkServiceTest :
                     actual shouldNotBe null
                     actual!!.status shouldBe ContentStatus.PENDING
                     actual.sourceUrl shouldBe newUrl
-                    actual.generation shouldBe 0
                 }
             }
         }
@@ -411,59 +402,8 @@ private fun sameFieldsRequestOf(link: Link): UpdateLinkRequest =
         sourceType = link.sourceType,
     )
 
-private suspend fun insertCollectedContent(
-    linkContentRepository: LinkContentRepository,
-    linkId: Long,
-    sourceUrl: String,
-): LinkContent {
-    val now = Clock.System.now()
-    linkContentRepository.insertAll(
-        listOf(LinkContentFixture.createPendingContentOf(linkId = linkId, sourceUrl = sourceUrl, nextAttemptAt = now)),
-    )
-    val pending = linkContentRepository.findByLinkId(linkId)!!
-    val claimed = linkContentRepository.claim(contentId = pending.id!!, staleAfter = LinkContent.STALE_AFTER, now = now)!!
-    linkContentRepository.updateClaimed(
-        fence = claimed.fence,
-        next = claimed.complete(page = LinkContentFixture.createCollectedPage(), now = now),
-    )
-    return linkContentRepository.findByLinkId(linkId)!!
-}
-
 private data class UpdateResult(
     val link: Link,
     val request: UpdateLinkRequest,
     val response: UpdateLinkResponse,
 )
-
-private suspend fun <T> runWhileLinkLocked(
-    tx: TransactionRunner,
-    holdLock: suspend () -> Unit,
-    action: suspend () -> T,
-): T =
-    coroutineScope {
-        val locked = CompletableDeferred<Unit>()
-        val release = CompletableDeferred<Unit>()
-        val competitor =
-            async {
-                tx.required {
-                    holdLock()
-                    locked.complete(Unit)
-                    release.await()
-                }
-            }
-        locked.await()
-        val result = async { action() }
-        withTimeout(10.seconds) {
-            while (tx.readOnly { countSessionsWaitingOnLock() } == 0) {
-                delay(20.milliseconds)
-            }
-        }
-        release.complete(Unit)
-        competitor.await()
-        result.await()
-    }
-
-private fun countSessionsWaitingOnLock(): Int =
-    TransactionManager.current().exec(
-        "SELECT count(*) FROM pg_stat_activity WHERE wait_event_type = 'Lock' AND datname = current_database()",
-    ) { it.takeIf { row -> row.next() }?.getInt(1) } ?: 0

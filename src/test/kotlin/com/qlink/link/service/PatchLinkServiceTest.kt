@@ -8,7 +8,6 @@ import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.repository.LinkRepository
-import com.qlink.link.repository.table.Links
 import com.qlink.notification.domain.NotificationContext
 import com.qlink.notification.repository.NotificationRepository
 import com.qlink.notification.service.ScheduleTodoNotificationService
@@ -19,6 +18,8 @@ import com.qlink.support.fixture.RandomFixture
 import com.qlink.support.fixture.TodoFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
+import com.qlink.support.runWhileLinkLocked
+import com.qlink.support.searchTextOf
 import com.qlink.support.truncatedToSecond
 import com.qlink.todo.domain.RepeatDay
 import com.qlink.todo.domain.Todo
@@ -30,22 +31,12 @@ import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import io.kotest.matchers.string.shouldContain
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.withTimeout
-import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.jdbc.select
-import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import java.util.concurrent.TimeUnit
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toKotlinInstant
 
 class PatchLinkServiceTest :
@@ -173,9 +164,6 @@ class PatchLinkServiceTest :
                     actual.folderId shouldBe null
                     actual.memo shouldBe newMemo
                     actual.tags shouldBe newTags
-                    searchText shouldContain link.url
-                    searchText shouldContain newMemo
-                    searchText shouldContain newTags.joinToString(" ")
                     searchText shouldBe
                         listOf(link.title, link.url, newTags.joinToString(" "), link.summary.orEmpty(), newMemo).joinToString(" ")
                 }
@@ -484,6 +472,7 @@ class PatchLinkServiceTest :
                 }
             }
         }
+
         Given("다른 트랜잭션이 링크를 잠그고 AI 결과(태그)를 쓰는 중인 커밋된 링크") {
             When("메모만 PATCH하면") {
                 val newMemo = RandomFixture.randomSentenceWithMax(1000)
@@ -540,42 +529,3 @@ class PatchLinkServiceTest :
             }
         }
     })
-
-private fun searchTextOf(linkId: Long): String =
-    Links
-        .select(Links.searchText)
-        .where { Links.id eq linkId }
-        .single()[Links.searchText]
-
-private suspend fun <T> runWhileLinkLocked(
-    tx: TransactionRunner,
-    holdLock: suspend () -> Unit,
-    action: suspend () -> T,
-): T =
-    coroutineScope {
-        val locked = CompletableDeferred<Unit>()
-        val release = CompletableDeferred<Unit>()
-        val competitor =
-            async {
-                tx.required {
-                    holdLock()
-                    locked.complete(Unit)
-                    release.await()
-                }
-            }
-        locked.await()
-        val result = async { action() }
-        withTimeout(10.seconds) {
-            while (tx.readOnly { countSessionsWaitingOnLock() } == 0) {
-                delay(20.milliseconds)
-            }
-        }
-        release.complete(Unit)
-        competitor.await()
-        result.await()
-    }
-
-private fun countSessionsWaitingOnLock(): Int =
-    TransactionManager.current().exec(
-        "SELECT count(*) FROM pg_stat_activity WHERE wait_event_type = 'Lock' AND datname = current_database()",
-    ) { it.takeIf { row -> row.next() }?.getInt(1) } ?: 0

@@ -1,6 +1,5 @@
 package com.qlink.linkcontent.repository
 
-import com.qlink.linkcontent.domain.ClaimFence
 import com.qlink.linkcontent.domain.LinkContent
 import com.qlink.linkcontent.dto.DueKeyset
 import com.qlink.linkcontent.dto.LinkContentTargetQuery
@@ -22,10 +21,7 @@ interface LinkContentRepository {
         now: Instant,
     ): LinkContent?
 
-    suspend fun updateClaimed(
-        fence: ClaimFence,
-        next: LinkContent,
-    ): Boolean
+    suspend fun updateCollectResult(content: LinkContent): Boolean
 
     suspend fun findDue(
         staleAfter: Duration,
