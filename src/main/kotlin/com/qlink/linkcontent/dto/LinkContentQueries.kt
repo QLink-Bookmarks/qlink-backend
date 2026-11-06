@@ -3,6 +3,7 @@
 package com.qlink.linkcontent.dto
 
 import com.qlink.linkcontent.domain.ContentPriority
+import kotlin.time.Duration
 import kotlin.time.Instant
 
 data class LinkContentTargetQuery(
@@ -17,7 +18,7 @@ data class LinkContentScheduleQuery(
     val due: Long,
     val pending: Long,
     val nextRunnableAt: Instant?,
-    val oldestDueAgeSeconds: Long?,
+    val oldestDueAge: Duration?,
 )
 
 data class DueKeyset(

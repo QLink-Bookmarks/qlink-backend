@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalUuidApi::class)
-
 package com.qlink.linkcontent.repository.table
 
 import com.qlink.link.repository.table.Links
@@ -8,25 +6,24 @@ import com.qlink.linkcontent.domain.ContentFailureCode
 import com.qlink.linkcontent.domain.ContentPriority
 import com.qlink.linkcontent.domain.ContentStatus
 import com.qlink.linkcontent.domain.LinkContent
+import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import org.jetbrains.exposed.v1.javatime.CurrentTimestamp
 import org.jetbrains.exposed.v1.javatime.timestamp
 import kotlin.time.Clock
 import kotlin.time.toJavaInstant
 import kotlin.time.toKotlinInstant
-import kotlin.uuid.ExperimentalUuidApi
 
 object LinkContents : Table("link_contents") {
     val id = long("id").autoIncrement()
-    val linkId = reference("link_id", Links.id, onDelete = ReferenceOption.CASCADE).uniqueIndex("link_contents_link_id_unique")
+    val linkId = reference("link_id", Links.id, onDelete = ReferenceOption.CASCADE)
     val sourceUrl = text("source_url")
     val status = enumerationByName<ContentStatus>("status", 20)
     val priority = short("priority").default(0)
-    val generation = integer("generation").default(0)
-    val claimToken = uuid("claim_token").nullable()
     val claimCount = short("claim_count").default(0)
     val attempt = short("attempt").default(0)
     val startedAt = timestamp("started_at").nullable()
@@ -43,12 +40,20 @@ object LinkContents : Table("link_contents") {
     val contentLength = integer("content_length").nullable()
     val contentHash = char("content_hash", 64).nullable()
     val isTruncated = bool("is_truncated").default(false)
-    val excerpt = varchar("excerpt", 101).nullable()
+    val excerpt = varchar("excerpt", LinkContent.EXCERPT_MAX_LENGTH).nullable()
     val collectedAt = timestamp("collected_at").nullable()
     val createdAt = timestamp("created_at").defaultExpression(CurrentTimestamp)
     val updatedAt = timestamp("updated_at").defaultExpression(CurrentTimestamp)
 
     override val primaryKey = PrimaryKey(id)
+
+    init {
+        uniqueIndex("link_contents_link_id_unique", linkId)
+    }
+
+    fun isPending(): Op<Boolean> = status eq ContentStatus.PENDING
+
+    fun isCollected(): Op<Boolean> = status eq ContentStatus.COLLECTED
 }
 
 fun ResultRow.toLinkContentDomain(): LinkContent =
@@ -58,8 +63,6 @@ fun ResultRow.toLinkContentDomain(): LinkContent =
         sourceUrl = this[LinkContents.sourceUrl],
         status = this[LinkContents.status],
         priority = ContentPriority.from(this[LinkContents.priority].toInt()),
-        generation = this[LinkContents.generation],
-        claimToken = this[LinkContents.claimToken],
         claimCount = this[LinkContents.claimCount].toInt(),
         attempt = this[LinkContents.attempt].toInt(),
         startedAt = this[LinkContents.startedAt]?.toKotlinInstant(),
@@ -88,12 +91,11 @@ private fun ResultRow.toCollectedPageOrNull(): CollectedPage? =
         )
     }
 
-fun UpdateBuilder<*>.fromDomainState(content: LinkContent) {
+fun UpdateBuilder<*>.fromDomain(content: LinkContent) {
     val page = content.page
     this[LinkContents.sourceUrl] = content.sourceUrl
     this[LinkContents.status] = content.status
     this[LinkContents.priority] = content.priority.value.toShort()
-    this[LinkContents.claimToken] = content.claimToken
     this[LinkContents.claimCount] = content.claimCount.toShort()
     this[LinkContents.attempt] = content.attempt.toShort()
     this[LinkContents.startedAt] = content.startedAt?.toJavaInstant()
@@ -114,10 +116,9 @@ fun UpdateBuilder<*>.fromDomainState(content: LinkContent) {
     this[LinkContents.collectedAt] = content.collectedAt?.toJavaInstant()
 }
 
-fun UpdateBuilder<*>.fromNewDomain(content: LinkContent) {
+fun UpdateBuilder<*>.fromDomainForInsert(content: LinkContent) {
     this[LinkContents.linkId] = content.linkId
-    this[LinkContents.generation] = content.generation
-    fromDomainState(content)
+    fromDomain(content)
 }
 
 fun UpdateBuilder<*>.refreshLinkContentUpdatedAt() {

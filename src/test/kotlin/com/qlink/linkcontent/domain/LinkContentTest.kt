@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalUuidApi::class)
-
 package com.qlink.linkcontent.domain
 
 import com.qlink.common.error.BusinessException
@@ -14,7 +12,6 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldEndWith
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
-import kotlin.uuid.ExperimentalUuidApi
 
 private const val ELLIPSIS = "…"
 
@@ -29,12 +26,11 @@ class LinkContentTest :
             When("링크 id·URL·우선순위로 만들면") {
                 val content = LinkContent.create(linkId = linkId, sourceUrl = sourceUrl, priority = priority, now = now)
 
-                Then("PENDING이고 nextAttemptAt이 지금이며 generation·attempt·claimCount가 0이고 우선순위가 담긴다") {
+                Then("PENDING이고 nextAttemptAt이 지금이며 attempt·claimCount가 0이고 우선순위가 담긴다") {
                     content.status shouldBe ContentStatus.PENDING
                     content.linkId shouldBe linkId
                     content.sourceUrl shouldBe sourceUrl
                     content.nextAttemptAt shouldBe now
-                    content.generation shouldBe 0
                     content.attempt shouldBe 0
                     content.claimCount shouldBe 0
                     content.priority shouldBe priority
@@ -43,7 +39,7 @@ class LinkContentTest :
         }
 
         Given("PENDING 행이 클레임된 상태") {
-            val claimed = LinkContentFixture.createClaimedContentOf()
+            val claimed = LinkContentFixture.createClaimedContentOf(linkId = RandomFixture.randomId())
             val now = RandomFixture.randomPastInstant()
 
             fun completeWith(text: String): LinkContent =
@@ -60,7 +56,6 @@ class LinkContentTest :
                     completed.contentHash.shouldNotBeNull().length shouldBe 64
                     completed.collectedAt shouldBe now
                     completed.excerpt.shouldNotBeNull()
-                    completed.claimToken.shouldBeNull()
                     completed.startedAt.shouldBeNull()
                 }
             }
@@ -161,7 +156,6 @@ class LinkContentTest :
                     failed.status shouldBe ContentStatus.PENDING
                     failed.attempt shouldBe 1
                     failed.nextAttemptAt shouldBe now + 2.minutes
-                    failed.claimToken.shouldBeNull()
                     failed.startedAt.shouldBeNull()
                 }
             }
@@ -169,7 +163,7 @@ class LinkContentTest :
             When("재시도 가능한 코드로 두 번째 실패하면") {
                 val failed =
                     LinkContentFixture
-                        .createClaimedContentOf(attempt = 1)
+                        .createClaimedContentOf(linkId = RandomFixture.randomId(), attempt = 1)
                         .fail(code = ContentFailureCode.UPSTREAM_SERVER_ERROR, retryAfterSeconds = null, now = now)
 
                 Then("PENDING이고 attempt가 2이며 nextAttemptAt이 15분 뒤다") {
@@ -182,7 +176,7 @@ class LinkContentTest :
             When("재시도 가능한 코드로 세 번째 실패하면") {
                 val failed =
                     LinkContentFixture
-                        .createClaimedContentOf(attempt = 2)
+                        .createClaimedContentOf(linkId = RandomFixture.randomId(), attempt = 2)
                         .fail(code = ContentFailureCode.FETCH_TIMEOUT, retryAfterSeconds = null, now = now)
 
                 Then("FAILED가 되고 실패 코드가 남는다") {
@@ -248,11 +242,10 @@ class LinkContentTest :
             When("release하면") {
                 val released = claimed.release(now)
 
-                Then("PENDING이고 attempt는 그대로이며 startedAt·claimToken이 비고 nextAttemptAt이 1분 뒤다") {
+                Then("PENDING이고 attempt는 그대로이며 startedAt이 비고 nextAttemptAt이 1분 뒤다") {
                     released.status shouldBe ContentStatus.PENDING
                     released.attempt shouldBe claimed.attempt
                     released.startedAt.shouldBeNull()
-                    released.claimToken.shouldBeNull()
                     released.nextAttemptAt shouldBe now + 1.minutes
                 }
             }
@@ -265,33 +258,30 @@ class LinkContentTest :
                     givenUp.failureCode shouldBe ContentFailureCode.WORKER_GIVE_UP
                 }
             }
-
-            When("fence를 읽으면") {
-                val fence = claimed.fence
-
-                Then("id·generation·claimToken이 그대로 담긴다") {
-                    fence shouldBe
-                        ClaimFence(id = claimed.id!!, generation = claimed.generation, claimToken = claimed.claimToken!!)
-                }
-            }
         }
 
-        Given("fence를 읽을 수 없는 본문 행") {
-            When("행이 아직 저장되지 않았으면") {
-                val content = LinkContentFixture.createPendingContentOf(linkId = RandomFixture.randomId())
-                val readFence = { content.fence }
+        Given("Retry-After 초") {
+            When("0초에서 900초 사이이면") {
+                val seconds = RandomFixture.randomInt(0, 900)
 
-                Then("fence 읽기가 거부된다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_CONTENT_NOT_SAVED.message) { readFence() }
+                Then("그대로다") {
+                    LinkContent.clampRetryAfter(seconds) shouldBe seconds
                 }
             }
 
-            When("저장됐지만 클레임 토큰이 없으면") {
-                val content = LinkContentFixture.createCollectedContentOf()
-                val readFence = { content.fence }
+            When("900초를 넘으면") {
+                val seconds = RandomFixture.randomInt(901, 100_000)
 
-                Then("fence 읽기가 거부된다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_CONTENT_NOT_CLAIMED.message) { readFence() }
+                Then("900초다") {
+                    LinkContent.clampRetryAfter(seconds) shouldBe 900
+                }
+            }
+
+            When("음수이면") {
+                val seconds = RandomFixture.randomNegative()
+
+                Then("0초다") {
+                    LinkContent.clampRetryAfter(seconds) shouldBe 0
                 }
             }
         }
@@ -341,16 +331,15 @@ class LinkContentTest :
         }
 
         Given("어떤 상태의 행") {
-            val collected = LinkContentFixture.createCollectedContentOf()
             val newUrl = RandomFixture.randomUrl()
             val now = RandomFixture.randomPastInstant()
 
-            When("새 URL로 초기화하면") {
+            When("COLLECTED 행을 새 URL로 초기화하면") {
+                val collected = LinkContentFixture.createCollectedContentOf(linkId = RandomFixture.randomId())
                 val reset = collected.resetForUrl(sourceUrl = newUrl, now = now)
 
-                Then("id는 같고 generation이 1 오르며 PENDING, 본문·발췌·메타·attempt·claimCount가 초기값이다") {
+                Then("id는 같고 PENDING이며 본문·발췌·메타가 비고 nextAttemptAt이 지금이다") {
                     reset.id shouldBe collected.id
-                    reset.generation shouldBe collected.generation + 1
                     reset.status shouldBe ContentStatus.PENDING
                     reset.sourceUrl shouldBe newUrl
                     reset.nextAttemptAt shouldBe now
@@ -358,9 +347,29 @@ class LinkContentTest :
                     reset.excerpt.shouldBeNull()
                     reset.contentHash.shouldBeNull()
                     reset.collectedAt.shouldBeNull()
-                    reset.failureCode.shouldBeNull()
-                    reset.claimToken.shouldBeNull()
+                }
+            }
+
+            When("재시도 대기 중인 행을 새 URL로 초기화하면") {
+                val retrying =
+                    LinkContentFixture
+                        .createClaimedContentOf(linkId = RandomFixture.randomId(), attempt = RandomFixture.randomInt(0, 1))
+                        .fail(code = ContentFailureCode.FETCH_TIMEOUT, retryAfterSeconds = null, now = now)
+                val reset = retrying.resetForUrl(sourceUrl = newUrl, now = now)
+
+                Then("attempt·claimCount·실패 코드가 초기값이다") {
                     reset.attempt shouldBe 0
+                    reset.claimCount shouldBe 0
+                    reset.failureCode.shouldBeNull()
+                }
+            }
+
+            When("클레임된 행을 새 URL로 초기화하면") {
+                val claimed = LinkContentFixture.createClaimedContentOf(linkId = RandomFixture.randomId())
+                val reset = claimed.resetForUrl(sourceUrl = newUrl, now = now)
+
+                Then("startedAt이 비고 claimCount가 0이다") {
+                    reset.startedAt.shouldBeNull()
                     reset.claimCount shouldBe 0
                 }
             }
@@ -435,12 +444,13 @@ class LinkContentTest :
             }
 
             When("COLLECTED가 아닌데 본문이 있으면") {
-                val text = LinkContentFixture.randomBodyText()
                 val create = {
                     LinkContentFixture.createContentWithExcerpt(
                         status = listOf(ContentStatus.PENDING, ContentStatus.FAILED, ContentStatus.BLOCKED).random(),
-                        text = text,
-                        excerpt = text.take(100) + ELLIPSIS,
+                        text = LinkContentFixture.randomBodyText(),
+                        excerpt = null,
+                        contentHash = null,
+                        collectedAt = null,
                     )
                 }
 
