@@ -248,6 +248,14 @@ test('the deadline covers the whole fetch and ends a slow page as a timeout', as
   assert.ok(Date.now() - started < 3_000);
 });
 
+test('a page that answers after the 5-second preview request limit but before the deadline is collected', async () => {
+  const slow = route(html(`<article><p>${prose(120)}</p></article>`));
+  const routes = { '/page': (request, response) => { setTimeout(() => slow(request, response), 5_500); } };
+  const { result } = await collect(routes);
+  assert.equal(result.outcome, 'COLLECTED');
+  assert.equal(result.text, prose(120));
+});
+
 test('the deadline is the smallest of the request, the remaining time less 5 seconds, and 20 seconds', () => {
   const remaining = (ms) => ({ getRemainingTimeInMillis: () => ms });
   assert.equal(deadlineFor({ deadlineMs: 20_000 }, remaining(30_000)), 20_000);

@@ -66,12 +66,14 @@ export function createContentHandler({
   if (!['dev', 'prod'].includes(environment)) throw new Error('invalid content deployment configuration');
   const log = (event, detail) => logger.log(JSON.stringify({ event, ...detail }));
 
-  async function collect(url, traceId, deadlineSignal) {
+  async function collect(url, traceId, deadlineMs) {
+    const deadlineSignal = AbortSignal.timeout(deadlineMs);
     let page;
     try {
       page = await fetcher(url.href, {
         maxBytes: MAX_HTML_BYTES,
         truncate: true,
+        timeoutMs: deadlineMs,
         deadlineSignal,
         headers: REQUEST_HEADERS,
         wantHeaders: ['x-robots-tag'],
@@ -104,9 +106,8 @@ export function createContentHandler({
     if (!url) {
       result = { code: 'INVALID_EVENT' };
     } else {
-      const deadlineSignal = AbortSignal.timeout(deadlineFor(event, context));
       try {
-        result = await collect(url, traceId, deadlineSignal);
+        result = await collect(url, traceId, deadlineFor(event, context));
       } catch (error) {
         cause = error?.name || 'Error';
         result = { code: 'EXTRACTION_FAILED' };
