@@ -21,6 +21,7 @@ import com.qlink.link.repository.table.Links
 import com.qlink.link.repository.table.fromDomain
 import com.qlink.link.repository.table.fromDomainForInsert
 import com.qlink.link.repository.table.refreshUpdatedAt
+import com.qlink.link.repository.table.searchTextExpression
 import com.qlink.link.repository.table.toLinkDomain
 import org.jetbrains.exposed.v1.core.Expression
 import org.jetbrains.exposed.v1.core.ExpressionWithColumnType
@@ -30,7 +31,6 @@ import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.alias
 import org.jetbrains.exposed.v1.core.and
-import org.jetbrains.exposed.v1.core.concat
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.greater
 import org.jetbrains.exposed.v1.core.inList
@@ -375,7 +375,7 @@ class DbLinkRepository : LinkRepository {
                 it[Links.memo] = memo
                 it[Links.tags] = tags
                 it[Links.searchText] =
-                    searchTextOf(
+                    searchTextExpression(
                         title = Links.title,
                         url = Links.url,
                         tags = textLiteral(tags.joinToString(" ")),
@@ -403,7 +403,7 @@ class DbLinkRepository : LinkRepository {
             it[Links.status] = status
             it[Links.workModelId] = workModelId
             it[Links.searchText] =
-                searchTextOf(
+                searchTextExpression(
                     title = textLiteral(title),
                     url = Links.url,
                     tags = textLiteral(tags.joinToString(" ")),
@@ -425,7 +425,7 @@ class DbLinkRepository : LinkRepository {
             it[Links.summary] = summary
             it[Links.status] = status
             it[Links.searchText] =
-                searchTextOf(
+                searchTextExpression(
                     title = textLiteral(title),
                     url = Links.url,
                     tags = arrayToString(Links.tags, " "),
@@ -470,14 +470,6 @@ class DbLinkRepository : LinkRepository {
     override suspend fun deleteAllByIds(linkIds: List<Long>) {
         Links.deleteWhere { id inList linkIds }
     }
-
-    private fun searchTextOf(
-        title: Expression<*>,
-        url: Expression<*>,
-        tags: Expression<*>,
-        summary: Expression<*>,
-        memo: Expression<*>,
-    ): Expression<String> = concat(separator = " ", expr = listOf(title, url, tags, summary, memo))
 
     private fun scoreExpression(
         keyword: String?,

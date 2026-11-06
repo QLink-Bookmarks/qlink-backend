@@ -6,10 +6,12 @@ import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.domain.SourceType
 import com.qlink.user.repository.table.Users
+import org.jetbrains.exposed.v1.core.Expression
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.TextColumnType
+import org.jetbrains.exposed.v1.core.concat
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import org.jetbrains.exposed.v1.javatime.CurrentTimestamp
 import org.jetbrains.exposed.v1.javatime.timestamp
@@ -109,3 +111,11 @@ private fun Link.searchText(): String =
         summary.orEmpty(),
         memo.orEmpty(),
     ).joinToString(" ")
+
+fun searchTextExpression(
+    title: Expression<*>,
+    url: Expression<*>,
+    tags: Expression<*>,
+    summary: Expression<*>,
+    memo: Expression<*>,
+): Expression<String> = concat(separator = " ", expr = listOf(title, url, tags, summary, memo))
