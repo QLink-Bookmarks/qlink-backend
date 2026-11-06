@@ -1,6 +1,8 @@
 package com.qlink.link.repository
 
 import com.qlink.link.domain.Link
+import com.qlink.link.domain.LinkStatus
+import com.qlink.link.domain.SearchKeyword
 import com.qlink.link.dto.LinkDetailQuery
 import com.qlink.link.dto.LinkSearchCursor
 import com.qlink.link.dto.LinkSearchOrder
@@ -43,7 +45,7 @@ interface LinkRepository {
 
     suspend fun search(
         ownerId: Long,
-        query: String?,
+        keyword: SearchKeyword?,
         folderId: Long?,
         isFavorite: Boolean?,
         order: LinkSearchOrder,
@@ -52,6 +54,35 @@ interface LinkRepository {
     ): List<SearchLinksQuery>
 
     suspend fun update(link: Link): Link
+
+    suspend fun updateFavorite(
+        linkId: Long,
+        favoriteAt: Instant?,
+    )
+
+    suspend fun updatePatchFields(
+        linkId: Long,
+        folderId: Long?,
+        memo: String?,
+        tags: List<String>,
+    ): Link
+
+    suspend fun updateAiResult(
+        linkId: Long,
+        folderId: Long?,
+        title: String,
+        summary: String?,
+        tags: List<String>,
+        status: LinkStatus,
+        workModelId: Long?,
+    )
+
+    suspend fun updateAiFailure(
+        linkId: Long,
+        title: String,
+        summary: String?,
+        status: LinkStatus,
+    )
 
     suspend fun updatePreview(link: Link): Boolean
 

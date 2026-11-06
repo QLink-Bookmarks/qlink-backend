@@ -4,6 +4,7 @@ import com.qlink.ai.client.AiClientRouter
 import com.qlink.ai.client.GeminiAiClient
 import com.qlink.ai.client.OpenAiClient
 import com.qlink.ai.service.CompleteAiSummaryService
+import com.qlink.ai.service.FailAiSummaryService
 import com.qlink.ai.worker.AiSummaryDispatcher
 import com.qlink.ai.worker.AiSummaryWorker
 import com.qlink.auth.client.AppleAuthResourceClient
@@ -146,6 +147,15 @@ fun aiModule(
     }
 
     single {
+        FailAiSummaryService(
+            tx = get(),
+            aiJobRepository = get(),
+            linkRepository = get(),
+            urlResolver = get(),
+        )
+    }
+
+    single {
         AiSummaryWorker(
             tx = get(),
             aiJobRepository = get(),
@@ -156,10 +166,10 @@ fun aiModule(
             folderRepository = get(),
             linkRepository = get(),
             completeAiSummaryService = get(),
+            failAiSummaryService = get(),
             aiClientRouter = get(),
             apiKeyCipher = get(),
             channel = get(),
-            urlResolver = get(),
             config = get(),
             meterRegistry = get<PrometheusMeterRegistry>(),
             log = log,

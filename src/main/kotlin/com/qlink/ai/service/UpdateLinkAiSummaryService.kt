@@ -18,12 +18,19 @@ import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.domain.SourceType
 import com.qlink.link.repository.LinkRepository
+import com.qlink.linkcontent.domain.ContentPriority
+import com.qlink.linkcontent.domain.LinkContent
+import com.qlink.linkcontent.domain.service.LinkContentPlanDomainService
+import com.qlink.linkcontent.repository.LinkContentRepository
+import com.qlink.linkcontent.worker.LinkContentSignal
 import com.qlink.user.repository.UserRepository
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.net.URI
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 class UpdateLinkAiSummaryService(
     private val tx: TransactionRunner,
@@ -36,6 +43,8 @@ class UpdateLinkAiSummaryService(
     private val aiJobRepository: AiJobRepository,
     private val dispatcher: AiSummaryDispatcher,
     private val urlResolver: PreviewImageUrlResolver,
+    private val linkContentRepository: LinkContentRepository,
+    private val linkContentSignal: LinkContentSignal,
 ) {
     suspend fun updateLinkAiSummary(
         loginId: Long,
@@ -55,33 +64,36 @@ class UpdateLinkAiSummaryService(
                         .findById(request.modelId)
                         ?.takeIf { it.providerId == userProvider.providerId }
                         ?: throw BusinessException(ErrorCode.AI_MODEL_NOT_FOUND)
+                request.folderId?.let { folderRepository.findAllByIdsForKeyShare(listOf(it)) }
                 val fixedFolder = request.folderId?.let { findWritableFolder(loginId, it) }
+                val now = Clock.System.now()
                 val link =
                     request.id
                         ?.let { linkId ->
                             linkRepository
-                                .findById(linkId)
+                                .findByIdForUpdate(linkId)
                                 ?.also { it.validateOwner(loginId) }
                                 ?: throw BusinessException(ErrorCode.LINK_NOT_FOUND)
                         }?.let {
-                            linkRepository.update(
-                                it
-                                    .update(
-                                        folderId = fixedFolder?.id ?: it.folderId,
-                                        url = request.url,
-                                        title = request.title ?: it.title,
-                                        summary = it.summary,
-                                        memo = it.memo,
-                                        tags = it.tags,
-                                        thumbnailUrl = request.thumbnailUrl,
-                                        sourceType = it.sourceType,
-                                        faviconUrl = request.faviconUrl,
-                                        isVideo = request.isVideo,
-                                        previewPublicBaseUrl = urlResolver.publicBaseUrl,
-                                        previewEnvironment = urlResolver.environment,
-                                    ).copyAiStatus(status = LinkStatus.G, workModelId = requestModel.id),
-                            )
-                        } ?: createAiPendingLink(loginId, request)
+                            linkRepository
+                                .update(
+                                    it
+                                        .update(
+                                            folderId = fixedFolder?.id ?: it.folderId,
+                                            url = request.url,
+                                            title = request.title ?: it.title,
+                                            summary = it.summary,
+                                            memo = it.memo,
+                                            tags = it.tags,
+                                            thumbnailUrl = request.thumbnailUrl,
+                                            sourceType = it.sourceType,
+                                            faviconUrl = request.faviconUrl,
+                                            isVideo = request.isVideo,
+                                            previewPublicBaseUrl = urlResolver.publicBaseUrl,
+                                            previewEnvironment = urlResolver.environment,
+                                        ).copyAiStatus(status = LinkStatus.G, workModelId = requestModel.id),
+                                ).also { resetContentForUrlChange(savedLink = it, now = now) }
+                        } ?: createAiPendingLink(loginId, request).also { createContent(link = it, now = now) }
                 val titlePrompt =
                     request.title
                         ?.let { FixedTitlePrompt(it) }
@@ -110,9 +122,38 @@ class UpdateLinkAiSummaryService(
                 )
             }
 
+        linkContentSignal.wake()
         dispatcher.dispatch(createdJob.id!!)
 
         return AiSummaryResponse(id = createdJob.linkId)
+    }
+
+    private suspend fun createContent(
+        link: Link,
+        now: Instant,
+    ) {
+        linkContentRepository.insertAll(
+            listOf(
+                LinkContent.create(
+                    linkId = link.id!!,
+                    sourceUrl = link.url,
+                    priority = ContentPriority.INTERACTIVE,
+                    now = now,
+                ),
+            ),
+        )
+    }
+
+    private suspend fun resetContentForUrlChange(
+        savedLink: Link,
+        now: Instant,
+    ) {
+        LinkContentPlanDomainService
+            .forUrlChange(
+                current = linkContentRepository.findByLinkId(savedLink.id!!),
+                savedLink = savedLink,
+                now = now,
+            )?.let { linkContentRepository.upsertForLink(it) }
     }
 
     private suspend fun createAiPendingLink(

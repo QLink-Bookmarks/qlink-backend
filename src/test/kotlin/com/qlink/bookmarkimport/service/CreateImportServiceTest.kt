@@ -20,6 +20,11 @@ import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.SourceType
 import com.qlink.link.repository.LinkRepository
+import com.qlink.link.repository.table.Links
+import com.qlink.linkcontent.domain.ContentPriority
+import com.qlink.linkcontent.domain.ContentStatus
+import com.qlink.linkcontent.repository.LinkContentRepository
+import com.qlink.linkcontent.repository.table.LinkContents
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.FolderFixture
 import com.qlink.support.fixture.ImportFixture
@@ -48,7 +53,9 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
+import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import java.sql.Connection
@@ -65,6 +72,7 @@ class CreateImportServiceTest :
         val linkRepository = koinGet<LinkRepository>()
         val bookmarkImportRepository = koinGet<BookmarkImportRepository>()
         val importThumbnailSignal = koinGet<ImportThumbnailSignal>()
+        val linkContentRepository = koinGet<LinkContentRepository>()
         val tx = koinGet<TransactionRunner>()
         val db = koinGet<Database>()
 
@@ -292,6 +300,62 @@ class CreateImportServiceTest :
                     saved.linkCount shouldBe 1
                     bookmarkImportRepository.findLinksByImportId(saved.id!!).map { it.url } shouldContainExactly listOf(newLink.url)
                     linkRepository.findAllUrlsByOwnerId(user.id!!) shouldContainExactlyInAnyOrder listOf(savedLink.url, newLink.url)
+                }
+            }
+
+            When("새 링크와 이미 저장된 내 링크가 섞인 가져오기에서 새 링크가 저장되면") {
+                lateinit var request: CreateImportRequest
+
+                beforeTest {
+                    request =
+                        ImportRequestFixture.createImportRequest(
+                            links =
+                                ImportRequestFixture.createLinkRequestsIn(folder = null, count = 2) +
+                                    ImportRequestFixture.createLinkRequest(url = savedLink.url),
+                        )
+                }
+
+                val create =
+                    suspend {
+                        createImportService.createImport(user.id!!, request)
+                    }
+
+                Then("그 링크들에만 BULK 행이 있고 중복 skip 링크에는 없다") {
+                    val summary = create()
+                    val importedLinks = bookmarkImportRepository.findLinksByImportId(summary.id)
+                    val contents = importedLinks.map { linkContentRepository.findByLinkId(it.linkId) }
+
+                    importedLinks shouldHaveSize 2
+                    contents.forEachIndexed { index, content ->
+                        content.shouldNotBeNull()
+                        content.status shouldBe ContentStatus.PENDING
+                        content.priority shouldBe ContentPriority.BULK
+                        content.sourceUrl shouldBe importedLinks[index].url
+                    }
+                    linkContentRepository.findByLinkId(savedLink.id!!) shouldBe null
+                }
+            }
+
+            When("새 링크를 저장한 가져오기를 같은 clientRequestId로 다시 보내면") {
+                val clientRequestId = Uuid.random()
+                val first = ImportRequestFixture.createImportRequest(clientRequestId = clientRequestId)
+                val second =
+                    ImportRequestFixture.createImportRequest(
+                        clientRequestId = clientRequestId,
+                        links = ImportRequestFixture.createLinkRequestsIn(folder = null, count = 2),
+                    )
+
+                Then("본문 행이 늘지 않는다") {
+                    createImportService.createImport(user.id!!, first)
+                    val before = countLinkContentsOf(user.id!!)
+
+                    createImportService.createImport(user.id!!, second)
+
+                    before shouldBe 1L
+                    countLinkContentsOf(user.id!!) shouldBe before
+                    second.links.forEach { requested ->
+                        linkRepository.findAllUrlsByOwnerId(user.id!!).contains(requested.url) shouldBe false
+                    }
                 }
             }
 
@@ -609,3 +673,9 @@ class CreateImportServiceTest :
             }
         }
     })
+
+private fun countLinkContentsOf(ownerId: Long): Long =
+    (LinkContents innerJoin Links)
+        .selectAll()
+        .where { Links.ownerId eq ownerId }
+        .count()

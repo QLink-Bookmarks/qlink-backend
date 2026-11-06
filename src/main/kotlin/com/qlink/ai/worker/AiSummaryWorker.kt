@@ -17,7 +17,7 @@ import com.qlink.ai.repository.AvailableModelRepository
 import com.qlink.ai.repository.DailyUsageRepository
 import com.qlink.ai.repository.UserProviderRepository
 import com.qlink.ai.service.CompleteAiSummaryService
-import com.qlink.ai.service.copyAiStatus
+import com.qlink.ai.service.FailAiSummaryService
 import com.qlink.auth.domain.Role
 import com.qlink.common.crypto.ApiKeyCipher
 import com.qlink.common.error.ErrorCode
@@ -25,8 +25,6 @@ import com.qlink.common.error.requireTrue
 import com.qlink.common.transaction.TransactionRunner
 import com.qlink.config.WorkerConfig
 import com.qlink.folder.repository.FolderRepository
-import com.qlink.image.service.PreviewImageUrlResolver
-import com.qlink.link.domain.LinkStatus
 import com.qlink.link.repository.LinkRepository
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
@@ -43,7 +41,6 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.slf4j.Logger
-import java.net.URI
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.util.concurrent.atomic.AtomicInteger
@@ -60,10 +57,10 @@ class AiSummaryWorker(
     private val folderRepository: FolderRepository,
     private val linkRepository: LinkRepository,
     private val completeAiSummaryService: CompleteAiSummaryService,
+    private val failAiSummaryService: FailAiSummaryService,
     private val aiClientRouter: AiClientRouter,
     private val apiKeyCipher: ApiKeyCipher,
     private val channel: Channel<Long>,
-    private val urlResolver: PreviewImageUrlResolver,
     private val config: WorkerConfig,
     private val meterRegistry: MeterRegistry,
     private val log: Logger,
@@ -112,7 +109,7 @@ class AiSummaryWorker(
             }
 
         jobsByAction[AiJobRecoveryAction.FAIL].orEmpty().forEach { job ->
-            markFailed(jobId = job.id!!, reason = DEFAULT_FAILURE_MESSAGE)
+            failAiSummaryService.fail(jobId = job.id!!, reason = DEFAULT_FAILURE_MESSAGE, now = Clock.System.now())
             log.info("[WORKER] Stale job has been failed. jobId=${job.id}")
             countResult(RESULT_EXPIRED)
         }
@@ -308,36 +305,8 @@ class AiSummaryWorker(
         jobId: Long,
         reason: String,
     ) {
-        markFailed(jobId = jobId, reason = reason)
+        failAiSummaryService.fail(jobId = jobId, reason = reason, now = Clock.System.now())
         countResult(RESULT_FAILED)
-    }
-
-    private suspend fun markFailed(
-        jobId: Long,
-        reason: String,
-    ) {
-        tx.required {
-            val job = aiJobRepository.findById(jobId) ?: return@required
-            val link = linkRepository.findByIdForUpdate(job.linkId) ?: return@required
-            val completedAt = Clock.System.now()
-
-            aiJobRepository.update(job.fail(completedAt))
-            linkRepository.update(
-                link
-                    .update(
-                        folderId = link.folderId,
-                        url = link.url,
-                        title = failedTitle(link.url),
-                        summary = reason,
-                        memo = link.memo,
-                        tags = link.tags,
-                        thumbnailUrl = link.thumbnailUrl,
-                        sourceType = link.sourceType,
-                        previewPublicBaseUrl = urlResolver.publicBaseUrl,
-                        previewEnvironment = urlResolver.environment,
-                    ).copyAiStatus(status = LinkStatus.F, workModelId = link.workModelId),
-            )
-        }
     }
 
     private suspend fun refreshPending() {
@@ -401,12 +370,6 @@ private fun Throwable?.failureSummary(): String =
         ?.message
         ?.takeIf { it.isNotBlank() }
         ?: DEFAULT_FAILURE_MESSAGE
-
-private fun failedTitle(url: String): String {
-    val host = runCatching { URI(url).host }.getOrNull()?.takeIf { it.isNotBlank() } ?: url
-
-    return "AI 생성 실패 - $host"
-}
 
 private fun String.extractFixedFolderId(): Long? =
     lineSequence()
