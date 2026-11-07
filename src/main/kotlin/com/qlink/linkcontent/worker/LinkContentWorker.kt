@@ -63,6 +63,7 @@ class LinkContentWorker(
 
     private var sweepStartedAt: Instant? = null
     private var sweepCursor: DueKeyset? = null
+    private var isPreempted = false
     private var sweepProcessed: Long = 0
     private var sweepSkipped: Long = 0
     private val sweepErroredIds = mutableSetOf<Long>()
@@ -113,14 +114,14 @@ class LinkContentWorker(
         scope.cancel()
     }
 
-    private suspend fun drain() {
+    internal suspend fun drain() {
         val startedAt = sweepStartedAt ?: clock.now().also { sweepStartedAt = it }
         var pages = 0
         var isInterrupted = false
         var isEnd = false
 
         while (pages < config.workerMaxPages && !isInterrupted && !isEnd) {
-            if (sweepCursor?.priority == ContentPriority.BULK) {
+            if (sweepCursor?.priority == ContentPriority.BULK || isPreempted) {
                 isInterrupted = process(dueInteractiveTargets())
             }
             if (!isInterrupted) {
@@ -132,9 +133,9 @@ class LinkContentWorker(
                         now = clock.now(),
                     )
                 pages++
-                isInterrupted = process(targets)
-                isEnd = targets.size < config.workerBatchSize
-                if (!isInterrupted) targets.lastOrNull()?.let { sweepCursor = it.keyset }
+                isInterrupted = process(targets.filterNot { it.contentId in sweepErroredIds })
+                isEnd = !isPreempted && targets.size < config.workerBatchSize
+                if (!isInterrupted && !isPreempted) targets.lastOrNull()?.let { sweepCursor = it.keyset }
             }
         }
 
@@ -160,6 +161,11 @@ class LinkContentWorker(
         return getTargetsService
             .getTargets(size = config.workerBatchSize, dueBefore = now, after = null, now = now)
             .filter { it.keyset.priority == ContentPriority.INTERACTIVE && it.contentId !in sweepErroredIds }
+    }
+
+    private suspend fun hasWaitingInteractive(pageIds: Set<Long>): Boolean {
+        val now = clock.now()
+        return dueInteractiveTargets().any { it.contentId !in pageIds && !hosts.isCooling(host = it.host, now = now) }
     }
 
     private suspend fun finishSweep() {
@@ -188,6 +194,9 @@ class LinkContentWorker(
         val skipped = AtomicLong(cooled.size.toLong())
         val errored = ConcurrentHashMap.newKeySet<Long>()
         val isInterrupted = AtomicBoolean(false)
+        val preempted = AtomicBoolean(false)
+        val bulkStarted = AtomicInteger(0)
+        val pageIds = targets.mapTo(HashSet()) { it.contentId }
         val groups = Channel<List<LinkContentTargetQuery>>(Channel.UNLIMITED)
         open.groupBy { it.host }.values.forEach { groups.trySend(it) }
         groups.close()
@@ -197,10 +206,17 @@ class LinkContentWorker(
                 launch(CoroutineName("$DISPATCHER_NAME-$index")) {
                     for (group in groups) {
                         for (target in group) {
-                            if (isInterrupted.get()) break
+                            if (isInterrupted.get() || preempted.get()) break
                             if (hosts.isCooling(host = target.host, now = clock.now())) {
                                 skipped.incrementAndGet()
                                 continue
+                            }
+                            val isCheckRow =
+                                target.keyset.priority == ContentPriority.BULK &&
+                                    bulkStarted.getAndIncrement().let { it > 0 && it % INTERACTIVE_CHECK_ROWS == 0 }
+                            if (isCheckRow && hasWaitingInteractive(pageIds)) {
+                                preempted.set(true)
+                                break
                             }
                             hosts.awaitTurn(target.host)
                             val outcome = collect(target)
@@ -214,6 +230,7 @@ class LinkContentWorker(
         sweepProcessed += processed.get()
         sweepSkipped += skipped.get()
         sweepErroredIds += errored
+        isPreempted = preempted.get()
         return isInterrupted.get()
     }
 
@@ -298,6 +315,7 @@ class LinkContentWorker(
         const val OLDEST_DUE_AGE_METRIC = "link_content_oldest_due_age_seconds"
         const val RESULT_METRIC = "link_content_results"
         const val OUTCOME_ERROR = "error"
+        const val INTERACTIVE_CHECK_ROWS = 10
         val MIN_TIMER_DELAY = 1.seconds
         val INTERRUPT_DELAY = 1.minutes
         val INTERRUPTING_OUTCOMES = setOf(CollectOutcome.RELEASED_THROTTLED, CollectOutcome.RELEASED_ERROR)
