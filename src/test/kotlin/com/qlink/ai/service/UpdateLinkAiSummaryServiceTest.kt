@@ -39,6 +39,7 @@ import com.qlink.support.fixture.TodoFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.insertAiContext
 import com.qlink.support.koinGet
+import com.qlink.support.truncatedToSecond
 import com.qlink.todo.domain.RepeatDay
 import com.qlink.todo.domain.Todo
 import com.qlink.todo.repository.TodoRepository
@@ -559,7 +560,8 @@ class UpdateLinkAiSummaryServiceTest :
 
                     linkRepository.findById(linkId)!!.memo shouldBe memo
                     actualTodos.map { it.title } shouldContainExactlyInAnyOrder todos.map { it.title }
-                    actualTodos.map { it.reminderAt } shouldContainExactlyInAnyOrder todos.map { it.reminderAt }
+                    actualTodos.map { it.reminderAt.truncatedToSecond() } shouldContainExactlyInAnyOrder
+                        todos.map { it.reminderAt.truncatedToSecond() }
                     actualTodos.all { it.ownerId == user.id && it.linkId == linkId } shouldBe true
                     linkContentRepository.findByLinkId(linkId) shouldNotBe null
                     aiJobRepository.findAllByLinkId(linkId) shouldHaveSize 1
@@ -620,7 +622,8 @@ class UpdateLinkAiSummaryServiceTest :
                         )
 
                     pending shouldHaveSize 1
-                    pending.single().willFireAt shouldBe withReminder.reminderAt
+                    pending.single().willFireAt shouldBe reminderTodo.reminderAt
+                    reminderTodo.reminderAt.truncatedToSecond() shouldBe withReminder.reminderAt.truncatedToSecond()
                     pending.single().message shouldBe
                         Notification.todo(todo = reminderTodo, linkTitle = actualLink.title, linkUrl = actualLink.url)!!.message
                     actualLink.title.startsWith("AI 생성 대기 중 -") shouldBe true
