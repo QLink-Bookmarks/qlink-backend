@@ -11,6 +11,7 @@ import com.qlink.link.dto.CreateLinkRequest
 import com.qlink.link.dto.CreateLinkResponse
 import com.qlink.link.dto.CreateLinkTodoRequest
 import com.qlink.link.repository.LinkRepository
+import com.qlink.link.worker.LinkPreviewFillSignal
 import com.qlink.linkcontent.domain.ContentPriority
 import com.qlink.linkcontent.domain.LinkContent
 import com.qlink.linkcontent.repository.LinkContentRepository
@@ -31,6 +32,7 @@ class CreateLinkService(
     private val urlResolver: PreviewImageUrlResolver,
     private val linkContentRepository: LinkContentRepository,
     private val linkContentSignal: LinkContentSignal,
+    private val linkPreviewFillSignal: LinkPreviewFillSignal,
 ) {
     suspend fun createLink(
         loginId: Long,
@@ -84,10 +86,12 @@ class CreateLinkService(
                 CreateLinkResult(
                     response = CreateLinkResponse(createdLink.id!!),
                     createdTodos = createdTodos,
+                    previewFillLinkId = createdLink.id.takeUnless { createdLink.hasPreview },
                 )
             }
 
         linkContentSignal.wake()
+        result.previewFillLinkId?.let(linkPreviewFillSignal::wake)
         result.createdTodos.forEach { scheduleTodoNotificationService.createForTodo(it) }
 
         return result.response
@@ -96,6 +100,7 @@ class CreateLinkService(
     private data class CreateLinkResult(
         val response: CreateLinkResponse,
         val createdTodos: List<Todo>,
+        val previewFillLinkId: Long?,
     )
 
     private fun CreateLinkTodoRequest.toTodo(

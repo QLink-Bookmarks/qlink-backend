@@ -6,4 +6,5 @@ enum class LinkPreviewCaller(
     LINK_PREVIEW("link_preview"),
     FAVICON_UPLOAD("favicon_upload"),
     IMPORT_THUMBNAIL("import_thumbnail"),
+    LINK_FILL("link_fill"),
 }

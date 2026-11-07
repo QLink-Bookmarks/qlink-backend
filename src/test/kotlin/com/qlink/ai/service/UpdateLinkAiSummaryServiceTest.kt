@@ -21,6 +21,7 @@ import com.qlink.image.service.PreviewImageUrlResolver
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.repository.LinkRepository
+import com.qlink.link.worker.LinkPreviewFillSignal
 import com.qlink.linkcontent.domain.ContentPriority
 import com.qlink.linkcontent.domain.ContentStatus
 import com.qlink.linkcontent.domain.LinkContent
@@ -29,6 +30,7 @@ import com.qlink.notification.domain.Notification
 import com.qlink.notification.domain.NotificationContext
 import com.qlink.notification.repository.NotificationRepository
 import com.qlink.support.BaseServiceTest
+import com.qlink.support.drainLinkIds
 import com.qlink.support.fixture.AiFixture
 import com.qlink.support.fixture.FolderFixture
 import com.qlink.support.fixture.FolderMemberFixture
@@ -73,6 +75,7 @@ class UpdateLinkAiSummaryServiceTest :
         val userProviderRepository = koinGet<UserProviderRepository>()
         val aiJobRepository = koinGet<AiJobRepository>()
         val commandChannel = koinGet<Channel<Long>>()
+        val previewFillSignal = koinGet<LinkPreviewFillSignal>()
         val linkContentRepository = koinGet<LinkContentRepository>()
         val todoRepository = koinGet<TodoRepository>()
         val notificationRepository = koinGet<NotificationRepository>()
@@ -1089,6 +1092,146 @@ class UpdateLinkAiSummaryServiceTest :
 
                 Then("링크 확인보다 먼저 기존 링크 내용 거절 오류가 난다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.LINK_AI_EXISTING_LINK_CONTENT_NOT_ALLOWED.message) { update() }
+                }
+            }
+        }
+
+        Given("AI 제공자가 있는 로그인 사용자") {
+            lateinit var user: User
+            lateinit var userProvider: UserProvider
+            lateinit var model: AvailableModel
+
+            beforeTest {
+                if (it.type != TestType.Test) return@beforeTest
+                previewFillSignal.drainLinkIds()
+                user = userRepository.insert(UserFixture.createRandomValidUser())
+                val context = insertAiContext(userId = user.id!!)
+                userProvider = context.first
+                model = context.second
+            }
+
+            When("id 없이 썸네일·파비콘 없이 요청하면") {
+                val update =
+                    suspend {
+                        service.updateLinkAiSummary(
+                            user.id!!,
+                            AiSummaryRequest(
+                                userProviderId = userProvider.id!!,
+                                modelId = model.id!!,
+                                url = RandomFixture.randomUrl(),
+                            ),
+                        )
+                    }
+
+                Then("새 링크가 둘 다 비어 저장되고 채우기 시그널에 그 링크 id가 하나 들어온다") {
+                    val response = update()
+                    withTimeout(1_000) { commandChannel.receive() }
+                    val actualLink = linkRepository.findById(response.id)!!
+
+                    actualLink.thumbnailUrl shouldBe null
+                    actualLink.faviconUrl shouldBe null
+                    previewFillSignal.drainLinkIds() shouldBe listOf(response.id)
+                }
+            }
+
+            When("id 없이 썸네일이나 파비콘을 보내 요청하면") {
+                val update =
+                    suspend {
+                        listOf(
+                            AiSummaryRequest(
+                                userProviderId = userProvider.id!!,
+                                modelId = model.id!!,
+                                url = RandomFixture.randomUrl(),
+                                thumbnailUrl = LinkFixture.validPreviewUrlOf(urlResolver),
+                            ),
+                            AiSummaryRequest(
+                                userProviderId = userProvider.id!!,
+                                modelId = model.id!!,
+                                url = RandomFixture.randomUrl(),
+                                faviconUrl = LinkFixture.validPreviewUrlOf(urlResolver, kind = "favicon"),
+                            ),
+                        ).forEach { request ->
+                            service.updateLinkAiSummary(user.id!!, request)
+                            withTimeout(1_000) { commandChannel.receive() }
+                        }
+                    }
+
+                Then("채우기 시그널에 id가 들어오지 않는다") {
+                    update()
+
+                    previewFillSignal.drainLinkIds().shouldBeEmpty()
+                }
+            }
+        }
+
+        Given("커밋된, AI 제공자가 있는 로그인 사용자") {
+            beforeTest {
+                if (it.type != TestType.Test) return@beforeTest
+                previewFillSignal.drainLinkIds()
+            }
+
+            When("id 없이 썸네일·파비콘 없이 보냈지만 트랜잭션 안에서 실패하면") {
+                val update =
+                    suspend {
+                        withCommittedAiUser { owner, committedProvider, committedModel ->
+                            val request =
+                                AiSummaryRequest(
+                                    userProviderId = committedProvider.id!!,
+                                    modelId = committedModel.id!!,
+                                    url = RandomFixture.randomUrl(),
+                                    todos = listOf(AiFixture.createAiSummaryTodoRequest(title = " ")),
+                                )
+                            val result = runCatching { service.updateLinkAiSummary(owner.id!!, request) }
+                            result to committedLinkUrlsOf(owner.id!!)
+                        }
+                    }
+
+                Then("링크가 저장되지 않고 채우기 시그널에 id가 들어오지 않는다") {
+                    val (result, committedUrls) = update()
+
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.TODO_TITLE_BLANK.message) { result.getOrThrow() }
+                    committedUrls.shouldBeEmpty()
+                    previewFillSignal.drainLinkIds().shouldBeEmpty()
+                }
+            }
+        }
+
+        Given("썸네일·파비콘이 빈 기존 링크와 AI 제공자") {
+            lateinit var user: User
+            lateinit var link: Link
+            lateinit var userProvider: UserProvider
+            lateinit var model: AvailableModel
+
+            beforeTest {
+                if (it.type != TestType.Test) return@beforeTest
+                previewFillSignal.drainLinkIds()
+                user = userRepository.insert(UserFixture.createRandomValidUser())
+                link = linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = user.id!!, thumbnailUrl = null))
+                val context = insertAiContext(userId = user.id!!)
+                userProvider = context.first
+                model = context.second
+            }
+
+            When("그 id로 썸네일·파비콘 없이 재실행하면") {
+                val update =
+                    suspend {
+                        service.updateLinkAiSummary(
+                            user.id!!,
+                            AiSummaryRequest(
+                                id = link.id!!,
+                                userProviderId = userProvider.id!!,
+                                modelId = model.id!!,
+                                url = link.url,
+                            ),
+                        )
+                    }
+
+                Then("채우기 시그널에 id가 들어오지 않는다") {
+                    update()
+                    withTimeout(1_000) { commandChannel.receive() }
+
+                    linkRepository.findById(link.id!!)!!.thumbnailUrl shouldBe null
+                    previewFillSignal.drainLinkIds().shouldBeEmpty()
                 }
             }
         }
