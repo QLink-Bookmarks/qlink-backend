@@ -96,9 +96,15 @@ below is written in section 2 with its reason.
   `ScrollResponse{isEmpty, contents, nextCursor, hasNext}`. No offset or page. Only a list the
   domain caps at a fixed size may return `{ "<name>s": [] }` without scroll (folder members).
 - L2. `size` defaults to `DEFAULT_SCROLL_SIZE` (15) and has no upper limit.
-- L3. `order` is a lowercase `SearchOrder` value the resource supports, default `latest`.
-  Unsupported → `COMMON_INVALID_SORT_ORDER`. The cursor is opaque and bound to the order; a
-  mismatch → `COMMON_CURSOR_ORDER_MISMATCH`.
+- L3. Sorting is `orderKey` (a lowercase key the resource supports, such as `created_at`) plus
+  `order` (`asc` or `desc`). Each resource sets its default, `created_at desc` unless stated, and
+  each key has its own default direction; a key may allow only one direction (`similarity` is
+  `desc` only). `order` alone applies that direction to `created_at`. The older `SearchOrder`
+  values (`latest`, `earliest`, `laxico`, `similar`) are backward-compatible aliases of a key and
+  direction, accepted in `order` only when `orderKey` is absent. Unsupported key, direction or
+  alias, or `orderKey` with an alias → `COMMON_INVALID_SORT_ORDER`. Equal values continue by `id`
+  in the same direction. The cursor is opaque and bound to the key and direction; a mismatch →
+  `COMMON_CURSOR_ORDER_MISMATCH`.
 - L4. A filter is named after the response field it filters (`folderId`, `isFavorite`,
   `isCompleted`, `type`). Free-text search is `query`. An invalid value → `COMMON_INVALID_FILTER`.
 - L5. A count is its own GET sub-resource returning `{ "count" }` (`/notifications/unread`).
@@ -168,6 +174,8 @@ below is written in section 2 with its reason.
 | O3 | `UpdateLinkResponse`, `UpdateTodoResponse` | echo the request | O3 |
 | O3 | `UpdateFolderResponse`, `AcceptFolderInvitationResponse` | echo the path id; `sharedAt` is derived but not returned | O3 |
 | O6 | `CompleteTodoResponse` | `completeAt` | `completedAt` |
+| L3 | `GET /folders`, `GET /posts`, `GET /notifications` | `order` takes only `SearchOrder` values | `orderKey` + `order` |
+| L2 | `TodoResources` | `size` defaults to 50 | 15 |
 | F4 | `ApiExceptionHandler`, `respondError` | 5xx bodies expose `cause` / `causeMessage` | removed |
 | F | `AUTH_PROVIDER_COMMUNICATION_FAILED`, `AI_VENDOR_TEMPORARY_UNAVAILABLE` | 422 | 502 / 503 |
 

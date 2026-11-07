@@ -1,6 +1,7 @@
 package com.qlink.link.repository
 
 import com.qlink.ai.repository.table.AvailableModels
+import com.qlink.common.search.SortDirection
 import com.qlink.common.search.arrayToString
 import com.qlink.common.search.bigmSimilarity
 import com.qlink.common.search.boolOf
@@ -18,13 +19,14 @@ import com.qlink.common.search.textPosition
 import com.qlink.folder.repository.table.Folders
 import com.qlink.foldermember.repository.table.FolderMembers
 import com.qlink.link.domain.Link
+import com.qlink.link.domain.LinkOrderKey
+import com.qlink.link.domain.LinkSort
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.domain.SearchKeyword
 import com.qlink.link.domain.Snippet
 import com.qlink.link.dto.LinkDetailQuery
 import com.qlink.link.dto.LinkSearchCursor
 import com.qlink.link.dto.LinkSearchCursorValue
-import com.qlink.link.dto.LinkSearchOrder
 import com.qlink.link.dto.LinkSnippetQuery
 import com.qlink.link.dto.SearchLinksQuery
 import com.qlink.link.repository.table.Links
@@ -249,7 +251,7 @@ class DbLinkRepository : LinkRepository {
         keyword: SearchKeyword?,
         folderId: Long?,
         isFavorite: Boolean?,
-        order: LinkSearchOrder,
+        sort: LinkSort,
         cursor: LinkSearchCursor?,
         size: Int,
     ): List<SearchLinksQuery> {
@@ -258,7 +260,7 @@ class DbLinkRepository : LinkRepository {
                 ownerId = ownerId,
                 folderId = folderId,
                 isFavorite = isFavorite,
-                order = order,
+                sort = sort,
                 cursor = cursor,
                 size = size,
             )
@@ -270,7 +272,7 @@ class DbLinkRepository : LinkRepository {
                 keyword = keyword,
                 folderId = folderId,
                 isFavorite = isFavorite,
-                order = order,
+                sort = sort,
                 cursor = cursor,
                 size = size,
             )
@@ -413,7 +415,7 @@ class DbLinkRepository : LinkRepository {
         ownerId: Long,
         folderId: Long?,
         isFavorite: Boolean?,
-        order: LinkSearchOrder,
+        sort: LinkSort,
         cursor: LinkSearchCursor?,
         size: Int,
     ): List<SearchLinksQuery> {
@@ -430,7 +432,7 @@ class DbLinkRepository : LinkRepository {
             joined = joined,
             columns = columns,
             condition = accessibleWith(ownerId = ownerId, folderId = folderId, isFavorite = isFavorite),
-            sortKeys = sortKeys(order = order, columns = columns, hasKeyword = false),
+            sortKeys = sortKeys(sort = sort, columns = columns, hasKeyword = false),
             cursor = cursor,
             size = size,
         )
@@ -441,7 +443,7 @@ class DbLinkRepository : LinkRepository {
         keyword: SearchKeyword,
         folderId: Long?,
         isFavorite: Boolean?,
-        order: LinkSearchOrder,
+        sort: LinkSort,
         cursor: LinkSearchCursor?,
         size: Int,
     ): List<SearchLinksQuery> {
@@ -496,7 +498,7 @@ class DbLinkRepository : LinkRepository {
                 isMetadataMatched = hits[hitIsMetadataMatched],
                 contentMatched = contentMatched,
                 contentScore =
-                    if (order == LinkSearchOrder.SIMILAR && keyword.includesBody) {
+                    if (sort.orderKey == LinkOrderKey.SIMILARITY && keyword.includesBody) {
                         Case()
                             .When(contentMatched, similarity(LinkContents.contentText, keyword.value))
                             .Else(doubleLiteral(0.0))
@@ -509,7 +511,7 @@ class DbLinkRepository : LinkRepository {
             joined = joined,
             columns = columns,
             condition = Op.TRUE,
-            sortKeys = sortKeys(order = order, columns = columns, hasKeyword = true),
+            sortKeys = sortKeys(sort = sort, columns = columns, hasKeyword = true),
             cursor = cursor,
             size = size,
         )
@@ -674,42 +676,33 @@ class DbLinkRepository : LinkRepository {
         )
 
     private fun sortKeys(
-        order: LinkSearchOrder,
+        sort: LinkSort,
         columns: SearchColumns,
         hasKeyword: Boolean,
     ): List<SortKey> {
         val metadataKey =
             SortKey(boolToInt(columns.isMetadataMatched), SortOrder.DESC) { intLiteral(if (it.isMetadataMatched == true) 1 else 0) }
+        val sortOrder = sort.direction.sortOrder()
         val orderKeys =
-            when (order) {
-                LinkSearchOrder.LATEST -> {
+            when (sort.orderKey) {
+                LinkOrderKey.CREATED_AT -> {
                     listOf(
                         SortKey(
                             Links.createdAt,
-                            SortOrder.DESC,
+                            sortOrder,
                         ) { QueryParameter(it.createdAt!!.toJavaInstant(), Links.createdAt.columnType) },
-                        SortKey(Links.id, SortOrder.DESC) { longLiteral(it.id!!) },
+                        SortKey(Links.id, sortOrder) { longLiteral(it.id!!) },
                     )
                 }
 
-                LinkSearchOrder.EARLIEST -> {
+                LinkOrderKey.TITLE -> {
                     listOf(
-                        SortKey(
-                            Links.createdAt,
-                            SortOrder.ASC,
-                        ) { QueryParameter(it.createdAt!!.toJavaInstant(), Links.createdAt.columnType) },
-                        SortKey(Links.id, SortOrder.ASC) { longLiteral(it.id!!) },
+                        SortKey(Links.title, sortOrder) { QueryParameter(it.title ?: "", Links.title.columnType) },
+                        SortKey(Links.id, sortOrder) { longLiteral(it.id!!) },
                     )
                 }
 
-                LinkSearchOrder.LAXICO -> {
-                    listOf(
-                        SortKey(Links.title, SortOrder.ASC) { QueryParameter(it.title ?: "", Links.title.columnType) },
-                        SortKey(Links.id, SortOrder.ASC) { longLiteral(it.id ?: Long.MIN_VALUE) },
-                    )
-                }
-
-                LinkSearchOrder.SIMILAR -> {
+                LinkOrderKey.SIMILARITY -> {
                     listOfNotNull(
                         SortKey(columns.score, SortOrder.DESC) { doubleLiteral(it.score ?: Double.MIN_VALUE) },
                         SortKey(columns.titleScore, SortOrder.DESC) { doubleLiteral(it.titleScore ?: Double.MAX_VALUE) },
@@ -729,6 +722,12 @@ class DbLinkRepository : LinkRepository {
 
         return if (hasKeyword) listOf(metadataKey) + orderKeys else orderKeys
     }
+
+    private fun SortDirection.sortOrder(): SortOrder =
+        when (this) {
+            SortDirection.ASC -> SortOrder.ASC
+            SortDirection.DESC -> SortOrder.DESC
+        }
 
     private fun keysetAfter(
         keys: List<SortKey>,

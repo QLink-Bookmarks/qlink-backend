@@ -3,20 +3,20 @@ package com.qlink.link.service
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.error.requireFalse
+import com.qlink.common.scroll.Base64CursorCodec
 import com.qlink.common.scroll.DEFAULT_SCROLL_SIZE
 import com.qlink.common.scroll.ScrollRequest
 import com.qlink.common.scroll.ScrollResponse
-import com.qlink.common.search.SearchCursorCodec
 import com.qlink.common.transaction.TransactionRunner
+import com.qlink.link.domain.LinkOrderKey
+import com.qlink.link.domain.LinkSort
 import com.qlink.link.domain.MatchedField
 import com.qlink.link.domain.SearchKeyword
 import com.qlink.link.domain.Snippet
-import com.qlink.link.dto.DEFAULT_LINK_SEARCH_ORDER
 import com.qlink.link.dto.GetLinksContentResponse
 import com.qlink.link.dto.HighlightRange
 import com.qlink.link.dto.LinkSearchCursor
 import com.qlink.link.dto.LinkSearchCursorValue
-import com.qlink.link.dto.LinkSearchOrder
 import com.qlink.link.dto.SearchLinksQuery
 import com.qlink.link.dto.SnippetResponse
 import com.qlink.link.dto.TodoCountsResponse
@@ -38,23 +38,16 @@ class GetLinksService(
         query: String?,
         folderId: Long?,
         isFavorite: Boolean? = null,
-        order: String,
+        orderKey: String? = null,
+        order: String? = null,
         scrollRequest: ScrollRequest,
     ): ScrollResponse<GetLinksContentResponse> =
         tx.readOnly {
             userRepository.emptyById(loginId).requireFalse(ErrorCode.LINK_OWNER_NOT_FOUND)
 
-            val normalizedOrder =
-                LinkSearchOrder.from(order.ifBlank { DEFAULT_LINK_SEARCH_ORDER })
-                    ?: throw BusinessException(ErrorCode.COMMON_INVALID_SORT_ORDER)
+            val sort = LinkSort.of(orderKey = orderKey, order = order)
             val keyword = SearchKeyword.of(query).takeUnless { it.isBlank }
-            val cursor =
-                scrollRequest.cursor
-                    ?.let { encoded ->
-                        SearchCursorCodec.decode<LinkSearchCursorValue>(encoded, normalizedOrder) { value, expectedOrder ->
-                            validateCursorValue(value = value, expectedOrder = expectedOrder, hasKeyword = keyword != null)
-                        }
-                    }?.withCreatedAt()
+            val cursor = scrollRequest.cursor?.let { decodeCursor(encoded = it, sort = sort, hasKeyword = keyword != null) }
             val size = scrollRequest.size.takeIf { it > 0 } ?: DEFAULT_SCROLL_SIZE
             val queries =
                 linkRepository.search(
@@ -62,7 +55,7 @@ class GetLinksService(
                     keyword = keyword,
                     folderId = folderId,
                     isFavorite = isFavorite,
-                    order = normalizedOrder,
+                    sort = sort,
                     cursor = cursor,
                     size = size,
                 )
@@ -100,43 +93,55 @@ class GetLinksService(
                     contents
                         .lastOrNull()
                         ?.takeIf { hasNext }
-                        ?.let { encodeCursor(query = it, order = normalizedOrder, hasKeyword = keyword != null) },
+                        ?.let { encodeCursor(query = it, sort = sort, hasKeyword = keyword != null) },
                 hasNext = hasNext,
             )
         }
 
+    private suspend fun decodeCursor(
+        encoded: String,
+        sort: LinkSort,
+        hasKeyword: Boolean,
+    ): LinkSearchCursor {
+        val cursor = Base64CursorCodec.decode<LinkSearchCursor>(encoded)
+        sort.validateCursor(orderKey = cursor.orderKey, direction = cursor.direction, order = cursor.order)
+        validateCursorValue(value = cursor.value, orderKey = sort.orderKey, hasKeyword = hasKeyword)
+
+        return cursor.withCreatedAt(sort.orderKey)
+    }
+
     private fun validateCursorValue(
         value: LinkSearchCursorValue,
-        expectedOrder: LinkSearchOrder,
+        orderKey: LinkOrderKey,
         hasKeyword: Boolean,
     ) {
         if (hasKeyword) {
             value.isMetadataMatched ?: throw BusinessException(ErrorCode.COMMON_CURSOR_FIELD_MISSING)
-            if (expectedOrder == LinkSearchOrder.SIMILAR) {
+            if (orderKey == LinkOrderKey.SIMILARITY) {
                 value.contentScore ?: throw BusinessException(ErrorCode.COMMON_CURSOR_FIELD_MISSING)
             }
         }
 
-        when (expectedOrder) {
-            LinkSearchOrder.LATEST, LinkSearchOrder.EARLIEST -> {
+        when (orderKey) {
+            LinkOrderKey.CREATED_AT -> {
                 value.id ?: throw BusinessException(ErrorCode.COMMON_CURSOR_FIELD_MISSING)
             }
 
-            LinkSearchOrder.LAXICO -> {
+            LinkOrderKey.TITLE -> {
                 value.title ?: throw BusinessException(ErrorCode.COMMON_CURSOR_FIELD_MISSING)
                 value.id ?: throw BusinessException(ErrorCode.COMMON_CURSOR_FIELD_MISSING)
             }
 
-            LinkSearchOrder.SIMILAR -> {
+            LinkOrderKey.SIMILARITY -> {
                 value.score ?: throw BusinessException(ErrorCode.COMMON_CURSOR_FIELD_MISSING)
                 value.id ?: throw BusinessException(ErrorCode.COMMON_CURSOR_FIELD_MISSING)
             }
         }
     }
 
-    private suspend fun LinkSearchCursor.withCreatedAt(): LinkSearchCursor =
+    private suspend fun LinkSearchCursor.withCreatedAt(orderKey: LinkOrderKey): LinkSearchCursor =
         when {
-            order !in CREATED_AT_ORDERS || value.createdAt != null -> {
+            orderKey != LinkOrderKey.CREATED_AT || value.createdAt != null -> {
                 this
             }
 
@@ -150,25 +155,28 @@ class GetLinksService(
 
     private fun encodeCursor(
         query: SearchLinksQuery,
-        order: LinkSearchOrder,
+        sort: LinkSort,
         hasKeyword: Boolean,
     ): String =
-        SearchCursorCodec.encode(
-            order = order,
-            value =
-                LinkSearchCursorValue(
-                    id = query.id,
-                    createdAt = query.createdAt,
-                    title = query.title,
-                    score = query.score,
-                    titleScore = query.titleScore,
-                    urlScore = query.urlScore,
-                    tagsScore = query.tagsScore,
-                    summaryScore = query.summaryScore,
-                    memoScore = query.memoScore,
-                    isMetadataMatched = query.isMetadataMatched.takeIf { hasKeyword },
-                    contentScore = query.contentScore.takeIf { hasKeyword },
-                ),
+        Base64CursorCodec.encode(
+            LinkSearchCursor(
+                orderKey = sort.orderKey,
+                direction = sort.direction,
+                value =
+                    LinkSearchCursorValue(
+                        id = query.id,
+                        createdAt = query.createdAt,
+                        title = query.title,
+                        score = query.score,
+                        titleScore = query.titleScore,
+                        urlScore = query.urlScore,
+                        tagsScore = query.tagsScore,
+                        summaryScore = query.summaryScore,
+                        memoScore = query.memoScore,
+                        isMetadataMatched = query.isMetadataMatched.takeIf { hasKeyword },
+                        contentScore = query.contentScore.takeIf { hasKeyword },
+                    ),
+            ),
         )
 
     private fun SearchLinksQuery.matchedFields(): List<MatchedField> =
@@ -205,5 +213,3 @@ class GetLinksService(
             completed = count { it.isCompleted },
         )
 }
-
-private val CREATED_AT_ORDERS = setOf(LinkSearchOrder.LATEST, LinkSearchOrder.EARLIEST)

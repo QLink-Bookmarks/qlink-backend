@@ -2,14 +2,12 @@
 
 package com.qlink.link.dto
 
-import com.qlink.common.search.SearchCursor
-import com.qlink.common.search.SearchOrder
+import com.qlink.common.search.SortCursor
+import com.qlink.link.domain.LinkOrderKey
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.domain.SourceType
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
-
-const val DEFAULT_LINK_SEARCH_ORDER = "latest"
 
 data class SearchLinksQuery(
     val id: Long,
@@ -79,9 +77,7 @@ data class LinkDetailQuery(
     val isContentPending: Boolean,
 )
 
-typealias LinkSearchOrder = SearchOrder
-
-typealias LinkSearchCursor = SearchCursor<LinkSearchCursorValue>
+typealias LinkSearchCursor = SortCursor<LinkOrderKey, LinkSearchCursorValue>
 
 @Serializable
 data class LinkSearchCursorValue(

@@ -11,6 +11,7 @@ import com.qlink.todo.dto.CompleteTodoRequest
 import com.qlink.todo.dto.CompleteTodoResponse
 import com.qlink.todo.dto.CreateTodoRequest
 import com.qlink.todo.dto.CreateTodoResponse
+import com.qlink.todo.dto.GetTodoCountsResponse
 import com.qlink.todo.dto.GetTodosContentResponse
 import com.qlink.todo.dto.UpdateTodoRequest
 import com.qlink.todo.dto.UpdateTodoResponse
@@ -20,8 +21,20 @@ import io.ktor.http.HttpStatusCode
 internal fun getTodosDocs(): RouteConfig.() -> Unit =
     {
         summary = "액션 목록 조회 API"
+        description =
+            "같은 정렬 값이면 id를 같은 방향으로 이어 정렬해요. " +
+            "reminder_at 정렬에서 알림 없는 액션, completed_at 정렬에서 미완료 액션은 방향과 무관하게 맨 뒤예요. " +
+            "status는 isCompleted·reminderAt과 함께 쓸 수 없어요."
         request {
-            queryParameter<String>("order") { description = "정렬 기준, 기본값: latest" }
+            queryParameter<String?>("status") {
+                description = "상태 필터 (active: 미완료이면서 기간지남 아님 / overdue: 미완료이면서 알림 시각 지남 / completed: 완료)"
+            }
+            queryParameter<String?>("orderKey") {
+                description = "정렬 기준 (reminder_at: 기본 asc / created_at: 기본 desc / completed_at: 기본 desc), 기본값: created_at"
+            }
+            queryParameter<String?>("order") {
+                description = "정렬 방향 (asc / desc). orderKey가 없을 때만 기존 latest(= created_at desc)도 받아요"
+            }
             queryParameter<String?>("cursor") { description = "페이지네이션 커서" }
             queryParameter<Int>("size") { description = "페이지 크기, 기본값: 50" }
             queryParameter<Boolean?>("isCompleted") { description = "완료 여부 필터" }
@@ -47,6 +60,25 @@ internal fun getTodosDocs(): RouteConfig.() -> Unit =
             authErrorResponse()
             code(HttpStatusCode.NotFound) {
                 description = "액션 목록 조회에 필요한 리소스 조회 실패"
+                body<ApiResponse<ErrorDetail>> {
+                    examples(ErrorCode.TODO_OWNER_NOT_FOUND)
+                }
+            }
+        }
+    }
+
+internal fun getTodoCountsDocs(): RouteConfig.() -> Unit =
+    {
+        summary = "액션 상태별 개수 조회 API"
+        description = "내 액션 전체를 같은 시각 기준으로 세요. all은 active, overdue, completed의 합이에요."
+        response {
+            code(HttpStatusCode.OK) {
+                description = "액션 상태별 개수 조회 성공"
+                body<ApiResponse<GetTodoCountsResponse>>()
+            }
+            authErrorResponse()
+            code(HttpStatusCode.NotFound) {
+                description = "액션 상태별 개수 조회에 필요한 리소스 조회 실패"
                 body<ApiResponse<ErrorDetail>> {
                     examples(ErrorCode.TODO_OWNER_NOT_FOUND)
                 }

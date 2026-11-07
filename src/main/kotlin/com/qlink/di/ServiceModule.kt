@@ -50,6 +50,7 @@ import com.qlink.post.service.GetPostsService
 import com.qlink.todo.service.CompleteTodoService
 import com.qlink.todo.service.CreateTodoService
 import com.qlink.todo.service.DeleteTodoService
+import com.qlink.todo.service.GetTodoCountsService
 import com.qlink.todo.service.GetTodosService
 import com.qlink.todo.service.UpdateTodoService
 import com.qlink.user.service.DeleteAccountService
@@ -473,6 +474,14 @@ fun serviceModule() =
 
         single {
             GetTodosService(
+                tx = get(),
+                todoRepository = get(),
+                userRepository = get(),
+            )
+        }
+
+        single {
+            GetTodoCountsService(
                 tx = get(),
                 todoRepository = get(),
                 userRepository = get(),

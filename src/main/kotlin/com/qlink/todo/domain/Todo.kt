@@ -48,6 +48,13 @@ class Todo(
 
     fun isOverdue(now: Instant): Boolean = !isCompleted && reminderAt?.let { it < now } == true
 
+    fun status(now: Instant): TodoStatus =
+        when {
+            isCompleted -> TodoStatus.COMPLETED
+            isOverdue(now) -> TodoStatus.OVERDUE
+            else -> TodoStatus.ACTIVE
+        }
+
     fun isDueSoon(now: Instant): Boolean = !isCompleted && reminderAt?.let { it >= now && it < now + 24.hours } == true
 
     fun validateOwner(ownerId: Long) {

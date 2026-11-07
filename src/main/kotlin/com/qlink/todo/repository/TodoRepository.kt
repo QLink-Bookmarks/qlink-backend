@@ -1,11 +1,12 @@
 package com.qlink.todo.repository
 
 import com.qlink.todo.domain.Todo
+import com.qlink.todo.domain.TodoSort
+import com.qlink.todo.domain.TodoStatus
 import com.qlink.todo.dto.LinkDetailTodoQuery
 import com.qlink.todo.dto.SearchTodosQuery
 import com.qlink.todo.dto.TodoReminderFilter
 import com.qlink.todo.dto.TodoSearchCursor
-import com.qlink.todo.dto.TodoSearchOrder
 import kotlin.time.Instant
 
 interface TodoRepository {
@@ -30,13 +31,19 @@ interface TodoRepository {
 
     suspend fun findAllByLinkIds(linkIds: List<Long>): List<Todo>
 
+    suspend fun findAllByOwnerId(ownerId: Long): List<Todo>
+
+    suspend fun findCreatedAtById(todoId: Long): Instant?
+
     suspend fun search(
         ownerId: Long,
-        order: TodoSearchOrder,
+        sort: TodoSort,
         cursor: TodoSearchCursor?,
         size: Int,
+        status: TodoStatus?,
         isCompleted: Boolean?,
         reminderAt: TodoReminderFilter?,
+        now: Instant,
     ): List<SearchTodosQuery>
 
     suspend fun update(todo: Todo): Todo
