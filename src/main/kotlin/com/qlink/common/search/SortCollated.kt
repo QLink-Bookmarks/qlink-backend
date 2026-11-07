@@ -4,7 +4,7 @@ import org.jetbrains.exposed.v1.core.ExpressionWithColumnType
 import org.jetbrains.exposed.v1.core.IColumnType
 import org.jetbrains.exposed.v1.core.QueryBuilder
 
-class KoreanCollated(
+class SortCollated(
     private val expression: ExpressionWithColumnType<String>,
 ) : ExpressionWithColumnType<String>() {
     override val columnType: IColumnType<String> = expression.columnType
@@ -13,6 +13,6 @@ class KoreanCollated(
         queryBuilder
             .append("(")
             .append(expression)
-            .append(" COLLATE \"ko-x-icu\")")
+            .append(" COLLATE app_sort)")
     }
 }

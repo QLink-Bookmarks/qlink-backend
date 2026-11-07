@@ -1,6 +1,6 @@
 package com.qlink.folder.repository
 
-import com.qlink.common.search.KoreanCollated
+import com.qlink.common.search.SortCollated
 import com.qlink.common.search.bigmSimilarity
 import com.qlink.common.search.doubleLiteral
 import com.qlink.common.search.longLiteral
@@ -263,9 +263,9 @@ class DbFolderRepository : FolderRepository {
             }
 
             FolderSearchOrder.LAXICO -> {
-                (KoreanCollated(Folders.name) greater (cursorValue.name ?: "")) or
+                (SortCollated(Folders.name) greater (cursorValue.name ?: "")) or
                     (
-                        (KoreanCollated(Folders.name) eq (cursorValue.name ?: "")) and
+                        (SortCollated(Folders.name) eq (cursorValue.name ?: "")) and
                             (Folders.id greater longLiteral(cursorValue.id ?: Long.MIN_VALUE))
                     )
             }
@@ -286,7 +286,7 @@ class DbFolderRepository : FolderRepository {
         when (order) {
             FolderSearchOrder.LATEST -> arrayOf(Folders.createdAt to SortOrder.DESC, Folders.id to SortOrder.DESC)
             FolderSearchOrder.EARLIEST -> arrayOf(Folders.createdAt to SortOrder.ASC, Folders.id to SortOrder.ASC)
-            FolderSearchOrder.LAXICO -> arrayOf(KoreanCollated(Folders.name) to SortOrder.ASC, Folders.id to SortOrder.ASC)
+            FolderSearchOrder.LAXICO -> arrayOf(SortCollated(Folders.name) to SortOrder.ASC, Folders.id to SortOrder.ASC)
             FolderSearchOrder.SIMILAR -> arrayOf(score to SortOrder.DESC, Folders.id to SortOrder.DESC)
         }
 

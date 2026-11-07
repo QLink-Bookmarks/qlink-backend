@@ -47,14 +47,14 @@ class GetFoldersServiceTest :
 
             beforeTest {
                 user = userRepository.insert(UserFixture.createRandomValidUser())
-                KOREAN_ORDER_FOLDER_NAMES.shuffled().forEach {
+                SORT_ORDER_FOLDER_NAMES.shuffled().forEach {
                     folderRepository.insert(FolderFixture.createFolderWith(ownerId = user.id!!, name = it))
                 }
             }
 
             suspend fun getLaxico(
                 cursor: String? = null,
-                size: Int = 10,
+                size: Int = 20,
             ): ScrollResponse<GetFoldersContentResponse> =
                 getFoldersService.getFolders(
                     loginId = user.id!!,
@@ -78,7 +78,7 @@ class GetFoldersServiceTest :
                 val get = suspend { getLaxico() }
 
                 Then("이름이 한국어 사전순이다") {
-                    get().contents.map { it.name } shouldBe KOREAN_ORDER_FOLDER_NAMES
+                    get().contents.map { it.name } shouldBe SORT_ORDER_FOLDER_NAMES
                 }
             }
 
@@ -88,7 +88,7 @@ class GetFoldersServiceTest :
                 Then("이어 붙인 결과가 한 번에 조회한 순서와 같고 빠지거나 겹친 폴더가 없다") {
                     val (expected, pages) = get()
 
-                    expected.map { it.name } shouldBe KOREAN_ORDER_FOLDER_NAMES
+                    expected.map { it.name } shouldBe SORT_ORDER_FOLDER_NAMES
                     pages.forEach { it.flatten() shouldBe expected.map { folder -> folder.id } }
                 }
             }
@@ -1152,4 +1152,5 @@ class GetFoldersServiceTest :
         }
     })
 
-private val KOREAN_ORDER_FOLDER_NAMES = listOf("3월 여행", "가계부", "업무", "하루", "Alpha", "beta", "zoo 폴더")
+private val SORT_ORDER_FOLDER_NAMES =
+    listOf("3월 여행", "10월 여행", "가계부", "업무", "하루", "Alpha", "beta", "zoo 폴더", "ノート", "旅行", "Москва")
