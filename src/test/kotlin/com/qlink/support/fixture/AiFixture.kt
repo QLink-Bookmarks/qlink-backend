@@ -9,7 +9,9 @@ import com.qlink.ai.domain.AiProviderType
 import com.qlink.ai.domain.AvailableModel
 import com.qlink.ai.dto.AiSummaryCompletion
 import com.qlink.ai.dto.AiSummarySnapshot
+import com.qlink.ai.dto.AiSummaryTodoRequest
 import com.qlink.link.domain.Link
+import com.qlink.todo.domain.RepeatDay
 import kotlin.random.Random
 import kotlin.time.Instant
 
@@ -91,6 +93,23 @@ object AiFixture {
                         ),
                     usedTokens = RandomFixture.randomInt(1, 1000),
                 ),
+        )
+
+    fun createAiSummaryTodoRequest(
+        title: String = RandomFixture.randomSentenceWithMax(50),
+        reminderAt: Instant? = RandomFixture.randomFutureInstantAfterTomorrow(),
+        repeatUntil: Instant? = null,
+        repeatDays: List<RepeatDay>? = null,
+        repeatTime: String? = null,
+        repeatTimezone: String? = null,
+    ): AiSummaryTodoRequest =
+        AiSummaryTodoRequest(
+            title = title,
+            reminderAt = reminderAt,
+            repeatUntil = repeatUntil,
+            repeatDays = repeatDays,
+            repeatTime = repeatTime,
+            repeatTimezone = repeatTimezone,
         )
 
     private fun randomAiProviderType(): AiProviderType = AiProviderType.entries[Random.nextInt(AiProviderType.entries.size)]

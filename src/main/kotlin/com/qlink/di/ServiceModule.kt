@@ -464,6 +464,8 @@ fun serviceModule() =
                 urlResolver = get(),
                 linkContentRepository = get(),
                 linkContentSignal = get(),
+                todoRepository = get(),
+                scheduleTodoNotificationService = get(),
             )
         }
 

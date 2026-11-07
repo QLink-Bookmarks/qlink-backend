@@ -97,6 +97,14 @@ internal fun updateLinkAiSummaryDocs(): RouteConfig.() -> Unit =
                         ErrorCode.LINK_TITLE_OVER_MAX,
                         ErrorCode.LINK_THUMBNAIL_URL_NOT_ALLOWED,
                         ErrorCode.LINK_FAVICON_URL_NOT_ALLOWED,
+                        ErrorCode.LINK_AI_EXISTING_LINK_CONTENT_NOT_ALLOWED,
+                        ErrorCode.TODO_TITLE_BLANK,
+                        ErrorCode.TODO_TITLE_OVER_MAX,
+                        ErrorCode.TODO_REPEAT_FIELDS_INCOMPLETE,
+                        ErrorCode.TODO_REPEAT_DAYS_EMPTY,
+                        ErrorCode.TODO_REPEAT_TIME_INVALID,
+                        ErrorCode.TODO_REPEAT_TIMEZONE_INVALID,
+                        ErrorCode.TODO_REMINDER_AT_INVALID,
                     )
                 }
             }

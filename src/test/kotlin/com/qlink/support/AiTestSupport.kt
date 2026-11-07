@@ -160,11 +160,12 @@ suspend fun insertAiContext(
     availableModelRepository: AvailableModelRepository,
     userProviderRepository: UserProviderRepository,
     role: Role = Role.NORMAL,
+    type: AiProviderType = AiProviderType.OPENAI,
 ): Pair<UserProvider, AvailableModel> {
     val provider =
         aiProviderRepository.insert(
             AiProvider(
-                type = AiProviderType.OPENAI,
+                type = type,
                 baseUrl = "https://example.com",
             ),
         )
