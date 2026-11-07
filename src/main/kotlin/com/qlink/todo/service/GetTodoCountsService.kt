@@ -7,7 +7,10 @@ import com.qlink.todo.domain.TodoStatus
 import com.qlink.todo.dto.GetTodoCountsResponse
 import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.repository.UserRepository
+import java.time.temporal.ChronoUnit
 import kotlin.time.Clock
+import kotlin.time.toJavaInstant
+import kotlin.time.toKotlinInstant
 
 class GetTodoCountsService(
     private val tx: TransactionRunner,
@@ -18,7 +21,12 @@ class GetTodoCountsService(
         tx.readOnly {
             userRepository.emptyById(loginId).requireFalse(ErrorCode.TODO_OWNER_NOT_FOUND)
 
-            val now = Clock.System.now()
+            val now =
+                Clock.System
+                    .now()
+                    .toJavaInstant()
+                    .truncatedTo(ChronoUnit.MICROS)
+                    .toKotlinInstant()
             val counts = todoRepository.findAllByOwnerId(loginId).groupingBy { it.status(now) }.eachCount()
 
             GetTodoCountsResponse(

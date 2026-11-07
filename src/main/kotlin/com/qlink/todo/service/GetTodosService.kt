@@ -19,7 +19,10 @@ import com.qlink.todo.dto.TodoSearchCursor
 import com.qlink.todo.dto.TodoSearchCursorValue
 import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.repository.UserRepository
+import java.time.temporal.ChronoUnit
 import kotlin.time.Clock
+import kotlin.time.toJavaInstant
+import kotlin.time.toKotlinInstant
 
 class GetTodosService(
     private val tx: TransactionRunner,
@@ -30,7 +33,7 @@ class GetTodosService(
         loginId: Long,
         status: String? = null,
         orderKey: String? = null,
-        order: String?,
+        order: String? = null,
         scrollRequest: ScrollRequest,
         isCompleted: Boolean?,
         reminderAt: String?,
@@ -43,7 +46,12 @@ class GetTodosService(
             val size = scrollRequest.size.takeIf { it > 0 } ?: DEFAULT_TODO_SCROLL_SIZE
             val statusFilter = status?.let { parseStatus(status = it, isCompleted = isCompleted, reminderAt = reminderAt) }
             val reminderFilter = reminderAt?.let { TodoReminderFilter.from(it) ?: throw BusinessException(ErrorCode.COMMON_INVALID_FILTER) }
-            val now = Clock.System.now()
+            val now =
+                Clock.System
+                    .now()
+                    .toJavaInstant()
+                    .truncatedTo(ChronoUnit.MICROS)
+                    .toKotlinInstant()
             val queries =
                 todoRepository.search(
                     ownerId = loginId,
@@ -58,10 +66,11 @@ class GetTodosService(
             val hasNext = queries.size > size
             val contents = queries.take(size)
             val statusById = todoRepository.findAllByIds(contents.map { it.id }).associate { it.id!! to it.status(now) }
+            val responses = contents.mapNotNull { query -> statusById[query.id]?.let { query.toResponse(it) } }
 
             ScrollResponse(
-                isEmpty = contents.isEmpty(),
-                contents = contents.map { it.toResponse(statusById.getValue(it.id)) },
+                isEmpty = responses.isEmpty(),
+                contents = responses,
                 nextCursor = contents.lastOrNull()?.takeIf { hasNext }?.let { encodeCursor(query = it, sort = sort) },
                 hasNext = hasNext,
             )

@@ -5,9 +5,9 @@ import com.qlink.common.search.SortDirection
 enum class TodoOrderKey(
     val defaultDirection: SortDirection,
 ) {
-    REMINDER_AT(SortDirection.ASC),
-    CREATED_AT(SortDirection.DESC),
-    COMPLETED_AT(SortDirection.DESC),
+    REMINDER_AT(defaultDirection = SortDirection.ASC),
+    CREATED_AT(defaultDirection = SortDirection.DESC),
+    COMPLETED_AT(defaultDirection = SortDirection.DESC),
     ;
 
     companion object {

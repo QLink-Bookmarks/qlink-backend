@@ -18,6 +18,7 @@ import com.qlink.support.fixture.UserFixture
 import com.qlink.support.koinGet
 import com.qlink.support.truncatedToSecond
 import com.qlink.todo.domain.RepeatDay
+import com.qlink.todo.domain.Todo
 import com.qlink.todo.domain.TodoOrderKey
 import com.qlink.todo.domain.TodoStatus
 import com.qlink.todo.dto.GetTodosContentResponse
@@ -666,10 +667,15 @@ class GetTodosServiceTest :
                 val todos = insertMixedTodos()
                 val expected = getTodos(ownerId = todos.ownerId, orderKey = "reminder_at", order = "desc").ids()
                 val pages = allPages(ownerId = todos.ownerId, orderKey = "reminder_at", order = "desc", size = 6)
+                val pagesBySize =
+                    listOf(1, 2, 3, 5).map { size ->
+                        allPages(ownerId = todos.ownerId, orderKey = "reminder_at", order = "desc", size = size)
+                    }
 
                 Then("다음 페이지가 알림 없는 구간에서 겹치거나 빠지지 않고 이어진다") {
                     pages.first().last() shouldBe todos.withoutReminder.max()
                     pages.flatten() shouldContainExactly expected
+                    pagesBySize.forEach { it.flatten() shouldContainExactly expected }
                 }
             }
 
@@ -724,6 +730,36 @@ class GetTodosServiceTest :
                     shouldThrowWithMessage<BusinessException>(ErrorCode.COMMON_CURSOR_FIELD_MISSING.message) {
                         get()
                     }
+                }
+            }
+        }
+
+        Given("목록을 읽은 뒤 상태를 정하기 전에 다른 기기에서 지운 액션") {
+            When("조회하면") {
+                val todos = insertMixedTodos()
+                val deletedId = todos.createdAtDesc.first()
+                val racingService =
+                    GetTodosService(
+                        tx = koinGet(),
+                        todoRepository =
+                            object : TodoRepository by todoRepository {
+                                override suspend fun findAllByIds(todoIds: List<Long>): List<Todo> {
+                                    todoRepository.deleteById(deletedId)
+                                    return todoRepository.findAllByIds(todoIds)
+                                }
+                            },
+                        userRepository = userRepository,
+                    )
+                val actual =
+                    racingService.getTodos(
+                        loginId = todos.ownerId,
+                        scrollRequest = ScrollRequest(size = 50),
+                        isCompleted = null,
+                        reminderAt = null,
+                    )
+
+                Then("지운 액션만 빠지고 나머지는 그대로 나온다") {
+                    actual.ids() shouldContainExactly todos.createdAtDesc.drop(1)
                 }
             }
         }

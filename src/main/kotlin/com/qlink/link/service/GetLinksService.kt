@@ -39,7 +39,7 @@ class GetLinksService(
         folderId: Long?,
         isFavorite: Boolean? = null,
         orderKey: String? = null,
-        order: String?,
+        order: String? = null,
         scrollRequest: ScrollRequest,
     ): ScrollResponse<GetLinksContentResponse> =
         tx.readOnly {
