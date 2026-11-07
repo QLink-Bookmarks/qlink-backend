@@ -19,6 +19,7 @@ import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.domain.SourceType
 import com.qlink.link.repository.LinkRepository
+import com.qlink.link.worker.LinkPreviewFillSignal
 import com.qlink.linkcontent.domain.ContentPriority
 import com.qlink.linkcontent.domain.LinkContent
 import com.qlink.linkcontent.domain.service.LinkContentPlanDomainService
@@ -49,6 +50,7 @@ class UpdateLinkAiSummaryService(
     private val urlResolver: PreviewImageUrlResolver,
     private val linkContentRepository: LinkContentRepository,
     private val linkContentSignal: LinkContentSignal,
+    private val linkPreviewFillSignal: LinkPreviewFillSignal,
     private val todoRepository: TodoRepository,
     private val scheduleTodoNotificationService: ScheduleTodoNotificationService,
 ) {
@@ -143,10 +145,12 @@ class UpdateLinkAiSummaryService(
                 UpdateLinkAiSummaryResult(
                     job = createdJob,
                     createdTodos = createdTodos,
+                    previewFillLinkId = link.id.takeUnless { request.id != null || link.hasPreview },
                 )
             }
 
         linkContentSignal.wake()
+        result.previewFillLinkId?.let(linkPreviewFillSignal::wake)
         dispatcher.dispatch(result.job.id!!)
         result.createdTodos.forEach { scheduleTodoNotificationService.createForTodo(it) }
 
@@ -156,6 +160,7 @@ class UpdateLinkAiSummaryService(
     private data class UpdateLinkAiSummaryResult(
         val job: AiJob,
         val createdTodos: List<Todo>,
+        val previewFillLinkId: Long?,
     )
 
     private fun AiSummaryTodoRequest.toTodo(

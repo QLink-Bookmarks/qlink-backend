@@ -2,6 +2,7 @@ package com.qlink.link.service
 
 import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
+import com.qlink.common.transaction.TransactionRunner
 import com.qlink.folder.domain.Folder
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.foldermember.repository.FolderMemberRepository
@@ -10,12 +11,14 @@ import com.qlink.link.dto.CreateLinkRequest
 import com.qlink.link.dto.CreateLinkTodoRequest
 import com.qlink.link.repository.LinkRepository
 import com.qlink.link.service.CreateLinkService
+import com.qlink.link.worker.LinkPreviewFillSignal
 import com.qlink.linkcontent.domain.ContentPriority
 import com.qlink.linkcontent.domain.ContentStatus
 import com.qlink.linkcontent.repository.LinkContentRepository
 import com.qlink.notification.domain.NotificationContext
 import com.qlink.notification.repository.NotificationRepository
 import com.qlink.support.BaseServiceTest
+import com.qlink.support.drainLinkIds
 import com.qlink.support.fixture.FolderFixture
 import com.qlink.support.fixture.FolderMemberFixture
 import com.qlink.support.fixture.LinkFixture
@@ -28,9 +31,14 @@ import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.domain.User
 import com.qlink.user.repository.UserRepository
 import io.kotest.assertions.throwables.shouldThrowWithMessage
+import io.kotest.core.test.TestType
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import java.util.concurrent.TimeUnit
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
@@ -47,6 +55,24 @@ class CreateLinkServiceTest :
         val todoRepository = koinGet<TodoRepository>()
         val notificationRepository = koinGet<NotificationRepository>()
         val linkContentRepository = koinGet<LinkContentRepository>()
+        val previewFillSignal = koinGet<LinkPreviewFillSignal>()
+        val tx = koinGet<TransactionRunner>()
+
+        suspend fun <T> withCommittedUser(block: suspend (User) -> T): T =
+            CoroutineScope(Dispatchers.IO)
+                .async {
+                    val owner = tx.required { userRepository.insert(UserFixture.createRandomValidUser()) }
+                    try {
+                        block(owner)
+                    } finally {
+                        tx.required { userRepository.deleteById(owner.id!!) }
+                    }
+                }.await()
+
+        suspend fun committedLinkUrlsOf(ownerId: Long): List<String> =
+            CoroutineScope(Dispatchers.IO)
+                .async { tx.readOnly { linkRepository.findAllUrlsByOwnerId(ownerId) } }
+                .await()
 
         Given("링크 생성 서비스 테스트") {
             lateinit var user: User
@@ -296,6 +322,115 @@ class CreateLinkServiceTest :
                     shouldThrowWithMessage<BusinessException>(ErrorCode.TODO_TITLE_BLANK.message) {
                         create()
                     }
+                }
+            }
+        }
+
+        Given("로그인한 사용자") {
+            lateinit var user: User
+
+            beforeTest {
+                if (it.type != TestType.Test) return@beforeTest
+                previewFillSignal.drainLinkIds()
+                user = userRepository.insert(UserFixture.createRandomValidUser())
+            }
+
+            When("썸네일·파비콘 없이 링크를 만들면") {
+                val request =
+                    CreateLinkRequest(
+                        url = RandomFixture.randomUrl(),
+                        title = RandomFixture.randomSentenceWithMax(300),
+                        sourceType = LinkFixture.randomRequestSourceType(),
+                        tags = RandomFixture.randomSentenceList(),
+                    )
+                val create =
+                    suspend {
+                        createLinkService.createLink(user.id!!, request)
+                    }
+
+                Then("링크가 둘 다 비어 저장되고 채우기 시그널에 그 링크 id가 하나 들어온다") {
+                    val created = create()
+                    val actual = linkRepository.findById(created.id)
+
+                    actual shouldNotBe null
+                    actual!!.thumbnailUrl shouldBe null
+                    actual.faviconUrl shouldBe null
+                    previewFillSignal.drainLinkIds() shouldContainExactly listOf(created.id)
+                }
+            }
+
+            When("썸네일만 보내 링크를 만들면") {
+                val request =
+                    CreateLinkRequest(
+                        url = RandomFixture.randomUrl(),
+                        title = RandomFixture.randomSentenceWithMax(300),
+                        sourceType = LinkFixture.randomRequestSourceType(),
+                        thumbnailUrl = LinkFixture.validPreviewUrlOf(urlResolver),
+                        tags = RandomFixture.randomSentenceList(),
+                    )
+                val create =
+                    suspend {
+                        createLinkService.createLink(user.id!!, request)
+                    }
+
+                Then("채우기 시그널에 id가 들어오지 않는다") {
+                    create()
+
+                    previewFillSignal.drainLinkIds().shouldBeEmpty()
+                }
+            }
+
+            When("파비콘만 보내 링크를 만들면") {
+                val request =
+                    CreateLinkRequest(
+                        url = RandomFixture.randomUrl(),
+                        title = RandomFixture.randomSentenceWithMax(300),
+                        sourceType = LinkFixture.randomRequestSourceType(),
+                        faviconUrl = LinkFixture.validPreviewUrlOf(urlResolver, kind = "favicon"),
+                        tags = RandomFixture.randomSentenceList(),
+                    )
+                val create =
+                    suspend {
+                        createLinkService.createLink(user.id!!, request)
+                    }
+
+                Then("채우기 시그널에 id가 들어오지 않는다") {
+                    create()
+
+                    previewFillSignal.drainLinkIds().shouldBeEmpty()
+                }
+            }
+        }
+
+        Given("커밋된 로그인한 사용자") {
+            beforeTest {
+                if (it.type != TestType.Test) return@beforeTest
+                previewFillSignal.drainLinkIds()
+            }
+
+            When("썸네일·파비콘 없이 보냈지만 트랜잭션 안에서 실패하면") {
+                val create =
+                    suspend {
+                        withCommittedUser { owner ->
+                            val request =
+                                CreateLinkRequest(
+                                    url = RandomFixture.randomUrl(),
+                                    title = RandomFixture.randomSentenceWithMax(300),
+                                    sourceType = LinkFixture.randomRequestSourceType(),
+                                    tags = RandomFixture.randomSentenceList(),
+                                    todos = listOf(CreateLinkTodoRequest(title = " ")),
+                                )
+                            val result = runCatching { createLinkService.createLink(owner.id!!, request) }
+                            result to committedLinkUrlsOf(owner.id!!)
+                        }
+                    }
+
+                Then("링크가 저장되지 않고 채우기 시그널에 id가 들어오지 않는다") {
+                    val (result, committedUrls) = create()
+
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.TODO_TITLE_BLANK.message) { result.getOrThrow() }
+                    committedUrls.shouldBeEmpty()
+                    previewFillSignal.drainLinkIds().shouldBeEmpty()
                 }
             }
         }
