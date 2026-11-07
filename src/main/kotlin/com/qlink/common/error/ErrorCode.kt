@@ -61,6 +61,7 @@ enum class ErrorCode(
     LINK_FAVICON_URL_NOT_ALLOWED("LINK_400_0010", 400, "허용되지 않는 파비콘 URL이에요"),
     LINK_PREVIEW_URL_INVALID("LINK_400_0008", 400, "프리뷰 URL이 올바르지 않아요"),
     LINK_SOURCE_TYPE_NOT_ALLOWED("LINK_400_0011", 400, "직접 지정할 수 없는 출처 유형이에요"),
+    LINK_AI_EXISTING_LINK_CONTENT_NOT_ALLOWED("LINK_400_0012", 400, "기존 링크의 AI 정리 요청에는 메모와 액션을 보낼 수 없어요"),
 
     LINK_DIFFERENT_OWNER("LINK_403_0001", 403, "링크에 대한 권한이 없어요"),
 

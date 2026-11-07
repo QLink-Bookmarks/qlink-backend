@@ -34,11 +34,11 @@ class CompleteAiSummaryService(
     private val log: Logger,
 ) {
     suspend fun complete(completion: AiSummaryCompletion): AiSummaryCompletionResult {
-        val (createdTodos, folderKeptAfterMove) =
+        val applied =
             tx.required {
                 val snapshot = completion.snapshot
                 // Discover the owner only; all decisions use the subsequently locked facts.
-                val observedLink = linkRepository.findById(snapshot.linkId) ?: return@required (emptyList<Todo>() to false)
+                val observedLink = linkRepository.findById(snapshot.linkId) ?: return@required null
                 val folders =
                     folderRepository.findAllByIdsForUpdate(
                         listOfNotNull(completion.candidateFolderId),
@@ -52,8 +52,8 @@ class CompleteAiSummaryService(
                         )
                     }
                 // Never acquire another folder lock after taking the link lock.
-                val link = linkRepository.findByIdForUpdate(snapshot.linkId) ?: return@required (emptyList<Todo>() to false)
-                val job = aiJobRepository.findById(snapshot.jobId) ?: return@required (emptyList<Todo>() to false)
+                val link = linkRepository.findByIdForUpdate(snapshot.linkId) ?: return@required null
+                val job = aiJobRepository.findById(snapshot.jobId) ?: return@required null
                 val folderId =
                     LinkAiFolderDomainService.resolve(
                         link = link,
@@ -125,18 +125,39 @@ class CompleteAiSummaryService(
                             ),
                         )
                     }
-                todos to link.hasFolderChangedSince(snapshot.folderId)
-            }
+                AppliedAiSummary(
+                    createdTodos = todos,
+                    folderKeptAfterMove = link.hasFolderChangedSince(snapshot.folderId),
+                )
+            } ?: return AiSummaryCompletionResult()
 
         // A scheduling failure after commit must not turn a successful AI result into a failed job.
         return try {
-            createdTodos.forEach { scheduleTodoNotificationService.createForTodo(it) }
-            AiSummaryCompletionResult(folderKeptAfterMove = folderKeptAfterMove)
+            applied.createdTodos.forEach { scheduleTodoNotificationService.createForTodo(it) }
+            rescheduleOtherTodos(linkId = completion.snapshot.linkId, createdTodos = applied.createdTodos)
+            AiSummaryCompletionResult(folderKeptAfterMove = applied.folderKeptAfterMove)
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
             log.warn("[AI_SUMMARY] Todo notification scheduling failed after completion. jobId=${completion.snapshot.jobId}", error)
-            AiSummaryCompletionResult(schedulingFailed = true, folderKeptAfterMove = folderKeptAfterMove)
+            AiSummaryCompletionResult(schedulingFailed = true, folderKeptAfterMove = applied.folderKeptAfterMove)
         }
     }
+
+    private suspend fun rescheduleOtherTodos(
+        linkId: Long,
+        createdTodos: List<Todo>,
+    ) {
+        val createdTodoIds = createdTodos.map { it.id }
+
+        tx
+            .readOnly { todoRepository.findAllByLinkId(linkId) }
+            .filterNot { it.id in createdTodoIds }
+            .forEach { scheduleTodoNotificationService.replaceForTodo(it) }
+    }
+
+    private data class AppliedAiSummary(
+        val createdTodos: List<Todo>,
+        val folderKeptAfterMove: Boolean,
+    )
 }

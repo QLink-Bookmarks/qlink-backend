@@ -1,5 +1,6 @@
 package com.qlink.ai.service
 
+import com.qlink.ai.client.AiSummaryTodo
 import com.qlink.ai.domain.AiJobStatus
 import com.qlink.ai.domain.DailyUsage
 import com.qlink.ai.dto.AiSummaryCompletion
@@ -20,6 +21,8 @@ import com.qlink.link.repository.LinkRepository
 import com.qlink.notification.domain.Notification
 import com.qlink.notification.domain.NotificationContext
 import com.qlink.notification.repository.NotificationRepository
+import com.qlink.notification.service.ScheduleTodoNotificationService
+import com.qlink.notification.worker.TaskScheduler
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.AiFixture
 import com.qlink.support.fixture.FolderFixture
@@ -27,19 +30,23 @@ import com.qlink.support.fixture.FolderMemberFixture
 import com.qlink.support.fixture.LinkFixture
 import com.qlink.support.fixture.NotificationFixture
 import com.qlink.support.fixture.RandomFixture
+import com.qlink.support.fixture.TodoFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.insertAiContext
 import com.qlink.support.koinGet
 import com.qlink.support.searchTextOf
+import com.qlink.todo.domain.Todo
 import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.repository.UserRepository
 import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.core.test.TestType
+import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.slf4j.LoggerFactory
 import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlin.time.Clock
@@ -350,6 +357,212 @@ class CompleteAiSummaryServiceTest :
                 Then("내용 변경을 이동으로 오인하지 않고 유효 후보를 적용한다") {
                     shouldNotThrow<BusinessException> { complete() }
                     assertCompletedIn(candidate.id)
+                }
+            }
+        }
+
+        Given("메모와 입력한 액션이 있는 생성 중 링크와 진행 중인 AI 작업") {
+            lateinit var link: Link
+            lateinit var reminderTodo: Todo
+            lateinit var plainTodo: Todo
+            lateinit var candidate: Folder
+            lateinit var completion: AiSummaryCompletion
+
+            beforeTest {
+                if (it.type != TestType.Test) return@beforeTest
+                val user = userRepository.insert(UserFixture.createRandomValidUser())
+                val (provider, model) =
+                    insertAiContext(
+                        userId = user.id!!,
+                        aiProviderRepository = koinGet<AiProviderRepository>(),
+                        availableModelRepository = koinGet<AvailableModelRepository>(),
+                        userProviderRepository = koinGet<UserProviderRepository>(),
+                    )
+                link =
+                    linkRepository.insert(
+                        LinkFixture.createRandomLinkOf(
+                            ownerId = user.id!!,
+                            memo = RandomFixture.randomSentenceWithMax(1000),
+                            status = LinkStatus.G,
+                            workModelId = model.id,
+                            thumbnailUrl = LinkFixture.validPreviewUrlOf(resolver),
+                        ),
+                    )
+                reminderTodo =
+                    todoRepository.insert(
+                        TodoFixture.createRandomTodoOf(
+                            linkId = link.id!!,
+                            ownerId = user.id!!,
+                            reminderAt = RandomFixture.randomFutureInstantAfterTomorrow(),
+                        ),
+                    )
+                plainTodo =
+                    todoRepository.insert(
+                        TodoFixture.createRandomTodoOf(linkId = link.id!!, ownerId = user.id!!, reminderAt = null),
+                    )
+                notificationRepository.insert(
+                    Notification.todo(todo = reminderTodo, linkTitle = link.title, linkUrl = link.url)!!,
+                )
+                val job =
+                    jobRepository.insert(
+                        AiFixture.createPendingAiJobOf(link = link, userProviderId = provider.id!!, modelId = model.id!!),
+                    )
+                candidate = folderRepository.insert(FolderFixture.createValidUnsharedFolder(user.id!!))
+                completion = AiFixture.createAiSummaryCompletionOf(job = job, link = link, candidateFolderId = candidate.id)
+            }
+
+            fun serviceWith(notificationRepository: NotificationRepository): CompleteAiSummaryService =
+                CompleteAiSummaryService(
+                    tx = koinGet(),
+                    aiJobRepository = jobRepository,
+                    dailyUsageRepository = usageRepository,
+                    folderRepository = folderRepository,
+                    folderMemberRepository = memberRepository,
+                    linkRepository = linkRepository,
+                    todoRepository = todoRepository,
+                    scheduleTodoNotificationService =
+                        ScheduleTodoNotificationService(
+                            tx = koinGet(),
+                            notificationRepository = notificationRepository,
+                            linkRepository = linkRepository,
+                            taskScheduler = koinGet<TaskScheduler>(),
+                        ),
+                    urlResolver = resolver,
+                    log = LoggerFactory.getLogger(CompleteAiSummaryService::class.java),
+                )
+
+            fun completionWithTodos(todos: List<AiSummaryTodo>): AiSummaryCompletion =
+                completion.copy(response = completion.response.copy(todos = todos))
+
+            suspend fun inputTodos(): List<Todo> =
+                todoRepository.findAllByLinkId(link.id!!).filter { it.id == reminderTodo.id || it.id == plainTodo.id }
+
+            suspend fun aiTodos(): List<Todo> =
+                todoRepository.findAllByLinkId(link.id!!).filterNot { it.id == reminderTodo.id || it.id == plainTodo.id }
+
+            suspend fun pendingOf(todo: Todo): List<Notification> =
+                notificationRepository.findPendingByContext(context = NotificationContext.TODO, contextId = todo.id!!)
+
+            When("AI 결과가 액션을 만들면") {
+                val complete = suspend { service.complete(completion) }
+                Then("링크는 AI 결과로 바뀌고 메모와 입력한 액션은 그대로이며 AI 액션이 더해진다") {
+                    complete()
+                    val actual = linkRepository.findById(link.id!!)!!
+                    actual.title shouldBe completion.response.title
+                    actual.summary shouldBe completion.response.summary
+                    actual.tags shouldBe completion.response.tags.distinct()
+                    actual.folderId shouldBe candidate.id
+                    actual.status shouldBe LinkStatus.A
+                    actual.memo shouldBe link.memo
+                    inputTodos().map {
+                        listOf(
+                            it.id,
+                            it.title,
+                            it.reminderAt,
+                            it.repeatUntil,
+                            it.repeatDays,
+                            it.repeatTime,
+                        )
+                    } shouldContainExactlyInAnyOrder
+                        listOf(
+                            reminderTodo,
+                            plainTodo,
+                        ).map { listOf(it.id, it.title, it.reminderAt, it.repeatUntil, it.repeatDays, it.repeatTime) }
+                    aiTodos().map { it.title } shouldBe completion.response.todos.map { it.title }
+                }
+            }
+
+            When("AI 액션 제목이 입력한 액션과 같으면") {
+                val sameTitleCompletion =
+                    suspend {
+                        completionWithTodos(listOf(AiSummaryTodo(title = reminderTodo.title, reminderAt = null)))
+                    }
+                Then("두 액션이 모두 남는다") {
+                    service.complete(sameTitleCompletion())
+                    todoRepository.findAllByLinkId(link.id!!).count { it.title == reminderTodo.title } shouldBe 2
+                }
+            }
+
+            When("완료하면") {
+                val complete = suspend { service.complete(completion) }
+                Then("알림 시각이 있는 입력 액션의 대기 알림이 AI 결과 제목으로 하나 있고 알림 시각 없는 액션엔 알림이 없다") {
+                    val result = complete()
+                    val pending = pendingOf(reminderTodo)
+                    pending shouldHaveSize 1
+                    pending.single().willFireAt shouldBe reminderTodo.reminderAt
+                    pending.single().message shouldBe
+                        Notification.todo(todo = reminderTodo, linkTitle = completion.response.title, linkUrl = link.url)!!.message
+                    pendingOf(plainTodo) shouldHaveSize 0
+                    result.schedulingFailed shouldBe false
+                }
+            }
+
+            When("완료 뒤 알림을 다시 만들면") {
+                val replacedTodoIds = mutableListOf<Long>()
+                val spyService =
+                    serviceWith(
+                        object : NotificationRepository by notificationRepository {
+                            override suspend fun deletePendingByContext(
+                                context: NotificationContext,
+                                contextId: Long,
+                            ): List<Long> {
+                                replacedTodoIds.add(contextId)
+                                return notificationRepository.deletePendingByContext(context = context, contextId = contextId)
+                            }
+                        },
+                    )
+                val complete = suspend { spyService.complete(completion) }
+                Then("이번 AI 액션의 대기 알림은 하나뿐이고 다시 만드는 대상에서 빠진다") {
+                    replacedTodoIds.clear()
+                    complete()
+                    val aiTodo = aiTodos().single()
+                    pendingOf(aiTodo) shouldHaveSize 1
+                    replacedTodoIds shouldContainExactlyInAnyOrder listOf(reminderTodo.id!!, plainTodo.id!!)
+                }
+            }
+
+            When("AI 결과에 액션이 없으면") {
+                val complete = suspend { service.complete(completionWithTodos(emptyList())) }
+                Then("입력한 액션의 대기 알림이 AI 결과 제목으로 다시 만들어진다") {
+                    complete()
+                    aiTodos() shouldHaveSize 0
+                    pendingOf(reminderTodo).single().message shouldBe
+                        Notification.todo(todo = reminderTodo, linkTitle = completion.response.title, linkUrl = link.url)!!.message
+                }
+            }
+
+            When("입력한 액션의 알림 재예약이 실패하면") {
+                val failingService =
+                    serviceWith(
+                        object : NotificationRepository by notificationRepository {
+                            override suspend fun deletePendingByContext(
+                                context: NotificationContext,
+                                contextId: Long,
+                            ): List<Long> = throw IllegalStateException("replace failed")
+                        },
+                    )
+                val complete = suspend { failingService.complete(completion) }
+                Then("링크 AI 결과와 AI 액션은 저장되고 schedulingFailed가 true다") {
+                    val result = complete()
+                    result.schedulingFailed shouldBe true
+                    linkRepository.findById(link.id!!)!!.status shouldBe LinkStatus.A
+                    aiTodos().map { it.title } shouldBe completion.response.todos.map { it.title }
+                    pendingOf(aiTodos().single()) shouldHaveSize 1
+                }
+            }
+
+            When("링크는 있지만 작업만 먼저 삭제되면") {
+                beforeTest {
+                    if (it.type != TestType.Test) return@beforeTest
+                    AiJobs.deleteWhere { AiJobs.id eq completion.snapshot.jobId }
+                }
+                val complete = suspend { service.complete(completion) }
+                Then("메모와 입력한 액션, 그 대기 알림 문구가 그대로다") {
+                    complete()
+                    linkRepository.findById(link.id!!)!!.memo shouldBe link.memo
+                    inputTodos() shouldHaveSize 2
+                    pendingOf(reminderTodo).single().message shouldBe
+                        Notification.todo(todo = reminderTodo, linkTitle = link.title, linkUrl = link.url)!!.message
                 }
             }
         }

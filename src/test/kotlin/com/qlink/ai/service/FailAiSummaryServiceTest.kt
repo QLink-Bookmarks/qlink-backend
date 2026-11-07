@@ -11,16 +11,22 @@ import com.qlink.folder.repository.FolderRepository
 import com.qlink.link.domain.Link
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.repository.LinkRepository
+import com.qlink.notification.domain.Notification
+import com.qlink.notification.domain.NotificationContext
+import com.qlink.notification.repository.NotificationRepository
 import com.qlink.support.BaseServiceTest
 import com.qlink.support.fixture.AiFixture
 import com.qlink.support.fixture.FolderFixture
 import com.qlink.support.fixture.LinkFixture
 import com.qlink.support.fixture.RandomFixture
+import com.qlink.support.fixture.TodoFixture
 import com.qlink.support.fixture.UserFixture
 import com.qlink.support.insertAiContext
 import com.qlink.support.koinGet
 import com.qlink.support.searchTextOf
 import com.qlink.support.truncatedToSecond
+import com.qlink.todo.domain.Todo
+import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.repository.UserRepository
 import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.core.test.TestType
@@ -35,6 +41,8 @@ class FailAiSummaryServiceTest :
         val folderRepository = koinGet<FolderRepository>()
         val linkRepository = koinGet<LinkRepository>()
         val jobRepository = koinGet<AiJobRepository>()
+        val todoRepository = koinGet<TodoRepository>()
+        val notificationRepository = koinGet<NotificationRepository>()
 
         Given("진행 중인 요약 작업과 링크") {
             lateinit var link: Link
@@ -129,6 +137,74 @@ class FailAiSummaryServiceTest :
 
                     linkRepository.findById(link.id!!) shouldBe null
                     jobRepository.findById(job.id!!) shouldBe null
+                }
+            }
+        }
+
+        Given("메모와 입력한 액션이 있는 생성 중 링크와 진행 중인 요약 작업") {
+            lateinit var link: Link
+            lateinit var job: AiJob
+            lateinit var todo: Todo
+            lateinit var notification: Notification
+
+            beforeTest {
+                if (it.type != TestType.Test) return@beforeTest
+                val user = userRepository.insert(UserFixture.createRandomValidUser())
+                val (provider, model) =
+                    insertAiContext(
+                        userId = user.id!!,
+                        aiProviderRepository = koinGet<AiProviderRepository>(),
+                        availableModelRepository = koinGet<AvailableModelRepository>(),
+                        userProviderRepository = koinGet<UserProviderRepository>(),
+                    )
+                link =
+                    linkRepository.insert(
+                        LinkFixture.createRandomLinkOf(
+                            ownerId = user.id!!,
+                            memo = RandomFixture.randomSentenceWithMax(1000),
+                            status = LinkStatus.G,
+                            workModelId = model.id,
+                        ),
+                    )
+                todo =
+                    todoRepository.insert(
+                        TodoFixture.createRandomTodoOf(
+                            linkId = link.id!!,
+                            ownerId = user.id!!,
+                            reminderAt = RandomFixture.randomFutureInstantAfterTomorrow(),
+                        ),
+                    )
+                notification =
+                    notificationRepository.insert(
+                        Notification.todo(todo = todo, linkTitle = link.title, linkUrl = link.url)!!,
+                    )
+                job =
+                    jobRepository.insert(
+                        AiFixture.createPendingAiJobOf(link = link, userProviderId = provider.id!!, modelId = model.id!!),
+                    )
+            }
+
+            When("실패를 저장하면") {
+                val fail =
+                    suspend {
+                        service.fail(jobId = job.id!!, reason = RandomFixture.randomSentenceWithMax(200), now = Clock.System.now())
+                    }
+
+                Then("링크는 실패 상태가 되고 메모와 입력한 액션, 대기 알림 문구·시각이 그대로다") {
+                    fail()
+                    val actual = linkRepository.findById(link.id!!)!!
+                    val actualTodo = todoRepository.findAllByLinkId(link.id!!).single()
+                    val pending = notificationRepository.findPendingByContext(context = NotificationContext.TODO, contextId = todo.id!!)
+
+                    actual.status shouldBe LinkStatus.F
+                    actual.title shouldBe "AI 생성 실패 - ${URI(link.url).host}"
+                    actual.memo shouldBe link.memo
+                    actualTodo.id shouldBe todo.id
+                    actualTodo.title shouldBe todo.title
+                    actualTodo.reminderAt shouldBe todo.reminderAt
+                    pending.map { it.id } shouldBe listOf(notification.id)
+                    pending.single().message shouldBe notification.message
+                    pending.single().willFireAt shouldBe notification.willFireAt
                 }
             }
         }

@@ -3,6 +3,7 @@ package com.qlink.ai.service
 import com.qlink.ai.domain.AiJob
 import com.qlink.ai.dto.AiSummaryRequest
 import com.qlink.ai.dto.AiSummaryResponse
+import com.qlink.ai.dto.AiSummaryTodoRequest
 import com.qlink.ai.repository.AiJobRepository
 import com.qlink.ai.repository.AvailableModelRepository
 import com.qlink.ai.repository.UserProviderRepository
@@ -23,6 +24,9 @@ import com.qlink.linkcontent.domain.LinkContent
 import com.qlink.linkcontent.domain.service.LinkContentPlanDomainService
 import com.qlink.linkcontent.repository.LinkContentRepository
 import com.qlink.linkcontent.worker.LinkContentSignal
+import com.qlink.notification.service.ScheduleTodoNotificationService
+import com.qlink.todo.domain.Todo
+import com.qlink.todo.repository.TodoRepository
 import com.qlink.user.repository.UserRepository
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.buildJsonArray
@@ -45,13 +49,17 @@ class UpdateLinkAiSummaryService(
     private val urlResolver: PreviewImageUrlResolver,
     private val linkContentRepository: LinkContentRepository,
     private val linkContentSignal: LinkContentSignal,
+    private val todoRepository: TodoRepository,
+    private val scheduleTodoNotificationService: ScheduleTodoNotificationService,
 ) {
     suspend fun updateLinkAiSummary(
         loginId: Long,
         request: AiSummaryRequest,
     ): AiSummaryResponse {
-        val createdJob =
+        val result =
             tx.required {
+                (request.id != null && (request.memo != null || !request.todos.isNullOrEmpty()))
+                    .requireFalse(ErrorCode.LINK_AI_EXISTING_LINK_CONTENT_NOT_ALLOWED)
                 userRepository.emptyById(loginId).requireFalse(ErrorCode.LINK_OWNER_NOT_FOUND)
 
                 val userProvider =
@@ -94,6 +102,16 @@ class UpdateLinkAiSummaryService(
                                         ).copyAiStatus(status = LinkStatus.G, workModelId = requestModel.id),
                                 ).also { resetContentForUrlChange(savedLink = it, now = now) }
                         } ?: createAiPendingLink(loginId, request).also { createContent(link = it, now = now) }
+                val createdTodos =
+                    request.todos.orEmpty().map { todoRequest ->
+                        todoRepository.insert(
+                            todoRequest.toTodo(
+                                linkId = link.id!!,
+                                ownerId = loginId,
+                                now = now,
+                            ),
+                        )
+                    }
                 val titlePrompt =
                     request.title
                         ?.let { FixedTitlePrompt(it) }
@@ -104,29 +122,58 @@ class UpdateLinkAiSummaryService(
                         ?: AutoFolderPrompt(findPromptFoldersJson(loginId))
                 val todoPrompt = if (request.generateTodo) GenerateTodoPrompt else SkipTodoPrompt
 
-                aiJobRepository.insert(
-                    AiJob(
-                        linkId = link.id!!,
-                        userProviderId = userProvider.id!!,
-                        requestModelId = requestModel.id!!,
-                        requestedUrl = request.url,
-                        prompt =
-                            createPrompt(
-                                linkId = link.id,
-                                requestedUrl = request.url,
-                                titlePrompt = titlePrompt,
-                                folderPrompt = folderPrompt,
-                                todoPrompt = todoPrompt,
-                            ),
-                    ),
+                val createdJob =
+                    aiJobRepository.insert(
+                        AiJob(
+                            linkId = link.id!!,
+                            userProviderId = userProvider.id!!,
+                            requestModelId = requestModel.id!!,
+                            requestedUrl = request.url,
+                            prompt =
+                                createPrompt(
+                                    linkId = link.id,
+                                    requestedUrl = request.url,
+                                    titlePrompt = titlePrompt,
+                                    folderPrompt = folderPrompt,
+                                    todoPrompt = todoPrompt,
+                                ),
+                        ),
+                    )
+
+                UpdateLinkAiSummaryResult(
+                    job = createdJob,
+                    createdTodos = createdTodos,
                 )
             }
 
         linkContentSignal.wake()
-        dispatcher.dispatch(createdJob.id!!)
+        dispatcher.dispatch(result.job.id!!)
+        result.createdTodos.forEach { scheduleTodoNotificationService.createForTodo(it) }
 
-        return AiSummaryResponse(id = createdJob.linkId)
+        return AiSummaryResponse(id = result.job.linkId)
     }
+
+    private data class UpdateLinkAiSummaryResult(
+        val job: AiJob,
+        val createdTodos: List<Todo>,
+    )
+
+    private fun AiSummaryTodoRequest.toTodo(
+        linkId: Long,
+        ownerId: Long,
+        now: Instant,
+    ): Todo =
+        Todo.create(
+            linkId = linkId,
+            ownerId = ownerId,
+            title = title,
+            reminderAt = reminderAt,
+            repeatUntil = repeatUntil,
+            repeatDays = repeatDays,
+            repeatTime = repeatTime,
+            repeatTimezone = repeatTimezone,
+            now = now,
+        )
 
     private suspend fun createContent(
         link: Link,
@@ -170,7 +217,7 @@ class UpdateLinkAiSummaryService(
                 title = request.title ?: pendingTitle(request.url),
                 tags = emptyList(),
                 summary = null,
-                memo = null,
+                memo = request.memo,
                 thumbnailUrl = request.thumbnailUrl,
                 faviconUrl = request.faviconUrl,
                 isVideo = request.isVideo,

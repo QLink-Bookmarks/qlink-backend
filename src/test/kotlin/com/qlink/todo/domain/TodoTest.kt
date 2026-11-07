@@ -81,6 +81,28 @@ class TodoTest :
                     }
                 }
             }
+
+            When("반복 없이 알림 시각이 현재 이전이면") {
+                val create = {
+                    Todo.create(
+                        linkId = linkId,
+                        ownerId = ownerId,
+                        title = RandomFixture.randomSentenceWithMax(50),
+                        reminderAt = RandomFixture.randomPastInstant(),
+                        repeatUntil = null,
+                        repeatDays = null,
+                        repeatTime = null,
+                        repeatTimezone = null,
+                        now = Clock.System.now(),
+                    )
+                }
+
+                Then("예외를 반환한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.TODO_REMINDER_AT_INVALID.message) {
+                        create()
+                    }
+                }
+            }
         }
 
         Given("소유자 검증 테스트") {
@@ -353,6 +375,50 @@ class TodoTest :
 
                 Then("예외를 반환한다") {
                     shouldThrowWithMessage<BusinessException>(ErrorCode.TODO_REPEAT_TIMEZONE_INVALID.message) {
+                        create()
+                    }
+                }
+            }
+
+            When("반복 요일이 비어 있으면") {
+                val create = {
+                    Todo.create(
+                        linkId = linkId,
+                        ownerId = ownerId,
+                        title = RandomFixture.randomSentenceWithMax(50),
+                        reminderAt = null,
+                        repeatUntil = RandomFixture.randomFutureInstantAfterTomorrow(),
+                        repeatDays = emptyList(),
+                        repeatTime = "10:30",
+                        repeatTimezone = null,
+                        now = Clock.System.now(),
+                    )
+                }
+
+                Then("예외를 반환한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.TODO_REPEAT_DAYS_EMPTY.message) {
+                        create()
+                    }
+                }
+            }
+
+            When("반복 시간이 HH:mm 형식이 아니면") {
+                val create = {
+                    Todo.create(
+                        linkId = linkId,
+                        ownerId = ownerId,
+                        title = RandomFixture.randomSentenceWithMax(50),
+                        reminderAt = null,
+                        repeatUntil = RandomFixture.randomFutureInstantAfterTomorrow(),
+                        repeatDays = listOf(RepeatDay.MON),
+                        repeatTime = "9:30",
+                        repeatTimezone = null,
+                        now = Clock.System.now(),
+                    )
+                }
+
+                Then("예외를 반환한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.TODO_REPEAT_TIME_INVALID.message) {
                         create()
                     }
                 }
