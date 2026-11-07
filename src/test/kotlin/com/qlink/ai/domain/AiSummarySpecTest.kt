@@ -5,6 +5,7 @@ import com.qlink.ai.client.parseSummaryResponse
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -71,6 +72,41 @@ class AiSummarySpecTest :
                         "number"
                     reminderAt.getValue("type").jsonPrimitive.content shouldBe "string"
                     schema.required() shouldContainAll listOf("id", "title", "summary", "folderId", "tags", "todos")
+                }
+            }
+
+            When("시스템 지시문을 만들면") {
+                val instruction = AiSummarySpec.systemInstruction
+
+                Then("액션 제목을 50자 이내로 쓰라는 지시를 포함한다") {
+                    instruction shouldContain "Keep each todo title within 50 characters, including spaces."
+                }
+            }
+
+            When("OpenAI용 액션 제목 스키마를 만들면") {
+                val title =
+                    AiSummarySpec.openAiJsonSchema
+                        .todoItemSchema()
+                        .properties()
+                        .getValue("title")
+                        .jsonObject
+
+                Then("설명에 50자 제한을 담고 strict 비호환 maxLength는 넣지 않는다") {
+                    title.getValue("description").jsonPrimitive.content shouldContain "within 50 characters"
+                    title.containsKey("maxLength") shouldBe false
+                }
+            }
+
+            When("Gemini용 액션 제목 스키마를 만들면") {
+                val title =
+                    AiSummarySpec.geminiResponseSchema
+                        .todoItemSchema()
+                        .properties()
+                        .getValue("title")
+                        .jsonObject
+
+                Then("설명에 50자 제한을 담는다") {
+                    title.getValue("description").jsonPrimitive.content shouldContain "within 50 characters"
                 }
             }
 

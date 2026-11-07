@@ -10,6 +10,7 @@ import kotlinx.serialization.json.putJsonObject
 
 object AiSummarySpec {
     const val RESPONSE_SCHEMA_NAME = "qlink_bookmark_summary_result"
+    private const val TODO_TITLE_MAX_LENGTH = 50
 
     val systemInstruction: String =
         """
@@ -19,6 +20,7 @@ object AiSummarySpec {
         - Use UTC timezone for reminderAt.
         - If there is no reasonable reminder datetime, set reminderAt to null.
         - If there is no todo, return an empty todos array.
+        - Keep each todo title within $TODO_TITLE_MAX_LENGTH characters, including spaces.
         - Choose folderId from the given folders only. Use null for 미분류.
         - Return tags as short keywords extracted from the URL contents.
         """.trimIndent()
@@ -91,7 +93,7 @@ object AiSummarySpec {
                         putJsonObject("properties") {
                             putJsonObject("title") {
                                 put("type", "string")
-                                put("description", "title of the todo")
+                                put("description", "title of the todo within $TODO_TITLE_MAX_LENGTH characters, including spaces")
                             }
                             putJsonObject("reminderAt") {
                                 if (nullableReminderAt) {
