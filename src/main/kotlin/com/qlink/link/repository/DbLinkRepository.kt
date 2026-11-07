@@ -1,6 +1,7 @@
 package com.qlink.link.repository
 
 import com.qlink.ai.repository.table.AvailableModels
+import com.qlink.common.search.SortCollated
 import com.qlink.common.search.SortDirection
 import com.qlink.common.search.arrayToString
 import com.qlink.common.search.bigmSimilarity
@@ -697,7 +698,7 @@ class DbLinkRepository : LinkRepository {
 
                 LinkOrderKey.TITLE -> {
                     listOf(
-                        SortKey(Links.title, sortOrder) { QueryParameter(it.title ?: "", Links.title.columnType) },
+                        SortKey(SortCollated(Links.title), sortOrder) { QueryParameter(it.title ?: "", Links.title.columnType) },
                         SortKey(Links.id, sortOrder) { longLiteral(it.id!!) },
                     )
                 }

@@ -1636,6 +1636,114 @@ class GetLinksServiceTest :
             }
         }
 
+        suspend fun insertSortOrderLinks(
+            ownerId: Long,
+            titles: List<String>,
+        ): Map<String, Long> {
+            val shuffled = titles.shuffled()
+            val ids =
+                insertSortLinksOf(ownerId = ownerId, createdAts = shuffled.map { RandomFixture.randomPastInstant() }, titles = shuffled)
+            return shuffled.zip(ids).toMap()
+        }
+
+        Given("한글만 있는 제목, 한글 뒤에 괄호 속 라틴 문자가 붙은 제목, 대소문자가 섞인 라틴 제목, 숫자로 시작하는 제목, 기호로 시작하는 제목의 링크들") {
+            When("제목 오름차순으로 조회하면") {
+                val ownerId = insertSortOwner()
+                insertSortOrderLinks(ownerId = ownerId, titles = SORT_ORDER_TITLES)
+                val actual = listLinks(ownerId = ownerId, orderKey = "title", order = "asc")
+
+                Then("기호 → 숫자 → 한글 → 라틴 → 가나 → 한자 → 그 밖 순이고 섞인 제목은 첫 글자부터, 숫자는 숫자로 비교한 자리에 있다") {
+                    actual.contents.map { it.title } shouldBe SORT_ORDER_TITLES
+                }
+            }
+
+            When("대소문자만 다른 제목이 함께 있을 때 제목 오름차순으로 조회하면") {
+                val ownerId = insertSortOwner()
+                insertSortOrderLinks(ownerId = ownerId, titles = SORT_ORDER_TITLES + CASE_ONLY_TITLE)
+                val actual = listLinks(ownerId = ownerId, orderKey = "title", order = "asc").contents.map { it.title }
+
+                Then("대소문자만 다른 두 제목이 서로 붙어 있다") {
+                    actual.indexOf(CASE_ONLY_TITLE) - actual.indexOf(CASE_ONLY_TITLE.lowercase()) shouldBe 1
+                }
+            }
+
+            When("제목 내림차순으로 조회하면") {
+                val ownerId = insertSortOwner()
+                insertSortOrderLinks(ownerId = ownerId, titles = SORT_ORDER_TITLES)
+                val actual = listLinks(ownerId = ownerId, orderKey = "title", order = "desc")
+
+                Then("제목 오름차순의 정확한 역순이다") {
+                    actual.contents.map { it.title } shouldBe SORT_ORDER_TITLES.reversed()
+                }
+            }
+
+            When("기존 laxico로 조회하면") {
+                val ownerId = insertSortOwner()
+                insertSortOrderLinks(ownerId = ownerId, titles = SORT_ORDER_TITLES)
+                val actual = listLinks(ownerId = ownerId, order = "laxico")
+
+                Then("제목 오름차순과 같은 순서다") {
+                    actual.contents.map { it.title } shouldBe SORT_ORDER_TITLES
+                }
+            }
+
+            When("검색어와 함께 제목 오름차순으로 조회하면") {
+                val ownerId = insertSortOwner()
+                val titles = SORT_ORDER_TITLES.map { "$SEARCH_KEYWORD $it" }
+                val idByTitle = insertSortOrderLinks(ownerId = ownerId, titles = titles)
+                val bodyOnly = insertSortLinksOf(ownerId = ownerId, createdAts = listOf(RandomFixture.randomPastInstant())).single()
+                linkContentRepository.insertAll(
+                    listOf(
+                        LinkContentFixture.createCollectedContentOf(
+                            linkId = bodyOnly,
+                            text = bodyTextWith(keyword = SEARCH_KEYWORD, before = 40, after = 300),
+                        ),
+                    ),
+                )
+                val actual = listLinks(ownerId = ownerId, query = SEARCH_KEYWORD, orderKey = "title", order = "asc")
+
+                Then("메타데이터가 일치한 링크가 먼저 오고 그 안에서 한국어 사전순이다") {
+                    actual.contents.map { it.id } shouldBe titles.map { idByTitle.getValue(it) } + bodyOnly
+                }
+            }
+        }
+
+        Given("한 페이지보다 많은, 문자 종류가 섞인 제목의 링크들(같은 제목 포함)") {
+            val titles = SORT_ORDER_TITLES.flatMap { if (it in SORT_ORDER_DUPLICATES) listOf(it, it) else listOf(it) }
+
+            When("제목 오름차순으로 다음 커서를 따라 끝까지 조회하면") {
+                val ownerId = insertSortOwner()
+                insertSortLinksOf(
+                    ownerId = ownerId,
+                    createdAts = titles.map { RandomFixture.randomPastInstant() },
+                    titles = titles.shuffled(),
+                )
+                val expected = listLinks(ownerId = ownerId, orderKey = "title", order = "asc").contents
+                val pages = listOf(1, 2, 3).map { allLinkPages(ownerId = ownerId, orderKey = "title", order = "asc", size = it) }
+
+                Then("페이지 크기와 상관없이 이어 붙인 결과가 한 번에 조회한 순서와 같고 빠지거나 겹친 링크가 없다") {
+                    expected.map { it.title } shouldBe titles
+                    pages.forEach { it.flatten() shouldBe expected.map { link -> link.id } }
+                }
+            }
+
+            When("제목 내림차순으로 다음 커서를 따라 끝까지 조회하면") {
+                val ownerId = insertSortOwner()
+                insertSortLinksOf(
+                    ownerId = ownerId,
+                    createdAts = titles.map { RandomFixture.randomPastInstant() },
+                    titles = titles.shuffled(),
+                )
+                val expected = listLinks(ownerId = ownerId, orderKey = "title", order = "desc").contents
+                val pages = listOf(1, 2, 3).map { allLinkPages(ownerId = ownerId, orderKey = "title", order = "desc", size = it) }
+
+                Then("페이지 크기와 상관없이 이어 붙인 결과가 한 번에 조회한 순서와 같고 빠지거나 겹친 링크가 없다") {
+                    expected.map { it.title } shouldBe titles.reversed()
+                    pages.forEach { it.flatten() shouldBe expected.map { link -> link.id } }
+                }
+            }
+        }
+
         Given("다른 사용자의 링크(공유 폴더 아님)가 함께 있을 때") {
             When("어떤 기준·방향으로 조회해도") {
                 val ownerId = insertSortOwner()
@@ -1660,6 +1768,35 @@ private fun createCursor(
 ): String = Base64CursorCodec.encode(LinkSearchCursor(order = order, value = value))
 
 private const val SEARCH_KEYWORD = "뷁햏쀍뷁"
+
+private val SORT_ORDER_TITLES =
+    listOf(
+        "㈜아이센스",
+        "1인 앱 개발",
+        "2026 회고",
+        "가나다",
+        "네이버",
+        "네이버(NAVER) 검색",
+        "이기적 영진닷컴",
+        "이벤터스(Event-us)",
+        "파일2",
+        "파일10",
+        "하네스",
+        "apple",
+        "Apple Developer",
+        "Banana",
+        "cherry",
+        "Zebra",
+        "とうきょう",
+        "トマト",
+        "北京",
+        "東京タワー",
+        "Москва",
+    )
+
+private val SORT_ORDER_DUPLICATES = setOf("네이버", "apple", "北京")
+
+private const val CASE_ONLY_TITLE = "APPLE"
 
 private const val CASE_KEYWORD = "kotlin뷁햏"
 

@@ -42,6 +42,58 @@ class GetFoldersServiceTest :
         val tx = koinGet<com.qlink.common.transaction.TransactionRunner>()
         val userRepository = koinGet<UserRepository>()
 
+        Given("한글·라틴·숫자가 섞인 이름의 폴더들") {
+            lateinit var user: User
+
+            beforeTest {
+                user = userRepository.insert(UserFixture.createRandomValidUser())
+                SORT_ORDER_FOLDER_NAMES.shuffled().forEach {
+                    folderRepository.insert(FolderFixture.createFolderWith(ownerId = user.id!!, name = it))
+                }
+            }
+
+            suspend fun getLaxico(
+                cursor: String? = null,
+                size: Int = 20,
+            ): ScrollResponse<GetFoldersContentResponse> =
+                getFoldersService.getFolders(
+                    loginId = user.id!!,
+                    query = null,
+                    order = "laxico",
+                    scrollRequest = ScrollRequest(cursor = cursor, size = size),
+                )
+
+            suspend fun allLaxicoPages(size: Int): List<List<Long>> {
+                val pages = mutableListOf<List<Long>>()
+                var cursor: String? = null
+                do {
+                    val page = getLaxico(cursor = cursor, size = size)
+                    pages += page.contents.map { it.id }
+                    cursor = page.nextCursor
+                } while (cursor != null)
+                return pages
+            }
+
+            When("laxico로 조회하면") {
+                val get = suspend { getLaxico() }
+
+                Then("이름이 한국어 사전순이다") {
+                    get().contents.map { it.name } shouldBe SORT_ORDER_FOLDER_NAMES
+                }
+            }
+
+            When("laxico 커서로 다음 페이지를 끝까지 조회하면") {
+                val get = suspend { getLaxico().contents to listOf(1, 2, 3).map { allLaxicoPages(size = it) } }
+
+                Then("이어 붙인 결과가 한 번에 조회한 순서와 같고 빠지거나 겹친 폴더가 없다") {
+                    val (expected, pages) = get()
+
+                    expected.map { it.name } shouldBe SORT_ORDER_FOLDER_NAMES
+                    pages.forEach { it.flatten() shouldBe expected.map { folder -> folder.id } }
+                }
+            }
+        }
+
         Given("폴더 목록 조회 서비스 테스트") {
             lateinit var user: User
             lateinit var otherUser: User
@@ -1099,3 +1151,6 @@ class GetFoldersServiceTest :
             }
         }
     })
+
+private val SORT_ORDER_FOLDER_NAMES =
+    listOf("3월 여행", "10월 여행", "가계부", "업무", "하루", "Alpha", "beta", "zoo 폴더", "ノート", "旅行", "Москва")
