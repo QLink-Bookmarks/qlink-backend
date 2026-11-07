@@ -9,16 +9,18 @@ import com.qlink.common.error.BusinessException
 import com.qlink.common.error.ErrorCode
 import com.qlink.common.scroll.Base64CursorCodec
 import com.qlink.common.scroll.ScrollRequest
+import com.qlink.common.search.SearchOrder
+import com.qlink.common.search.SortDirection
 import com.qlink.folder.domain.Folder
 import com.qlink.folder.repository.FolderRepository
 import com.qlink.foldermember.repository.FolderMemberRepository
 import com.qlink.link.domain.Link
+import com.qlink.link.domain.LinkOrderKey
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.domain.MatchedField
 import com.qlink.link.domain.Snippet
 import com.qlink.link.dto.LinkSearchCursor
 import com.qlink.link.dto.LinkSearchCursorValue
-import com.qlink.link.dto.LinkSearchOrder
 import com.qlink.link.repository.LinkRepository
 import com.qlink.linkcontent.repository.LinkContentRepository
 import com.qlink.support.BaseServiceTest
@@ -47,6 +49,7 @@ import io.kotest.matchers.string.shouldContain
 import java.text.Normalizer
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
+import kotlin.time.Instant
 import kotlin.time.toKotlinInstant
 
 class GetLinksServiceTest :
@@ -716,51 +719,6 @@ class GetLinksServiceTest :
                 }
             }
 
-            When("order가 지원하지 않는 값이면") {
-                val getLinks =
-                    suspend {
-                        getLinksService.getLinks(
-                            loginId = user.id!!,
-                            query = "anything",
-                            folderId = null,
-                            order = "unknown",
-                            scrollRequest = ScrollRequest(),
-                        )
-                    }
-
-                Then("예외를 반환한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.COMMON_INVALID_SORT_ORDER.message) {
-                        getLinks()
-                    }
-                }
-            }
-
-            When("cursor의 order와 요청 order가 다르면") {
-                val getLinks =
-                    suspend {
-                        getLinksService.getLinks(
-                            loginId = user.id!!,
-                            query = "anything",
-                            folderId = null,
-                            order = "latest",
-                            scrollRequest =
-                                ScrollRequest(
-                                    cursor =
-                                        createCursor(
-                                            order = LinkSearchOrder.EARLIEST,
-                                            value = LinkSearchCursorValue(id = 1L),
-                                        ),
-                                ),
-                        )
-                    }
-
-                Then("예외를 반환한다") {
-                    shouldThrowWithMessage<BusinessException>(ErrorCode.COMMON_CURSOR_ORDER_MISMATCH.message) {
-                        getLinks()
-                    }
-                }
-            }
-
             When("로그인 사용자가 없으면") {
                 val getLinks =
                     suspend {
@@ -907,7 +865,7 @@ class GetLinksServiceTest :
                     suspend {
                         getLinks(
                             order = "latest",
-                            cursor = createCursor(order = LinkSearchOrder.LATEST, value = LinkSearchCursorValue(id = links[3].id)),
+                            cursor = createCursor(order = SearchOrder.LATEST, value = LinkSearchCursorValue(id = links[3].id)),
                         )
                     }
 
@@ -925,7 +883,7 @@ class GetLinksServiceTest :
                         linkRepository.deleteById(deletedId)
                         getLinks(
                             order = "latest",
-                            cursor = createCursor(order = LinkSearchOrder.LATEST, value = LinkSearchCursorValue(id = deletedId)),
+                            cursor = createCursor(order = SearchOrder.LATEST, value = LinkSearchCursorValue(id = deletedId)),
                         )
                     }
 
@@ -1064,7 +1022,7 @@ class GetLinksServiceTest :
                             query = SEARCH_KEYWORD,
                             cursor =
                                 createCursor(
-                                    order = LinkSearchOrder.LATEST,
+                                    order = SearchOrder.LATEST,
                                     value = LinkSearchCursorValue(id = links.titleOnly, createdAt = RandomFixture.randomPastInstant()),
                                 ),
                         )
@@ -1407,10 +1365,297 @@ class GetLinksServiceTest :
                 }
             }
         }
+
+        suspend fun insertSortLinksOf(
+            ownerId: Long,
+            createdAts: List<Instant>,
+            titles: List<String> = createdAts.map { "${RandomFixture.randomSentenceWithMax(20)} ${RandomFixture.randomId()}" },
+        ): List<Long> =
+            createdAts.zip(titles).map { (createdAt, title) ->
+                linkRepository.insert(LinkFixture.createRandomLinkOf(ownerId = ownerId, title = title, createdAt = createdAt)).id!!
+            }
+
+        suspend fun listLinks(
+            ownerId: Long,
+            orderKey: String? = null,
+            order: String? = null,
+            cursor: String? = null,
+            size: Int = 50,
+            query: String? = null,
+        ) = getLinksService.getLinks(
+            loginId = ownerId,
+            query = query,
+            folderId = null,
+            orderKey = orderKey,
+            order = order,
+            scrollRequest = ScrollRequest(cursor = cursor, size = size),
+        )
+
+        suspend fun allLinkPages(
+            ownerId: Long,
+            orderKey: String? = null,
+            order: String? = null,
+            size: Int,
+        ): List<List<Long>> {
+            val pages = mutableListOf<List<Long>>()
+            var cursor: String? = null
+            do {
+                val page = listLinks(ownerId = ownerId, orderKey = orderKey, order = order, cursor = cursor, size = size)
+                pages += page.contents.map { it.id }
+                cursor = page.nextCursor
+            } while (cursor != null)
+            return pages
+        }
+
+        suspend fun insertSortOwner(): Long = userRepository.insert(UserFixture.createRandomValidUser()).id!!
+
+        Given("로그인 사용자의 저장일·제목이 서로 다른 링크 여러 개") {
+            suspend fun insertSortFixture(): Pair<Long, List<Long>> {
+                val ownerId = insertSortOwner()
+                val base = RandomFixture.randomPastInstant()
+                val ids = insertSortLinksOf(ownerId = ownerId, createdAts = listOf(3, 0, 4, 1, 2).map { base + it.hours })
+
+                return ownerId to listOf(ids[2], ids[0], ids[4], ids[3], ids[1])
+            }
+
+            When("정렬 없이 조회하면") {
+                val (ownerId, createdAtDesc) = insertSortFixture()
+                val actual = listLinks(ownerId = ownerId)
+                val legacy = listLinks(ownerId = ownerId, order = "latest")
+
+                Then("저장일 최신순이고 기존 latest와 같은 순서다") {
+                    actual.contents.map { it.id } shouldBe createdAtDesc
+                    legacy.contents.map { it.id } shouldBe createdAtDesc
+                }
+            }
+
+            When("저장일 오름차순으로 조회하면") {
+                val (ownerId, createdAtDesc) = insertSortFixture()
+                val actual = listLinks(ownerId = ownerId, orderKey = "created_at", order = "asc")
+
+                Then("오래된 링크부터 나온다") {
+                    actual.contents.map { it.id } shouldBe createdAtDesc.reversed()
+                }
+            }
+
+            When("제목 오름차순으로 조회하면") {
+                val (ownerId, _) = insertSortFixture()
+                val actual = listLinks(ownerId = ownerId, orderKey = "title")
+                val legacy = listLinks(ownerId = ownerId, order = "laxico")
+
+                Then("기존 laxico와 같은 순서다") {
+                    actual.contents.map { it.id } shouldBe legacy.contents.map { it.id }
+                }
+            }
+
+            When("제목 내림차순으로 조회하면") {
+                val (ownerId, _) = insertSortFixture()
+                val asc = listLinks(ownerId = ownerId, orderKey = "title", order = "asc")
+                val desc = listLinks(ownerId = ownerId, orderKey = "title", order = "desc")
+
+                Then("제목 오름차순의 역순이다") {
+                    desc.contents.map { it.id } shouldBe asc.contents.map { it.id }.reversed()
+                }
+            }
+
+            When("기존 값 latest·earliest·similar로 조회하면") {
+                val (ownerId, _) = insertSortFixture()
+                val legacy =
+                    listOf("latest", "earliest", "similar").map {
+                        listLinks(ownerId = ownerId, order = it).contents.map { c ->
+                            c.id
+                        }
+                    }
+                val current =
+                    listOf("created_at" to "desc", "created_at" to "asc", "similarity" to "desc").map { (orderKey, order) ->
+                        listLinks(ownerId = ownerId, orderKey = orderKey, order = order).contents.map { it.id }
+                    }
+
+                Then("대응하는 기준·방향으로 조회한 것과 같은 순서다") {
+                    legacy shouldBe current
+                }
+            }
+
+            When("검색어 없이 유사도로 조회하면") {
+                val (ownerId, createdAtDesc) = insertSortFixture()
+                val actual = listLinks(ownerId = ownerId, orderKey = "similarity")
+
+                Then("id 내림차순이다") {
+                    actual.contents.map { it.id } shouldBe createdAtDesc.sortedDescending()
+                }
+            }
+
+            When("검색어와 함께 제목 내림차순으로 조회하면") {
+                val links = insertContentSearchFixture()
+                val metadata = setOf(links.titleOnly, links.memoOnly, links.titleAndBody)
+                val asc =
+                    listLinks(
+                        ownerId = links.ownerId,
+                        query = SEARCH_KEYWORD,
+                        orderKey = "title",
+                        order = "asc",
+                    ).contents.map { it.id }
+                val desc =
+                    listLinks(
+                        ownerId = links.ownerId,
+                        query = SEARCH_KEYWORD,
+                        orderKey = "title",
+                        order = "desc",
+                    ).contents.map { it.id }
+
+                Then("메타데이터가 일치한 링크가 먼저 오고 그 안에서 제목 내림차순이다") {
+                    desc.take(metadata.size).toSet() shouldBe metadata
+                    desc shouldBe asc.filter { it in metadata }.reversed() + asc.filterNot { it in metadata }.reversed()
+                }
+            }
+        }
+
+        Given("같은 제목의 링크들과 같은 저장일의 링크들") {
+            When("제목 오름차순·내림차순으로 조회하면") {
+                val ownerId = insertSortOwner()
+                val base = RandomFixture.randomPastInstant()
+                val sameTitle = "${RandomFixture.randomSentenceWithMax(20)} ${RandomFixture.randomId()}"
+                val sameTitleIds =
+                    insertSortLinksOf(
+                        ownerId = ownerId,
+                        createdAts = listOf(2, 0, 1).map { base + it.hours },
+                        titles = List(3) { sameTitle },
+                    )
+                insertSortLinksOf(ownerId = ownerId, createdAts = listOf(base, base))
+                val asc = listLinks(ownerId = ownerId, orderKey = "title", order = "asc").contents.map { it.id }
+                val desc = listLinks(ownerId = ownerId, orderKey = "title", order = "desc").contents.map { it.id }
+
+                Then("같은 제목끼리는 id가 각각 오름차순·내림차순이다") {
+                    asc.filter { it in sameTitleIds } shouldBe sameTitleIds.sorted()
+                    desc.filter { it in sameTitleIds } shouldBe sameTitleIds.sortedDescending()
+                }
+            }
+
+            When("저장일 오름차순·내림차순으로 조회하면") {
+                val ownerId = insertSortOwner()
+                val createdAt = RandomFixture.randomPastInstant()
+                val sameCreatedAtIds = insertSortLinksOf(ownerId = ownerId, createdAts = List(3) { createdAt })
+                val asc = listLinks(ownerId = ownerId, orderKey = "created_at", order = "asc").contents.map { it.id }
+                val desc = listLinks(ownerId = ownerId, orderKey = "created_at", order = "desc").contents.map { it.id }
+
+                Then("같은 저장일끼리는 id가 각각 오름차순·내림차순이다") {
+                    asc shouldBe sameCreatedAtIds.sorted()
+                    desc shouldBe sameCreatedAtIds.sortedDescending()
+                }
+            }
+        }
+
+        Given("한 페이지보다 많은 링크") {
+            When("제목 내림차순으로 다음 커서를 따라 끝까지 조회하면") {
+                val ownerId = insertSortOwner()
+                val base = RandomFixture.randomPastInstant()
+                val titleA = "a ${RandomFixture.randomId()}"
+                val titleB = "b ${RandomFixture.randomId()}"
+                insertSortLinksOf(
+                    ownerId = ownerId,
+                    createdAts = List(5) { base + it.hours },
+                    titles = listOf(titleA, titleB, titleA, titleB, "c ${RandomFixture.randomId()}"),
+                )
+                val expected = listLinks(ownerId = ownerId, orderKey = "title", order = "desc").contents.map { it.id }
+                val pages = listOf(1, 2, 3).map { allLinkPages(ownerId = ownerId, orderKey = "title", order = "desc", size = it) }
+
+                Then("페이지 경계에 같은 제목이 걸려도 겹치거나 빠지는 링크가 없다") {
+                    pages.forEach { it.flatten() shouldBe expected }
+                }
+            }
+
+            When("저장일 오름차순으로 다음 커서를 따라 끝까지 조회하면") {
+                val ownerId = insertSortOwner()
+                val base = RandomFixture.randomPastInstant()
+                val ids = insertSortLinksOf(ownerId = ownerId, createdAts = listOf(2, 0, 2, 1, 3).map { base + it.hours })
+                val lastPage = listLinks(ownerId = ownerId, orderKey = "created_at", order = "asc", cursor = null, size = 5)
+                val pages = allLinkPages(ownerId = ownerId, orderKey = "created_at", order = "asc", size = 2)
+
+                Then("겹치거나 빠지는 링크가 없고 마지막 페이지는 다음 커서가 없다") {
+                    pages.flatten() shouldBe listOf(ids[1], ids[3], ids[0], ids[2], ids[4])
+                    lastPage.hasNext shouldBe false
+                    lastPage.nextCursor shouldBe null
+                }
+            }
+
+            When("기존 형식 LATEST 커서(생성 시각 없음)로 저장일 내림차순을 조회하면") {
+                val ownerId = insertSortOwner()
+                val base = RandomFixture.randomPastInstant()
+                val ids = insertSortLinksOf(ownerId = ownerId, createdAts = listOf(3, 0, 4, 1, 2).map { base + it.hours })
+                val cursor = createCursor(order = SearchOrder.LATEST, value = LinkSearchCursorValue(id = ids[0]))
+                val actual = listLinks(ownerId = ownerId, orderKey = "created_at", order = "desc", cursor = cursor)
+
+                Then("커서 링크 다음부터 이어진다") {
+                    actual.contents.map { it.id } shouldBe listOf(ids[4], ids[3], ids[1])
+                }
+            }
+
+            When("기존 형식 LAXICO 커서로 제목 오름차순을 조회하면") {
+                val ownerId = insertSortOwner()
+                insertSortLinksOf(ownerId = ownerId, createdAts = List(5) { RandomFixture.randomPastInstant() })
+                val expected = listLinks(ownerId = ownerId, orderKey = "title").contents
+                val cursor =
+                    createCursor(order = SearchOrder.LAXICO, value = LinkSearchCursorValue(id = expected[1].id, title = expected[1].title))
+                val actual = listLinks(ownerId = ownerId, orderKey = "title", cursor = cursor)
+
+                Then("커서 링크 다음부터 이어진다") {
+                    actual.contents.map { it.id } shouldBe expected.drop(2).map { it.id }
+                }
+            }
+
+            When("저장일 내림차순 새 커서로 기존 값 latest를 조회하면") {
+                val ownerId = insertSortOwner()
+                val base = RandomFixture.randomPastInstant()
+                val ids = insertSortLinksOf(ownerId = ownerId, createdAts = listOf(3, 0, 4, 1, 2).map { base + it.hours })
+                val firstPage = listLinks(ownerId = ownerId, orderKey = "created_at", order = "desc", size = 2)
+                val actual = listLinks(ownerId = ownerId, order = "latest", cursor = firstPage.nextCursor)
+
+                Then("커서 링크 다음부터 이어진다") {
+                    firstPage.contents.map { it.id } shouldBe listOf(ids[2], ids[0])
+                    actual.contents.map { it.id } shouldBe listOf(ids[4], ids[3], ids[1])
+                }
+            }
+
+            When("제목 커서에 제목 값이 없으면") {
+                val ownerId = insertSortOwner()
+                val cursor =
+                    Base64CursorCodec.encode(
+                        LinkSearchCursor(
+                            orderKey = LinkOrderKey.TITLE,
+                            direction = SortDirection.ASC,
+                            value = LinkSearchCursorValue(id = RandomFixture.randomId()),
+                        ),
+                    )
+                val get = suspend { listLinks(ownerId = ownerId, orderKey = "title", cursor = cursor) }
+
+                Then("예외를 반환한다") {
+                    shouldThrowWithMessage<BusinessException>(ErrorCode.COMMON_CURSOR_FIELD_MISSING.message) {
+                        get()
+                    }
+                }
+            }
+        }
+
+        Given("다른 사용자의 링크(공유 폴더 아님)가 함께 있을 때") {
+            When("어떤 기준·방향으로 조회해도") {
+                val ownerId = insertSortOwner()
+                val mine = insertSortLinksOf(ownerId = ownerId, createdAts = List(3) { RandomFixture.randomPastInstant() })
+                insertSortLinksOf(ownerId = insertSortOwner(), createdAts = List(3) { RandomFixture.randomPastInstant() })
+                val seen =
+                    listOf("created_at" to "asc", "created_at" to "desc", "title" to "asc", "title" to "desc", "similarity" to "desc")
+                        .map { (orderKey, order) ->
+                            listLinks(ownerId = ownerId, orderKey = orderKey, order = order).contents.map { it.id }.toSet()
+                        }
+
+                Then("다른 사용자의 링크는 나오지 않는다") {
+                    seen.forEach { it shouldBe mine.toSet() }
+                }
+            }
+        }
     })
 
 private fun createCursor(
-    order: LinkSearchOrder,
+    order: SearchOrder,
     value: LinkSearchCursorValue,
 ): String = Base64CursorCodec.encode(LinkSearchCursor(order = order, value = value))
 

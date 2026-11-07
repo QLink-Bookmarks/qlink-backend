@@ -1,11 +1,11 @@
 package com.qlink.link.repository
 
 import com.qlink.link.domain.Link
+import com.qlink.link.domain.LinkSort
 import com.qlink.link.domain.LinkStatus
 import com.qlink.link.domain.SearchKeyword
 import com.qlink.link.dto.LinkDetailQuery
 import com.qlink.link.dto.LinkSearchCursor
-import com.qlink.link.dto.LinkSearchOrder
 import com.qlink.link.dto.SearchLinksQuery
 import kotlin.time.Instant
 
@@ -48,7 +48,7 @@ interface LinkRepository {
         keyword: SearchKeyword?,
         folderId: Long?,
         isFavorite: Boolean?,
-        order: LinkSearchOrder,
+        sort: LinkSort,
         cursor: LinkSearchCursor?,
         size: Int,
     ): List<SearchLinksQuery>

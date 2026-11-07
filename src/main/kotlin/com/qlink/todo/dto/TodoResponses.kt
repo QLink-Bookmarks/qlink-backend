@@ -3,6 +3,7 @@
 package com.qlink.todo.dto
 
 import com.qlink.todo.domain.RepeatDay
+import com.qlink.todo.domain.TodoStatus
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
 
@@ -30,14 +31,24 @@ data class CompleteTodoResponse(
 data class GetTodosContentResponse(
     val id: Long,
     val title: String,
+    val status: TodoStatus,
     val completedAt: Instant?,
     val reminderAt: Instant?,
     val repeatUntil: Instant?,
     val repeatDays: List<RepeatDay>?,
     val repeatTime: String?,
+    val createdAt: Instant,
     val linkId: Long,
     val linkUrl: String,
     val linkTitle: String,
     val linkThumbnailUrl: String?,
     val linkFaviconUrl: String?,
+)
+
+@Serializable
+data class GetTodoCountsResponse(
+    val all: Int,
+    val active: Int,
+    val overdue: Int,
+    val completed: Int,
 )

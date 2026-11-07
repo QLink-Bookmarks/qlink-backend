@@ -9,6 +9,7 @@ import com.qlink.todo.dto.UpdateTodoRequest
 import com.qlink.todo.service.CompleteTodoService
 import com.qlink.todo.service.CreateTodoService
 import com.qlink.todo.service.DeleteTodoService
+import com.qlink.todo.service.GetTodoCountsService
 import com.qlink.todo.service.GetTodosService
 import com.qlink.todo.service.UpdateTodoService
 import io.github.smiley4.ktoropenapi.resources.delete
@@ -28,6 +29,7 @@ fun Route.todoRoutes() {
     val completeTodoService by inject<CompleteTodoService>()
     val deleteTodoService by inject<DeleteTodoService>()
     val getTodosService by inject<GetTodosService>()
+    val getTodoCountsService by inject<GetTodoCountsService>()
 
     authenticate {
         get<TodoResources>(getTodosDocs()) { resource ->
@@ -35,6 +37,8 @@ fun Route.todoRoutes() {
             val response =
                 getTodosService.getTodos(
                     loginId = principal.userId,
+                    status = resource.status,
+                    orderKey = resource.orderKey,
                     order = resource.order,
                     scrollRequest =
                         ScrollRequest(
@@ -44,6 +48,13 @@ fun Route.todoRoutes() {
                     isCompleted = resource.isCompleted,
                     reminderAt = resource.reminderAt,
                 )
+
+            call.respondSuccess(HttpStatusCode.OK, response)
+        }
+
+        get<TodoResources.Counts>(getTodoCountsDocs()) {
+            val principal = call.principal<JwtPrincipal>()!!
+            val response = getTodoCountsService.getTodoCounts(principal.userId)
 
             call.respondSuccess(HttpStatusCode.OK, response)
         }
