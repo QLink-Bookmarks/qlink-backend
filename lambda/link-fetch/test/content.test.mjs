@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createContentHandler, deadlineFor } from '../src/content-handler.mjs';
 import { decodeHtml, elementText, isRobotsHeaderDenied, normalizeText } from '../src/content-extract.mjs';
-import { fetchSafe, readOnce } from '../src/network.mjs';
+import { fetchSafe, lookupHost, readOnce } from '../src/network.mjs';
 import { localTarget, withServer } from './support.mjs';
 import { parseHTML } from 'linkedom';
 
@@ -234,6 +234,38 @@ test('a redirect to a private address is denied before it is requested', async (
   assert.ok(entries.some((entry) => entry.event === 'LINK_CONTENT_EXTERNAL' && entry.host === 'private.example' && entry.status === 'BLOCKED'));
 });
 
+const dnsError = (code, syscall) => Object.assign(new Error(`${syscall} ${code}`), { code, syscall });
+const failing = (code, syscall) => async () => { throw dnsError(code, syscall); };
+
+test('a host that does not exist is not found, even when getaddrinfo hides the cause', async () => {
+  const cases = [
+    [failing('ENOTFOUND', 'getaddrinfo'), null],
+    [failing('EBUSY', 'getaddrinfo'), failing('ENOTFOUND', 'queryA')],
+    [failing('EBUSY', 'getaddrinfo'), failing('ENODATA', 'queryA')],
+    [failing('EBUSY', 'getaddrinfo'), failing('EBADNAME', 'queryA')],
+  ];
+  for (const [lookup, query] of cases) {
+    const { result, entries } = await collect({}, { resolveHost: (host) => lookupHost(host, lookup, query) });
+    assert.equal(result.code, 'UPSTREAM_NOT_FOUND');
+    assert.equal(result.outcome, 'FAILED');
+    assert.ok(entries.some((entry) => entry.event === 'LINK_CONTENT_EXTERNAL' && entry.status === 'FAILED'));
+  }
+});
+
+test('a DNS server that does not answer is a timeout, even when getaddrinfo hides the cause', async () => {
+  const cases = [
+    [failing('EAI_AGAIN', 'getaddrinfo'), null],
+    [failing('EBUSY', 'getaddrinfo'), failing('ETIMEOUT', 'queryA')],
+    [failing('EBUSY', 'getaddrinfo'), failing('ESERVFAIL', 'queryA')],
+    [failing('EBUSY', 'getaddrinfo'), failing('EREFUSED', 'queryA')],
+  ];
+  for (const [lookup, query] of cases) {
+    const { result } = await collect({}, { resolveHost: (host) => lookupHost(host, lookup, query) });
+    assert.equal(result.code, 'FETCH_TIMEOUT');
+    assert.equal(result.outcome, 'FAILED');
+  }
+});
+
 test('too many redirects fail with their own code', async () => {
   const routes = { '/page': (_request, response) => { response.statusCode = 302; response.setHeader('location', '/page'); response.end(); } };
   const { result } = await collect(routes);
@@ -326,6 +358,31 @@ test('a short body that only repeats the title is not content', async () => {
 test('a page with no text is empty', async () => {
   const { result } = await collect(page('<nav>메뉴</nav><main><script>render()</script></main>'));
   assert.equal(result.code, 'CONTENT_EMPTY');
+});
+
+const omitted = {
+  'no <html>, <head> or <body>': [`<!doctype html><title>에이링크 소개</title><p>${prose(120)}</p>`, '에이링크 소개', null],
+  'an <html> without <head> or <body>': [`<html lang="ko"><title>에이링크 소개</title><p>${prose(120)}</p></html>`, '에이링크 소개', 'ko'],
+  'an <html> after a <meta>': [`<!doctype html><meta charset="utf-8"><html lang="ko"><head><title>에이링크 소개</title></head><body><p>${prose(120)}</p></body></html>`, '에이링크 소개', 'ko'],
+  '<head> and <body> without <html>': [`<head><title>에이링크 소개</title></head><body><p>${prose(120)}</p></body>`, '에이링크 소개', null],
+  'text with no tags': [prose(120), null, null],
+};
+for (const [name, [body, title, language]] of Object.entries(omitted)) {
+  test(`a page with ${name} is extracted with its title and language`, async () => {
+    const { result } = await collect({ '/page': route(body) });
+    assert.equal(result.outcome, 'COLLECTED');
+    assert.equal(result.text, prose(120));
+    assert.equal(result.title, title);
+    assert.equal(result.language, language);
+  });
+}
+
+test('an empty or blank page, or an empty body without article or main, is empty', async () => {
+  for (const body of ['', '   ', html('')]) {
+    const { result } = await collect({ '/page': route(body) });
+    assert.equal(result.code, 'CONTENT_EMPTY', JSON.stringify(body));
+    assert.equal(result.outcome, 'FAILED');
+  }
 });
 
 test('a page with too many nodes is not extracted', async () => {

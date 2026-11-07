@@ -8,7 +8,9 @@ const RESPONSE_RESERVE_MS = 5_000;
 const BLOCKING_CODES = new Set(['LOGIN_REQUIRED', 'PAYWALL', 'BOT_WALL', 'ACCESS_DENIED', 'ROBOTS_NOINDEX']);
 const TRANSIENT_NETWORK_CODES = new Set([
   'ECONNRESET', 'ECONNREFUSED', 'ECONNABORTED', 'EPIPE', 'ETIMEDOUT', 'EAI_AGAIN', 'EHOSTUNREACH', 'ENETUNREACH',
+  'ETIMEOUT', 'ESERVFAIL', 'EREFUSED',
 ]);
+const NOT_FOUND_HOST_CODES = new Set(['ENOTFOUND', 'ENODATA', 'EBADNAME']);
 const REQUEST_HEADERS = {
   accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.1',
   'accept-language': 'ko-KR,ko;q=0.9,en;q=0.8',
@@ -32,7 +34,7 @@ function fetchFailureCode(error, deadlineSignal) {
   if (error?.reason === 'TIMEOUT' || deadlineSignal.aborted) return 'FETCH_TIMEOUT';
   if (error?.reason === 'REDIRECTS') return 'TOO_MANY_REDIRECTS';
   if (error?.reason === 'DENIED') return 'TARGET_DENIED';
-  if (error?.code === 'ENOTFOUND') return 'UPSTREAM_NOT_FOUND';
+  if (NOT_FOUND_HOST_CODES.has(error?.code)) return 'UPSTREAM_NOT_FOUND';
   if (TRANSIENT_NETWORK_CODES.has(error?.code)) return 'FETCH_TIMEOUT';
   return 'EXTRACTION_FAILED';
 }

@@ -18,6 +18,8 @@ const STRIPPED = [
   '[role=navigation]', '[role=banner]', '[role=contentinfo]', '[role=complementary]',
 ].join(',');
 const BLOCKS = new Set(['P', 'DIV', 'LI', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'BLOCKQUOTE', 'PRE', 'TR', 'SECTION', 'ARTICLE']);
+const DOCUMENT_WRAPPERS = new Set(['HTML', 'HEAD', 'BODY']);
+const HEAD_ELEMENTS = new Set(['TITLE', 'META', 'LINK', 'BASE', 'STYLE']);
 // Bot challenge markers by where they count: challenge ids in the page source, the interstitial title, and "captcha" only
 // in the visible text (a reCAPTCHA script on a comment form is not a wall).
 const BOT_SOURCE_MARKERS = /cf-chl|challenge-form|cf-browser-verification/i;
@@ -246,6 +248,31 @@ function pageFacts(document, html, finalUrl) {
 
 // --- Extraction ------------------------------------------------------------------------------------------------------
 
+function hasBody(document) {
+  const root = document.documentElement;
+  if (root?.tagName !== 'HTML') return false;
+  const first = root.firstElementChild;
+  return first?.tagName === 'BODY' || (first?.tagName === 'HEAD' && first.nextElementSibling?.tagName === 'BODY');
+}
+
+function sortIntoParts(nodes, parts) {
+  for (const node of nodes) {
+    if (node.nodeType === 1 && DOCUMENT_WRAPPERS.has(node.tagName)) sortIntoParts(node.childNodes, parts);
+    else if (node.nodeType !== 10) parts[node.nodeType === 1 && HEAD_ELEMENTS.has(node.tagName) ? 'head' : 'body'].push(node.toString());
+  }
+  return parts;
+}
+
+function withBody(document) {
+  if (hasBody(document)) return document;
+  const { head, body } = sortIntoParts(document.childNodes, { head: [], body: [] });
+  const { document: rebuilt } = parseHTML(`<!doctype html><html><head>${head.join('')}</head><body>${body.join('')}</body></html>`);
+  for (const { name, value } of document.querySelector('html')?.attributes ?? []) {
+    rebuilt.documentElement.setAttribute(name, value);
+  }
+  return rebuilt;
+}
+
 // A <form> is unwrapped rather than removed: ASP.NET WebForms pages wrap the whole body in one. Its fields are already
 // removed above, and the password and paywall facts are read from the original document.
 function strippedCopy(document) {
@@ -257,16 +284,15 @@ function strippedCopy(document) {
 
 function readableText(document) {
   const copy = strippedCopy(document);
-  let article = null;
-  if (copy.querySelectorAll('*').length <= MAX_READABILITY_ELEMENTS) {
-    article = new Readability(copy, { charThreshold: 1 }).parse();
-  }
+  const isReadable = copy.querySelectorAll('*').length <= MAX_READABILITY_ELEMENTS;
+  const article = isReadable ? new Readability(copy, { charThreshold: 1 }).parse() : null;
   if (article?.content) {
     const { document: content } = parseHTML(`<!doctype html><html><body>${article.content}</body></html>`);
     return elementText(content.body);
   }
   const fallback = strippedCopy(document).querySelector('article, main');
-  return fallback ? elementText(fallback) : null;
+  if (fallback) return elementText(fallback);
+  return isReadable ? '' : null;
 }
 
 const sameText = (a, b) => a.replace(/\s+/g, ' ').trim().toLowerCase() === b.replace(/\s+/g, ' ').trim().toLowerCase();
@@ -278,8 +304,9 @@ function isNotice(text, titles) {
 
 // Turns decoded HTML into `{ code }` for a page that is not stored, or `{ text, isTextTruncated, meta }`.
 export function extractContent(html, { finalUrl }) {
-  const { document } = parseHTML(html);
-  if (document.querySelectorAll('*').length > MAX_ELEMENTS) return { code: 'EXTRACTION_FAILED' };
+  const { document: parsed } = parseHTML(html);
+  if (parsed.querySelectorAll('*').length > MAX_ELEMENTS) return { code: 'EXTRACTION_FAILED' };
+  const document = withBody(parsed);
   const facts = pageFacts(document, html, finalUrl);
   if (facts.isNoIndex) return { code: 'ROBOTS_NOINDEX' };
   if (facts.isPaywalled) return { code: 'PAYWALL' };

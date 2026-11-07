@@ -8,6 +8,9 @@ const MAX_REDIRECTS = 3;
 const REQUEST_TIMEOUT_MS = 5_000;
 const ALLOWED_REQUEST_HEADERS = ['accept', 'accept-language'];
 const ALLOWED_RESPONSE_HEADERS = ['content-type', 'content-encoding', 'x-robots-tag', 'retry-after'];
+const CLASSIFIED_LOOKUP_CODES = new Set(['ENOTFOUND', 'EAI_AGAIN']);
+const DNS_QUERY_TIMEOUT_MS = 2_000;
+const dnsResolver = new dns.Resolver({ timeout: DNS_QUERY_TIMEOUT_MS, tries: 1 });
 
 // `reason` lets callers classify a failure without parsing messages: TIMEOUT, REDIRECTS or DENIED.
 export class FetchError extends Error {
@@ -34,7 +37,20 @@ export function isPublicIp(address) {
   }
 }
 
-export async function validateTarget(input, resolveHost = (host) => dns.lookup(host, { all: true })) {
+export async function lookupHost(
+  host,
+  lookup = (name) => dns.lookup(name, { all: true }),
+  query = (name) => dnsResolver.resolve4(name),
+) {
+  try {
+    return await lookup(host);
+  } catch (error) {
+    if (error?.syscall !== 'getaddrinfo' || CLASSIFIED_LOOKUP_CODES.has(error.code)) throw error;
+    throw await query(host).then(() => error, (queryError) => queryError);
+  }
+}
+
+export async function validateTarget(input, resolveHost = lookupHost) {
   const url = input instanceof URL ? input : new URL(input);
   const port = url.port || (url.protocol === 'https:' ? '443' : '80');
   if (!['http:', 'https:'].includes(url.protocol) || !['80', '443'].includes(port)) {
