@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import http from 'node:http';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
-import { fetchSafe, isPublicIp, parseRetryAfter, readOnce, UpstreamStatusError, validateTarget } from '../src/network.mjs';
+import { fetchSafe, isPublicIp, lookupHost, parseRetryAfter, readOnce, UpstreamStatusError, validateTarget } from '../src/network.mjs';
 import { parsePage } from '../src/metadata.mjs';
 import { prepareImage } from '../src/image.mjs';
 import { faviconHash, findObject, objectKey, previewHash, putImage } from '../src/cache.mjs';
@@ -68,6 +68,29 @@ test('private addresses, mixed DNS answers and prohibited ports are denied', asy
   await assert.rejects(validateTarget('http://127.1/'));
   await assert.rejects(validateTarget('https://example.com:8443/', async () => [{ address: '8.8.8.8', family: 4 }]));
   await assert.rejects(validateTarget('https://example.com/', async () => [{ address: '8.8.8.8', family: 4 }, { address: '10.0.0.1', family: 4 }]));
+});
+
+const dnsError = (code, syscall) => Object.assign(new Error(`${syscall} ${code}`), { code, syscall });
+
+test('a lookup failure without a known cause is classified by asking DNS directly', async () => {
+  const busy = dnsError('EBUSY', 'getaddrinfo');
+  const lookup = async () => { throw busy; };
+  for (const code of ['ENOTFOUND', 'ENODATA', 'ETIMEOUT']) {
+    const answer = dnsError(code, 'queryA');
+    await assert.rejects(lookupHost('missing.example', lookup, async () => { throw answer; }), (error) => error === answer);
+  }
+  await assert.rejects(lookupHost('missing.example', lookup, async () => ['8.8.8.8']), (error) => error === busy);
+});
+
+test('a lookup that succeeds or fails with a known cause does not ask DNS again', async () => {
+  let queried = false;
+  const query = async () => { queried = true; return []; };
+  for (const code of ['ENOTFOUND', 'EAI_AGAIN']) {
+    const known = dnsError(code, 'getaddrinfo');
+    await assert.rejects(lookupHost('missing.example', async () => { throw known; }, query), (error) => error === known);
+  }
+  assert.deepEqual(await lookupHost('public.example', async () => [{ address: '8.8.8.8', family: 4 }], query), [{ address: '8.8.8.8', family: 4 }]);
+  assert.equal(queried, false);
 });
 
 test('redirect destination is checked before another request', async () => {

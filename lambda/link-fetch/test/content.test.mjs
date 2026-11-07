@@ -1,8 +1,9 @@
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createContentHandler, deadlineFor } from '../src/content-handler.mjs';
 import { decodeHtml, elementText, isRobotsHeaderDenied, normalizeText } from '../src/content-extract.mjs';
-import { fetchSafe, readOnce } from '../src/network.mjs';
+import { fetchSafe, lookupHost, readOnce } from '../src/network.mjs';
 import { localTarget, withServer } from './support.mjs';
 import { parseHTML } from 'linkedom';
 
@@ -234,6 +235,38 @@ test('a redirect to a private address is denied before it is requested', async (
   assert.ok(entries.some((entry) => entry.event === 'LINK_CONTENT_EXTERNAL' && entry.host === 'private.example' && entry.status === 'BLOCKED'));
 });
 
+const dnsError = (code, syscall) => Object.assign(new Error(`${syscall} ${code}`), { code, syscall });
+const failing = (code, syscall) => async () => { throw dnsError(code, syscall); };
+
+test('a host that does not exist is not found, even when getaddrinfo hides the cause', async () => {
+  const cases = [
+    [failing('ENOTFOUND', 'getaddrinfo'), null],
+    [failing('EBUSY', 'getaddrinfo'), failing('ENOTFOUND', 'queryA')],
+    [failing('EBUSY', 'getaddrinfo'), failing('ENODATA', 'queryA')],
+    [failing('EBUSY', 'getaddrinfo'), failing('EBADNAME', 'queryA')],
+  ];
+  for (const [lookup, query] of cases) {
+    const { result, entries } = await collect({}, { resolveHost: (host) => lookupHost(host, lookup, query) });
+    assert.equal(result.code, 'UPSTREAM_NOT_FOUND');
+    assert.equal(result.outcome, 'FAILED');
+    assert.ok(entries.some((entry) => entry.event === 'LINK_CONTENT_EXTERNAL' && entry.status === 'FAILED'));
+  }
+});
+
+test('a DNS server that does not answer is a timeout, even when getaddrinfo hides the cause', async () => {
+  const cases = [
+    [failing('EAI_AGAIN', 'getaddrinfo'), null],
+    [failing('EBUSY', 'getaddrinfo'), failing('ETIMEOUT', 'queryA')],
+    [failing('EBUSY', 'getaddrinfo'), failing('ESERVFAIL', 'queryA')],
+    [failing('EBUSY', 'getaddrinfo'), failing('EREFUSED', 'queryA')],
+  ];
+  for (const [lookup, query] of cases) {
+    const { result } = await collect({}, { resolveHost: (host) => lookupHost(host, lookup, query) });
+    assert.equal(result.code, 'FETCH_TIMEOUT');
+    assert.equal(result.outcome, 'FAILED');
+  }
+});
+
 test('too many redirects fail with their own code', async () => {
   const routes = { '/page': (_request, response) => { response.statusCode = 302; response.setHeader('location', '/page'); response.end(); } };
   const { result } = await collect(routes);
@@ -328,6 +361,31 @@ test('a page with no text is empty', async () => {
   assert.equal(result.code, 'CONTENT_EMPTY');
 });
 
+const omitted = {
+  'no <html>, <head> or <body>': [`<!doctype html><title>에이링크 소개</title><p>${prose(120)}</p>`, '에이링크 소개', null],
+  'an <html> without <head> or <body>': [`<html lang="ko"><title>에이링크 소개</title><p>${prose(120)}</p></html>`, '에이링크 소개', 'ko'],
+  'an <html> after a <meta>': [`<!doctype html><meta charset="utf-8"><html lang="ko"><head><title>에이링크 소개</title></head><body><p>${prose(120)}</p></body></html>`, '에이링크 소개', 'ko'],
+  '<head> and <body> without <html>': [`<head><title>에이링크 소개</title></head><body><p>${prose(120)}</p></body>`, '에이링크 소개', null],
+  'text with no tags': [prose(120), null, null],
+};
+for (const [name, [body, title, language]] of Object.entries(omitted)) {
+  test(`a page with ${name} is extracted with its title and language`, async () => {
+    const { result } = await collect({ '/page': route(body) });
+    assert.equal(result.outcome, 'COLLECTED');
+    assert.equal(result.text, prose(120));
+    assert.equal(result.title, title);
+    assert.equal(result.language, language);
+  });
+}
+
+test('an empty or blank page, or an empty body without article or main, is empty', async () => {
+  for (const body of ['', '   ', html('')]) {
+    const { result } = await collect({ '/page': route(body) });
+    assert.equal(result.code, 'CONTENT_EMPTY', JSON.stringify(body));
+    assert.equal(result.outcome, 'FAILED');
+  }
+});
+
 test('a page with too many nodes is not extracted', async () => {
   const { result } = await collect(page(`<p>${prose(300)}</p>${'<i></i>'.repeat(200_001)}`));
   assert.equal(result.code, 'EXTRACTION_FAILED');
@@ -360,6 +418,130 @@ test('an unexpected error is an extraction failure', async () => {
   });
   const result = await handler({ url: 'https://example.com/' }, LONG_CONTEXT);
   assert.equal(result.code, 'EXTRACTION_FAILED');
+});
+
+const fixture = (name) => readFileSync(new URL(`./fixtures/content/${name}.html`, import.meta.url), 'utf8');
+const fixtureStarts = {
+  'en-wikipedia-redirect': 'In the context of the World Wide Web, a bookmark',
+  'en-wikipedia-hatnote': 'In mathematics, a percentage',
+  'en-wikipedia-figure': 'Typography is the art',
+  'en-wikipedia-infobox': 'The axolotl',
+  'en-wikipedia-stub': 'Alzoniella edmundi is a species of spring snail',
+  'ko-wikipedia-infobox': '김치는 한국의 전통 발효식품이다.',
+  'ko-wikipedia-hatnote': '비빔은 한국의 밥 요리이다.',
+  'python-docs-source-link': 'The so-called CSV',
+  'blog-prose': 'Go has the usual mechanisms for control flow',
+};
+for (const [name, start] of Object.entries(fixtureStarts)) {
+  test(`the ${name} sample starts at its first prose paragraph`, async () => {
+    const { result } = await collect({ '/page': route(fixture(name)) });
+    assert.equal(result.outcome, 'COLLECTED');
+    assert.ok(result.text.startsWith(start), result.text.slice(0, 120));
+  });
+}
+
+test('a Korean Wikipedia hatnote never reaches the text', async () => {
+  const { result } = await collect({ '/page': route(fixture('ko-wikipedia-hatnote')) });
+  assert.ok(!result.text.includes('문서를 참고하십시오'));
+});
+
+test('a soft 404 page served with 200 is not content', async () => {
+  const { result } = await collect({ '/page': route(fixture('soft-404')) });
+  assert.equal(result.code, 'NOT_CONTENT');
+  assert.equal(result.outcome, 'FAILED');
+  assert.equal(result.upstreamStatus, 200);
+});
+
+const lead = '에이링크는 저장한 링크의 본문을 모아서 나중에 다시 찾기 쉽게 해 준다.';
+const next = '발췌는 이 문단에서 시작하고, 뒤에 오는 표와 목록은 본문에 그대로 남는다.';
+
+test('labels, tables and figures before the first prose paragraph are dropped, and what follows it stays', async () => {
+  const body = `<article><h2>소개</h2><p>2024년 3월 1일</p>
+    <table><tr><th>종류</th><td><p>정보상자 칸 안에 들어 있는 문장이다.</p></td></tr></table>
+    <figure><img alt=""><figcaption><p>그림 아래에 붙는 설명 문장이 여기에 길게 이어진다.</p></figcaption></figure>
+    <p>${lead}</p><ul><li>뒤에 오는 목록 항목</li></ul><p>${next}</p><dl><dt>용어</dt><dd>용어의 뜻</dd></dl>
+    <table><tr><th>원산지</th><td>한국</td></tr><tr><th>주요 재료</th><td>채소, 소금</td></tr></table></article>`;
+  const { result } = await collect(page(body));
+  assert.ok(result.text.startsWith(lead), result.text);
+  for (const dropped of ['소개', '2024년', '정보상자', '그림 아래']) assert.ok(!result.text.includes(dropped), dropped);
+  assert.ok(result.text.includes('뒤에 오는 목록 항목'));
+  assert.ok(result.text.includes('용어\n\n용어의 뜻'), result.text);
+  assert.ok(result.text.includes('원산지 한국'), result.text);
+  assert.ok(result.text.includes('주요 재료 채소, 소금'), result.text);
+});
+
+test('dropping stops at the first block before the prose paragraph that is not a label', async () => {
+  const list = '<ul><li>밀가루 200그램</li><li>달걀 두 개</li><li>우유 300밀리리터</li></ul>';
+  const listed = await collect(page(`<article><h2>재료</h2>${list}<p>${lead}</p></article>`));
+  assert.ok(listed.result.text.startsWith('밀가루 200그램'), listed.result.text);
+  const result = '24일 전적(수원 kt 소닉붐 아레나) 수원 kt 77(20-18 15-17 22-19 20-17)71 고양 소노';
+  const scored = await collect(page(`<article><div>${result}</div><p>${lead}</p></article>`));
+  assert.ok(scored.result.text.startsWith(result), scored.result.text);
+  const coded = await collect(page(`<article><h2>Syntax</h2><pre>map(callbackFn)</pre><p>${lead}</p></article>`));
+  assert.ok(coded.result.text.startsWith('map(callbackFn)'), coded.result.text);
+});
+
+test('without a prose paragraph nothing is dropped', async () => {
+  const noParagraph = await collect(page(`<main><h1>안내</h1><div>${prose(220)}</div></main>`));
+  assert.equal(noParagraph.result.text, `안내\n\n${prose(220)}`);
+  const noProse = await collect(page(`<main><p>짧은 줄</p><p>${prose(220)}</p></main>`));
+  assert.equal(noProse.result.text, `짧은 줄\n\n${prose(220)}`);
+});
+
+test('when Readability is skipped, the main element also starts at its first prose paragraph', async () => {
+  const crowd = `<div>${'<span></span>'.repeat(100_001)}</div>`;
+  const { result } = await collect(page(`${crowd}<main><table><tr><td>정보상자</td></tr></table><p>${lead}</p></main>`));
+  assert.equal(result.text, lead);
+});
+
+test('a first paragraph of 20 characters ending a sentence is prose, and one of 19 is not', async () => {
+  const twenty = '가나다라마바사아자차카타파하가나다라마.';
+  const nineteen = '가나다라마바사아자차카타파하가나다라.';
+  assert.equal(twenty.length, 20);
+  const kept = await collect(page(`<article><p>${twenty}</p><p>${lead}</p><p>${next}</p></article>`));
+  assert.ok(kept.result.text.startsWith(twenty), kept.result.text);
+  const dropped = await collect(page(`<article><p>${nineteen}</p><p>${lead}</p><p>${next}</p></article>`));
+  assert.ok(dropped.result.text.startsWith(lead), dropped.result.text);
+});
+
+test('a sentence that ends with a colon or with footnote marks is prose', async () => {
+  const colon = 'To make a request, pass in:';
+  const listed = await collect(page(`<article><h2>Making a request</h2><p>${colon}</p><ul><li>a resource</li></ul><p>${lead}</p></article>`));
+  assert.ok(listed.result.text.startsWith(colon), listed.result.text);
+  const cited = 'Douglas Sosnik is an American political strategist.[1][2]';
+  const noted = await collect(page(`<article><p>From the free encyclopedia</p><p>${cited}</p><p>${lead}</p></article>`));
+  assert.ok(noted.result.text.startsWith(cited), noted.result.text);
+});
+
+test('notes and hatnotes are dropped wherever they are', async () => {
+  const body = `<article><p>${lead}</p><div role="note">Main article: Something else entirely.</div>
+    <p>${next}</p><div class="hatnote">다른 뜻에 대해서는 다른 문서를 참고하십시오.</div><p>${lead}</p></article>`;
+  const { result } = await collect(page(body));
+  assert.ok(!result.text.includes('Main article'), result.text);
+  assert.ok(!result.text.includes('참고하십시오'), result.text);
+});
+
+test('a short page that says it is missing before or after its labels is not content, under a plain title', async () => {
+  const before = '<div><div>요청하신 페이지를 찾을 수 없습니다</div><p>현재 주소가 정확한지 다시 한번 확인해 주시기 바랍니다.</p><p>Copyright ⓒ Example. All rights Reserved.</p></div>';
+  const missing = await collect(page(before, '<title>예스24</title>'));
+  assert.equal(missing.result.code, 'NOT_CONTENT');
+  const after = '<div><h2>알림</h2><p>페이지가 존재하지 않거나, 현재 사용할 수 없는 페이지입니다.</p><p>홈 화면 바로가기</p></div>';
+  const removed = await collect(page(after, '<title> | 연합뉴스</title>'));
+  assert.equal(removed.result.code, 'NOT_CONTENT');
+});
+
+test('a short real page that mentions a missing file or command is content, whatever its title', async () => {
+  const memo = '<article><p>배포 뒤에 캐시를 비우는 순서를 정리했다.</p><p>이전 파일을 찾을 수 없다는 오류가 날 때 쓴다.</p></article>';
+  const cached = await collect(page(memo, '<title>캐시 비우기 메모</title>'));
+  assert.equal(cached.result.outcome, 'COLLECTED');
+  const issue = '<article><p>zsh: command not found: example-bot, how do i fix this</p><p>I ran the install script first</p></article>';
+  const asked = await collect(page(issue, '<title>Command not found · Issue #15</title>'));
+  assert.equal(asked.result.outcome, 'COLLECTED');
+});
+
+test('a page of 200 characters or more is content even under a 404 title', async () => {
+  const { result } = await collect(page(`<article><p>${prose(220)}.</p></article>`, '<title>404 Not Found</title>'));
+  assert.equal(result.outcome, 'COLLECTED');
 });
 
 test('logs carry the outcome without the body, headers, path or query', async () => {

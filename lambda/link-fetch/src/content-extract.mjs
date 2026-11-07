@@ -15,9 +15,21 @@ const KOREAN_ALIASES = new Set(['cp949', 'ms949', 'ks_c_5601-1987', 'ks_c_5601-1
 const STRIPPED = [
   'script', 'style', 'noscript', 'template', 'iframe', 'svg', 'canvas', 'input', 'textarea', 'select', 'button',
   '[aria-hidden=true]', 'nav', 'footer', 'aside',
-  '[role=navigation]', '[role=banner]', '[role=contentinfo]', '[role=complementary]',
+  '[role=navigation]', '[role=banner]', '[role=contentinfo]', '[role=complementary]', '[role=note]', '.hatnote',
 ].join(',');
-const BLOCKS = new Set(['P', 'DIV', 'LI', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'BLOCKQUOTE', 'PRE', 'TR', 'SECTION', 'ARTICLE']);
+const BLOCKS = new Set([
+  'P', 'DIV', 'LI', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'BLOCKQUOTE', 'PRE', 'TR', 'SECTION', 'ARTICLE',
+  'UL', 'OL', 'DL', 'DT', 'DD', 'TABLE', 'CAPTION', 'FIGURE', 'FIGCAPTION', 'HEADER', 'MAIN', 'ADDRESS', 'HR',
+]);
+const CELLS = new Set(['TD', 'TH']);
+const PROSE_MIN_LENGTH = 20;
+const SENTENCE_END = /[.!?。！？]["'”’)\]]*(\[[^\]]{1,12}\])*(\s|$)|[:：]$/;
+const LABEL_MAX_LENGTH = 40;
+const LEADING_CHROME = new Set(['TABLE', 'FIGURE', 'FIGCAPTION', 'CAPTION', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'HR', 'IMG', 'PICTURE']);
+const LEADING_WRAPPERS = new Set(['DIV', 'SECTION', 'ARTICLE', 'HEADER', 'MAIN', 'SPAN']);
+const LEADING_CONTENT = new Set(['UL', 'OL', 'DL', 'PRE', 'BLOCKQUOTE']);
+const DOCUMENT_WRAPPERS = new Set(['HTML', 'HEAD', 'BODY']);
+const HEAD_ELEMENTS = new Set(['TITLE', 'META', 'LINK', 'BASE', 'STYLE']);
 // Bot challenge markers by where they count: challenge ids in the page source, the interstitial title, and "captcha" only
 // in the visible text (a reCAPTCHA script on a comment form is not a wall).
 const BOT_SOURCE_MARKERS = /cf-chl|challenge-form|cf-browser-verification/i;
@@ -26,6 +38,7 @@ const BOT_TEXT_MARKERS = /captcha/i;
 // A short text is not content when every line is one of these notices: soft 404, loading shell, cookie consent,
 // region restriction. Tuned with sample pages.
 const NOTICE_PATTERNS = /찾을 수 없|존재하지 않|not found|404|page unavailable|loading|잠시만 기다|redirect|access denied|not available in your|이용할 수 없는 지역|쿠키|cookie|동의/i;
+const MISSING_PAGE_PATTERNS = /(페이지|문서|게시물|게시글|글|상품|주소)(을|를|이|가|은|는)? ?(찾을 수 없|존재하지 않)|(없는|삭제된) (페이지|게시물|게시글|글|상품)|page (not found|unavailable|does not exist|doesn't exist|no longer exists|is no longer available)|^404\b|\b404 (error|not found)|\berror 404\b/i;
 const ROBOTS_DENY = /\b(noindex|noarchive)\b/i;
 // Directives that carry their own `name: value`, so their name is not a user-agent prefix.
 const VALUED_ROBOTS_DIRECTIVES = new Set(['unavailable_after', 'max-snippet', 'max-image-preview', 'max-video-preview']);
@@ -92,8 +105,11 @@ function collectText(node, parts, inPre) {
         continue;
       }
       const block = BLOCKS.has(tag);
+      const cell = CELLS.has(tag);
       if (block) parts.push('\n\n');
+      if (cell) parts.push(' ');
       collectText(child, parts, inPre || tag === 'PRE');
+      if (cell) parts.push(' ');
       if (block) parts.push('\n\n');
     }
   }
@@ -246,6 +262,31 @@ function pageFacts(document, html, finalUrl) {
 
 // --- Extraction ------------------------------------------------------------------------------------------------------
 
+function hasBody(document) {
+  const root = document.documentElement;
+  if (root?.tagName !== 'HTML') return false;
+  const first = root.firstElementChild;
+  return first?.tagName === 'BODY' || (first?.tagName === 'HEAD' && first.nextElementSibling?.tagName === 'BODY');
+}
+
+function sortIntoParts(nodes, parts) {
+  for (const node of nodes) {
+    if (node.nodeType === 1 && DOCUMENT_WRAPPERS.has(node.tagName)) sortIntoParts(node.childNodes, parts);
+    else if (node.nodeType !== 10) parts[node.nodeType === 1 && HEAD_ELEMENTS.has(node.tagName) ? 'head' : 'body'].push(node.toString());
+  }
+  return parts;
+}
+
+function withBody(document) {
+  if (hasBody(document)) return document;
+  const { head, body } = sortIntoParts(document.childNodes, { head: [], body: [] });
+  const { document: rebuilt } = parseHTML(`<!doctype html><html><head>${head.join('')}</head><body>${body.join('')}</body></html>`);
+  for (const { name, value } of document.querySelector('html')?.attributes ?? []) {
+    rebuilt.documentElement.setAttribute(name, value);
+  }
+  return rebuilt;
+}
+
 // A <form> is unwrapped rather than removed: ASP.NET WebForms pages wrap the whole body in one. Its fields are already
 // removed above, and the password and paywall facts are read from the original document.
 function strippedCopy(document) {
@@ -255,43 +296,79 @@ function strippedCopy(document) {
   return copy;
 }
 
-function readableText(document) {
+const squashed = (node) => node.textContent.replace(/\s+/g, ' ').trim();
+
+const isSentence = (text) => text.length >= PROSE_MIN_LENGTH && SENTENCE_END.test(text);
+
+const isProse = (paragraph) => isSentence(squashed(paragraph)) && paragraph.closest('table, figure') == null;
+
+function isLabel(node) {
+  const text = squashed(node);
+  if (text === '' || (node.nodeType === 1 && LEADING_CHROME.has(node.tagName))) return true;
+  if (node.nodeType === 1 && LEADING_CONTENT.has(node.tagName)) return false;
+  return text.length <= LABEL_MAX_LENGTH && !isSentence(text);
+}
+
+function dropLabels(node) {
+  if (isLabel(node)) {
+    node.remove();
+    return true;
+  }
+  if (node.nodeType !== 1 || !LEADING_WRAPPERS.has(node.tagName)) return false;
+  return [...node.childNodes].every(dropLabels);
+}
+
+function fromFirstProse(root) {
+  const chain = [];
+  for (let node = [...root.querySelectorAll('p')].find(isProse); node && node !== root; node = node.parentNode) {
+    chain.unshift(node);
+  }
+  for (const node of chain) {
+    const leading = [];
+    for (let sibling = node.previousSibling; sibling; sibling = sibling.previousSibling) leading.unshift(sibling);
+    if (!leading.every(dropLabels)) return root;
+  }
+  return root;
+}
+
+const emptyBody = () => parseHTML('<!doctype html><html><body></body></html>').document.body;
+
+function readableRoot(document) {
   const copy = strippedCopy(document);
-  let article = null;
-  if (copy.querySelectorAll('*').length <= MAX_READABILITY_ELEMENTS) {
-    article = new Readability(copy, { charThreshold: 1 }).parse();
-  }
+  const isReadable = copy.querySelectorAll('*').length <= MAX_READABILITY_ELEMENTS;
+  const article = isReadable ? new Readability(copy, { charThreshold: 1 }).parse() : null;
   if (article?.content) {
-    const { document: content } = parseHTML(`<!doctype html><html><body>${article.content}</body></html>`);
-    return elementText(content.body);
+    return parseHTML(`<!doctype html><html><body>${article.content}</body></html>`).document.body;
   }
-  const fallback = strippedCopy(document).querySelector('article, main');
-  return fallback ? elementText(fallback) : null;
+  return strippedCopy(document).querySelector('article, main') ?? (isReadable ? emptyBody() : null);
 }
 
 const sameText = (a, b) => a.replace(/\s+/g, ' ').trim().toLowerCase() === b.replace(/\s+/g, ' ').trim().toLowerCase();
 
-function isNotice(text, titles) {
+function isNotice(text, titles, leadLine) {
   if (titles.some((title) => sameText(text, title))) return true;
+  if ([leadLine, text.split('\n')[0]].some((line) => MISSING_PAGE_PATTERNS.test(line))) return true;
   return text.split('\n').filter(Boolean).every((line) => NOTICE_PATTERNS.test(line));
 }
 
 // Turns decoded HTML into `{ code }` for a page that is not stored, or `{ text, isTextTruncated, meta }`.
 export function extractContent(html, { finalUrl }) {
-  const { document } = parseHTML(html);
-  if (document.querySelectorAll('*').length > MAX_ELEMENTS) return { code: 'EXTRACTION_FAILED' };
+  const { document: parsed } = parseHTML(html);
+  if (parsed.querySelectorAll('*').length > MAX_ELEMENTS) return { code: 'EXTRACTION_FAILED' };
+  const document = withBody(parsed);
   const facts = pageFacts(document, html, finalUrl);
   if (facts.isNoIndex) return { code: 'ROBOTS_NOINDEX' };
   if (facts.isPaywalled) return { code: 'PAYWALL' };
 
-  const raw = readableText(document);
-  if (raw == null) return { code: 'EXTRACTION_FAILED' };
-  const text = normalizeText(raw);
+  const root = readableRoot(document);
+  if (root == null) return { code: 'EXTRACTION_FAILED' };
+  const leadLine = normalizeText(elementText(root)).split('\n')[0];
+  const text = normalizeText(elementText(fromFirstProse(root)));
   if (text === '') return { code: 'CONTENT_EMPTY' };
   if (text.length < SHORT_TEXT_LENGTH) {
     if (facts.hasPassword) return { code: 'LOGIN_REQUIRED' };
     if (facts.hasBotMarker || BOT_TEXT_MARKERS.test(text)) return { code: 'BOT_WALL' };
-    if (isNotice(text, facts.titles)) return { code: 'NOT_CONTENT' };
+    if (isNotice(text, facts.titles, leadLine)) return { code: 'NOT_CONTENT' };
   }
   const cut = cutKeepingSurrogates(text, MAX_TEXT_LENGTH);
   return { text: cut, isTextTruncated: cut.length < text.length, meta: facts.meta };
